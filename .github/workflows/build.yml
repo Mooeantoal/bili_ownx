@@ -1,0 +1,59 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: 设置 Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0' # 可以改为 'stable' 使用最新稳定版
+        channel: 'stable'
+        
+    - name: 获取依赖
+      run: flutter pub get
+      
+    - name: 构建 APK (Debug)
+      run: flutter build apk --debug
+      
+    - name: 上传 APK 为 Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: bili-ownx-debug-${{ github.sha }}
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 30
+        
+    - name: 创建 Release（仅当推送到主分支时）
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: debug-${{ github.run_number }}
+        name: Debug Build ${{ github.run_number }}
+        body: |
+          自动构建的 Debug 版本
+          
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Build Time: ${{ github.event.head_commit.timestamp }}
+        files: build/app/outputs/flutter-apk/app-debug.apk
+        draft: false
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
