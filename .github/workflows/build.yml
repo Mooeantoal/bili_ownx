@@ -24,7 +24,7 @@ jobs:
     - name: 设置 Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0' # 可以改为 'stable' 使用最新稳定版
+        flutter-version: 'stable' # 使用最新稳定版（兼容 Dart 3.5.0+）
         channel: 'stable'
         
     - name: 获取依赖
