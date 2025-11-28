@@ -36,9 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.4.0
   crypto: ^3.0.3
-  media_kit: ^1.0.0
-  media_kit_video: ^1.0.0
-  media_kit_libs_android_video: ^1.0.0
+  video_player: ^2.7.0
+  chewie: ^1.7.0
   permission_handler: ^11.0.1
   path_provider: ^2.1.2
   shared_preferences: ^2.2.2
