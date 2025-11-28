@@ -24,7 +24,7 @@ jobs:
     - name: 设置 Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.13.3' # 包含 Dart 3.1.1
+        flutter-version: '3.19.0' # 升级到较新版本以解决 embedding 问题
         channel: 'stable'
         
     - name: 验证 Dart 版本
