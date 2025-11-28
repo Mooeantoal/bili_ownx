@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import '../api/video_api.dart';
 import '../models/video_info.dart';
 import '../services/play_history_service.dart';
@@ -21,8 +21,8 @@ class PlayerPage extends StatefulWidget {
 }
 
 class _PlayerPageState extends State<PlayerPage> {
-  late final Player player;
-  late final VideoController controller;
+  VideoPlayerController? _videoPlayerController;
+  ChewieController? _chewieController;
   
   VideoInfo? _videoInfo;
   bool _isLoading = true;
@@ -43,14 +43,13 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
-    player = Player();
-    controller = VideoController(player);
     _loadVideoInfo();
   }
 
   @override
   void dispose() {
-    player.dispose();
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
     super.dispose();
   }
 
@@ -86,6 +85,12 @@ class _PlayerPageState extends State<PlayerPage> {
 
   /// 加载播放地址
   Future<void> _loadPlayUrl(int cid) async {
+    // 释放旧控制器
+    _chewieController?.dispose();
+    _videoPlayerController?.dispose();
+    _chewieController = null;
+    _videoPlayerController = null;
+
     try {
       final response = await VideoApi.getPlayUrl(
         bvid: widget.bvid,
@@ -97,32 +102,55 @@ class _PlayerPageState extends State<PlayerPage> {
         final data = response['data'];
         String? videoUrl;
 
-        // 优先使用 DASH 格式
-        if (data['dash'] != null) {
-          final video = data['dash']['video'];
-          if (video != null && video is List && video.isNotEmpty) {
-            videoUrl = video[0]['baseUrl'] ?? video[0]['base_url'];
-          }
-        }
-        // 降级到 durl 格式
-        else if (data['durl'] != null) {
+        // 优先使用 durl 格式 (video_player 对 DASH 支持有限，优先用 MP4/FLV)
+        if (data['durl'] != null) {
           final durl = data['durl'];
           if (durl is List && durl.isNotEmpty) {
             videoUrl = durl[0]['url'];
           }
         }
+        // 降级到 DASH 格式 (可能需要额外配置)
+        else if (data['dash'] != null) {
+          final video = data['dash']['video'];
+          if (video != null && video is List && video.isNotEmpty) {
+            videoUrl = video[0]['baseUrl'] ?? video[0]['base_url'];
+          }
+        }
 
         if (videoUrl != null) {
-          await player.open(
-            Media(videoUrl),
-            play: true,
+          // 初始化播放器
+          _videoPlayerController = VideoPlayerController.networkUrl(
+            Uri.parse(videoUrl),
+            httpHeaders: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Referer': 'https://www.bilibili.com',
+            },
           );
-          
+
+          await _videoPlayerController!.initialize();
+
           // 恢复播放进度
           final savedPosition = await PlayHistoryService.getPosition(widget.bvid);
           if (savedPosition != null && savedPosition > 0) {
-            await player.seek(Duration(seconds: savedPosition));
+            await _videoPlayerController!.seekTo(Duration(seconds: savedPosition));
           }
+
+          _chewieController = ChewieController(
+            videoPlayerController: _videoPlayerController!,
+            autoPlay: true,
+            looping: false,
+            aspectRatio: _videoPlayerController!.value.aspectRatio,
+            errorBuilder: (context, errorMessage) {
+              return Center(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            },
+          );
+          
+          setState(() {});
           
           // 监听播放位置以保存历史
           _setupPlaybackListener();
@@ -145,10 +173,13 @@ class _PlayerPageState extends State<PlayerPage> {
 
   /// 设置播放监听器
   void _setupPlaybackListener() {
+    if (_videoPlayerController == null) return;
+    
     // 每30秒保存一次播放进度
-    player.stream.position.listen((position) async {
-      if (_videoInfo == null) return;
+    _videoPlayerController!.addListener(() async {
+      if (_videoInfo == null || !_videoPlayerController!.value.isInitialized) return;
       
+      final position = _videoPlayerController!.value.position;
       final positionSeconds = position.inSeconds;
       
       // 每30秒或播放进度变化较大时保存
@@ -171,6 +202,10 @@ class _PlayerPageState extends State<PlayerPage> {
     setState(() {
       _currentPartIndex = index;
       _isLoading = true;
+      _chewieController?.dispose();
+      _videoPlayerController?.dispose();
+      _chewieController = null;
+      _videoPlayerController = null;
     });
 
     await _loadPlayUrl(_videoInfo!.parts[index].cid);
@@ -251,10 +286,9 @@ class _PlayerPageState extends State<PlayerPage> {
         // 视频播放器
         AspectRatio(
           aspectRatio: 16 / 9,
-          child: Video(
-            controller: controller,
-            controls: MaterialVideoControls,
-          ),
+          child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
+              ? Chewie(controller: _chewieController!)
+              : const Center(child: CircularProgressIndicator()),
         ),
         
         // 视频信息
