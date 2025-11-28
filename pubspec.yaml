@@ -96,3 +96,6 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
 
+
+dependency_overrides:
+  package_info_plus: ^5.0.0
