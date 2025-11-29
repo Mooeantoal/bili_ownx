@@ -9,7 +9,6 @@
     <application
         android:name=".FlutterApplication"
         android:label="bili_ownx"
-        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
