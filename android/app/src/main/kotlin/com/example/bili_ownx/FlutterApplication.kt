@@ -2,7 +2,7 @@ package com.example.bili_ownx
 
 import io.flutter.app.FlutterApplication
 
-class FlutterApplication : FlutterApplication() {
+class MyFlutterApplication : FlutterApplication() {
     override fun onCreate() {
         super.onCreate()
     }
