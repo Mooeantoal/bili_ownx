@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     
     <application
+        android:name=".FlutterApplication"
         android:label="bili_ownx"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
