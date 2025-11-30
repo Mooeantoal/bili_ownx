@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'api_helper.dart';
 
 /// 搜索相关 API
@@ -6,12 +7,11 @@ class SearchApi {
   static final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
-    headers: {
+    headers: kIsWeb ? {} : {
+      // Web 平台浏览器会拒绝这些请求头，仅在移动平台使用
       'User-Agent': 'Mozilla/5.0 BiliDroid/7.60.0 (bbcallen@gmail.com) os/android model/Mi 10 mobi_app/android build/7600300 channel/master innerVer/7600310 osVer/13 network/2',
       'Referer': 'https://www.bilibili.com',
       'Accept': 'application/json, text/plain, */*',
-      'Accept-Encoding': 'gzip, deflate',
-      'Connection': 'keep-alive',
     },
   ));
   
