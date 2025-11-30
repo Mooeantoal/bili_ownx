@@ -46,17 +46,41 @@ class _SearchPageState extends State<SearchPage> {
       final response = await SearchApi.searchArchive(keyword: keyword);
       
       if (response['code'] == 0 && response['data'] != null) {
-        final items = response['data']['items'] as List?;
+        final data = response['data'];
+        List? videoList;
         
-        if (items != null) {
+        // Bilibili API 返回的数据结构可能不同，需要判断
+        if (data is Map<String, dynamic>) {
+          // 检查是否有 items 字段
+          if (data['items'] != null) {
+            if (data['items'] is List) {
+              videoList = data['items'] as List;
+            } else if (data['items'] is Map) {
+              // 如果 items 是 Map，尝试从 video 字段提取
+              final itemsMap = data['items'] as Map<String, dynamic>;
+              videoList = itemsMap['video'] as List?;
+            }
+          }
+          // 尝试直接获取 result 字段（部分搜索API返回结构）
+          else if (data['result'] != null) {
+            videoList = data['result'] as List?;
+          }
+        }
+        
+        if (videoList != null && videoList.isNotEmpty) {
           // 保存搜索历史
           await SearchHistoryService.addHistory(keyword);
           await _loadSearchHistory();
           
           setState(() {
-            _searchResults = items
+            _searchResults = videoList!
                 .map((item) => VideoSearchResult.fromJson(item))
                 .toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = '未找到相关视频';
             _isLoading = false;
           });
         }
