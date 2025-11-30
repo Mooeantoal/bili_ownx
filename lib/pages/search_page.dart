@@ -45,29 +45,47 @@ class _SearchPageState extends State<SearchPage> {
     try {
       final response = await SearchApi.searchArchive(keyword: keyword);
       
+      // 调试：打印完整响应
+      print('=== 搜索 API 响应 ===');
+      print('状态码: ${response['code']}');
+      print('消息: ${response['message']}');
+      print('完整数据: ${response['data']}');
+      
       if (response['code'] == 0 && response['data'] != null) {
         final data = response['data'];
         List? videoList;
         
         // Bilibili API 返回的数据结构可能不同，需要判断
         if (data is Map<String, dynamic>) {
+          print('data 是 Map 类型');
+          print('data 的所有键: ${data.keys.toList()}');
+          
           // 检查是否有 items 字段
           if (data['items'] != null) {
+            print('找到 items 字段，类型: ${data['items'].runtimeType}');
             if (data['items'] is List) {
               videoList = data['items'] as List;
+              print('items 是 List，长度: ${videoList.length}');
             } else if (data['items'] is Map) {
               // 如果 items 是 Map，尝试从 video 字段提取
               final itemsMap = data['items'] as Map<String, dynamic>;
+              print('items 是 Map，键: ${itemsMap.keys.toList()}');
               videoList = itemsMap['video'] as List?;
+              print('从 items.video 提取到列表，长度: ${videoList?.length}');
             }
           }
           // 尝试直接获取 result 字段（部分搜索API返回结构）
           else if (data['result'] != null) {
+            print('找到 result 字段，类型: ${data['result'].runtimeType}');
             videoList = data['result'] as List?;
+            print('result 是 List，长度: ${videoList?.length}');
           }
         }
         
         if (videoList != null && videoList.isNotEmpty) {
+          print('准备解析 ${videoList.length} 个视频项');
+          print('第一个视频项示例: ${videoList.first}');
+          
           // 保存搜索历史
           await SearchHistoryService.addHistory(keyword);
           await _loadSearchHistory();
@@ -79,6 +97,7 @@ class _SearchPageState extends State<SearchPage> {
             _isLoading = false;
           });
         } else {
+          print('videoList 为空或 null');
           setState(() {
             _errorMessage = '未找到相关视频';
             _isLoading = false;
@@ -91,6 +110,7 @@ class _SearchPageState extends State<SearchPage> {
         });
       }
     } catch (e) {
+      print('搜索异常: $e');
       setState(() {
         _errorMessage = '网络错误: $e';
         _isLoading = false;
