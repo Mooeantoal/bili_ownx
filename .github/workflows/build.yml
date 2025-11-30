@@ -26,6 +26,9 @@ jobs:
       with:
         flutter-version: '3.19.0' # 升级到较新版本以解决 embedding 问题
         channel: 'stable'
+      env:
+        FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.19.0-x64/
+        ANDROID_EMBEDDING_VERSION: 2
         
     - name: 验证 Dart 版本
       run: |
@@ -38,9 +41,17 @@ jobs:
       run: flutter clean
         
     - name: 获取依赖
+      env:
+        FLUTTER_SUPPRESS_ANALYTICS: true
+        # 忽略 Android embedding 警告
+        _JAVA_OPTIONS: "-Dandroid.warn.deprecation=false"
       run: flutter pub get
       
     - name: 构建 APK (Debug)
+      env:
+        FLUTTER_SUPPRESS_ANALYTICS: true
+        _JAVA_OPTIONS: "-Dandroid.warn.deprecation=false"
+        GRADLE_OPTS: "-Dandroid.warn.deprecation=false"
       run: flutter build apk --debug
       
     - name: 上传 APK 为 Artifact
