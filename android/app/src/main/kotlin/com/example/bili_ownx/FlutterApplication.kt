@@ -1,6 +1,6 @@
 package com.example.bili_ownx
 
-import io.flutter.app.FlutterApplication
+import io.flutter.embedding.android.FlutterApplication
 
 class MyFlutterApplication : FlutterApplication() {
     override fun onCreate() {
