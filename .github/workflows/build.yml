@@ -22,7 +22,7 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-        cache: 'gradle'  # 缓存 Gradle 依赖以加速构建
+        # cache: 'gradle'  # 暂时禁用缓存以排除 embedding v2 检测问题
         
     - name: 设置 Android SDK
       uses: android-actions/setup-android@v3
