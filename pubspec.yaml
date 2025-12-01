@@ -42,7 +42,6 @@ dependencies:
   path_provider: ^2.1.4
   shared_preferences: ^2.2.3
   package_info_plus: ^8.0.2
-  flutter_clipboard_manager: ^1.0.0
 
 dev_dependencies:
   flutter_test:
