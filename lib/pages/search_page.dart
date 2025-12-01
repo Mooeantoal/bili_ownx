@@ -3,6 +3,7 @@ import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
 import 'player_page.dart';
+import '../utils/error_handler.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -108,12 +109,35 @@ class _SearchPageState extends State<SearchPage> {
           _errorMessage = '搜索失败: ${response['message'] ?? '未知错误'}';
           _isLoading = false;
         });
+        
+        // 显示详细错误信息对话框
+        if (response['code'] != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ErrorHandler.showErrorDialog(
+              context: context,
+              title: '搜索失败',
+              error: 'API返回错误',
+              additionalInfo: ErrorHandler.formatApiResponseError(response),
+            );
+          });
+        }
       }
-    } catch (e) {
+    } catch (e, s) {
       print('搜索异常: $e');
       setState(() {
         _errorMessage = '网络错误: $e';
         _isLoading = false;
+      });
+      
+      // 显示详细错误信息对话框
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ErrorHandler.showErrorDialog(
+          context: context,
+          title: '搜索出错',
+          error: e,
+          stackTrace: s,
+          additionalInfo: '搜索关键词: $keyword',
+        );
       });
     }
   }
