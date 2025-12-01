@@ -4,6 +4,7 @@ import 'package:chewie/chewie.dart';
 import '../api/video_api.dart';
 import '../models/video_info.dart';
 import '../services/play_history_service.dart';
+import '../utils/error_handler.dart';
 
 /// 视频播放器页面
 class PlayerPage extends StatefulWidget {
@@ -74,11 +75,32 @@ class _PlayerPageState extends State<PlayerPage> {
           _errorMessage = '加载视频失败: ${response['message'] ?? '未知错误'}';
           _isLoading = false;
         });
+        
+        // 显示详细错误信息对话框
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ErrorHandler.showErrorDialog(
+            context: context,
+            title: '加载视频失败',
+            error: 'API返回错误',
+            additionalInfo: ErrorHandler.formatApiResponseError(response),
+          );
+        });
       }
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
         _errorMessage = '加载视频失败: $e';
         _isLoading = false;
+      });
+      
+      // 显示详细错误信息对话框
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ErrorHandler.showErrorDialog(
+          context: context,
+          title: '加载视频出错',
+          error: e,
+          stackTrace: s,
+          additionalInfo: '视频BVID: ${widget.bvid}',
+        );
       });
     }
   }
@@ -158,15 +180,46 @@ class _PlayerPageState extends State<PlayerPage> {
           setState(() {
             _errorMessage = '无法获取播放地址';
           });
+          
+          // 显示详细错误信息对话框
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ErrorHandler.showErrorDialog(
+              context: context,
+              title: '播放地址解析失败',
+              error: '无法获取播放地址',
+              additionalInfo: 'API响应数据: ${ErrorHandler.formatApiResponseError(response)}',
+            );
+          });
         }
       } else {
         setState(() {
           _errorMessage = '获取播放地址失败: ${response['message'] ?? '未知错误'}';
         });
+        
+        // 显示详细错误信息对话框
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ErrorHandler.showErrorDialog(
+            context: context,
+            title: '获取播放地址失败',
+            error: 'API返回错误',
+            additionalInfo: ErrorHandler.formatApiResponseError(response),
+          );
+        });
       }
-    } catch (e) {
+    } catch (e, s) {
       setState(() {
         _errorMessage = '播放失败: $e';
+      });
+      
+      // 显示详细错误信息对话框
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ErrorHandler.showErrorDialog(
+          context: context,
+          title: '播放出错',
+          error: e,
+          stackTrace: s,
+          additionalInfo: '视频BVID: ${widget.bvid}, CID: $cid',
+        );
       });
     }
   }
