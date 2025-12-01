@@ -68,11 +68,20 @@ class _SearchPageState extends State<SearchPage> {
               videoList = data['items'] as List;
               print('items 是 List，长度: ${videoList.length}');
             } else if (data['items'] is Map) {
-              // 如果 items 是 Map，尝试从 video 字段提取
+              // 如果 items 是 Map，尝试从 video 或 archive 字段提取
               final itemsMap = data['items'] as Map<String, dynamic>;
               print('items 是 Map，键: ${itemsMap.keys.toList()}');
-              videoList = itemsMap['video'] as List?;
-              print('从 items.video 提取到列表，长度: ${videoList?.length}');
+              
+              // 尝试从 archive 提取视频列表（根据错误日志中的数据结构）
+              if (itemsMap['archive'] != null && itemsMap['archive'] is List) {
+                videoList = itemsMap['archive'] as List?;
+                print('从 items.archive 提取到列表，长度: ${videoList?.length}');
+              } 
+              // 尝试从 video 提取
+              else if (itemsMap['video'] != null) {
+                videoList = itemsMap['video'] as List?;
+                print('从 items.video 提取到列表，长度: ${videoList?.length}');
+              }
             }
           }
           // 尝试直接获取 result 字段（部分搜索API返回结构）
