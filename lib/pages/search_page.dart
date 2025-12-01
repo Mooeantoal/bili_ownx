@@ -103,6 +103,16 @@ class _SearchPageState extends State<SearchPage> {
             _errorMessage = '未找到相关视频';
             _isLoading = false;
           });
+          
+          // 显示详细错误信息对话框 - 即使是"未找到相关视频"也显示详细信息
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ErrorHandler.showErrorDialog(
+              context: context,
+              title: '搜索结果为空',
+              error: '未找到相关视频',
+              additionalInfo: '搜索关键词: $keyword\nAPI响应数据: ${ErrorHandler.formatApiResponseError(response)}',
+            );
+          });
         }
       } else {
         setState(() {
@@ -111,16 +121,14 @@ class _SearchPageState extends State<SearchPage> {
         });
         
         // 显示详细错误信息对话框
-        if (response['code'] != 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ErrorHandler.showErrorDialog(
-              context: context,
-              title: '搜索失败',
-              error: 'API返回错误',
-              additionalInfo: ErrorHandler.formatApiResponseError(response),
-            );
-          });
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ErrorHandler.showErrorDialog(
+            context: context,
+            title: '搜索失败',
+            error: 'API返回错误',
+            additionalInfo: ErrorHandler.formatApiResponseError(response),
+          );
+        });
       }
     } catch (e, s) {
       print('搜索异常: $e');
