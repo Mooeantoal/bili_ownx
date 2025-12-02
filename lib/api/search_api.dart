@@ -43,7 +43,15 @@ class SearchApi {
         },
       );
       
+      print('=== 搜索 API 请求 ===');
+      print('关键词: $keyword');
+      print('请求 URL: $url');
+      
  final response = await _dio.get(url);
+      
+      print('=== 搜索 API 响应 ===');
+      print('状态码: ${response.statusCode}');
+      print('响应数据: ${response.data}');
       return response.data;
     } on DioException catch (e) {
       print('搜索请求失败: ${e.message}');

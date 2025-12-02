@@ -58,8 +58,10 @@ class _SearchPageState extends State<SearchPage> {
         
         // Bilibili API 返回的数据结构可能不同，需要判断
         if (data is Map<String, dynamic>) {
+          print('=== API 响应数据分析 ===');
           print('data 是 Map 类型');
           print('data 的所有键: ${data.keys.toList()}');
+          print('data 完整内容: $data');
           
           // 检查是否有 items 字段
           if (data['items'] != null) {
@@ -67,20 +69,33 @@ class _SearchPageState extends State<SearchPage> {
             if (data['items'] is List) {
               videoList = data['items'] as List;
               print('items 是 List，长度: ${videoList.length}');
+              if (videoList.isNotEmpty) {
+                print('第一个视频项原始数据: ${videoList.first}');
+                print('第一个视频项字段: ${(videoList.first as Map).keys.toList()}');
+              }
             } else if (data['items'] is Map) {
               // 如果 items 是 Map，尝试从 video 或 archive 字段提取
               final itemsMap = data['items'] as Map<String, dynamic>;
               print('items 是 Map，键: ${itemsMap.keys.toList()}');
+              print('items 完整内容: $itemsMap');
               
               // 尝试从 archive 提取视频列表（根据错误日志中的数据结构）
               if (itemsMap['archive'] != null && itemsMap['archive'] is List) {
                 videoList = itemsMap['archive'] as List?;
                 print('从 items.archive 提取到列表，长度: ${videoList?.length}');
+                if (videoList != null && videoList.isNotEmpty) {
+                  print('第一个 archive 项: ${videoList.first}');
+                  print('第一个 archive 项字段: ${(videoList.first as Map).keys.toList()}');
+                }
               } 
               // 尝试从 video 提取
               else if (itemsMap['video'] != null) {
                 videoList = itemsMap['video'] as List?;
                 print('从 items.video 提取到列表，长度: ${videoList?.length}');
+                if (videoList != null && videoList.isNotEmpty) {
+                  print('第一个 video 项: ${videoList.first}');
+                  print('第一个 video 项字段: ${(videoList.first as Map).keys.toList()}');
+                }
               }
             }
           }
@@ -89,6 +104,42 @@ class _SearchPageState extends State<SearchPage> {
             print('找到 result 字段，类型: ${data['result'].runtimeType}');
             videoList = data['result'] as List?;
             print('result 是 List，长度: ${videoList?.length}');
+            if (videoList != null && videoList.isNotEmpty) {
+              print('第一个 result 项: ${videoList.first}');
+              print('第一个 result 项字段: ${(videoList.first as Map).keys.toList()}');
+            }
+          }
+          
+          // 尝试其他可能的字段名
+          else {
+            print('未找到预期的字段，检查所有可能的列表字段...');
+            for (final key in data.keys) {
+              final value = data[key];
+              if (value is List && value.isNotEmpty) {
+                print('发现列表字段: $key，长度: ${value.length}');
+                print('第一个元素类型: ${value.first.runtimeType}');
+                if (value.first is Map) {
+                  final firstItem = value.first as Map;
+                  print('第一个元素字段: ${firstItem.keys.toList()}');
+                  
+                  // 检查是否包含视频相关字段
+                  final hasVideoFields = firstItem.keys.any((k) => 
+                    ['title', 'bvid', 'aid', 'author', 'cover', 'play'].contains(k));
+                  
+                  if (hasVideoFields) {
+                    print('✓ $key 字段包含视频信息，使用此列表');
+                    videoList = value;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          
+          // 如果仍然没有找到视频列表，尝试深度搜索
+          if (videoList == null) {
+            print('尝试深度搜索嵌套结构...');
+            videoList = _deepSearchVideoList(data);
           }
         }
         
@@ -100,12 +151,31 @@ class _SearchPageState extends State<SearchPage> {
           await SearchHistoryService.addHistory(keyword);
           await _loadSearchHistory();
           
+          // 解析搜索结果
+          final results = videoList!
+              .map((item) => VideoSearchResult.fromJson(item))
+              .where((result) => result.hasValidId) // 只保留有有效ID的结果
+              .toList();
+          
+          print('成功解析 ${results.length} 个有效视频项');
+          
           setState(() {
-            _searchResults = videoList!
-                .map((item) => VideoSearchResult.fromJson(item))
-                .toList();
+            _searchResults = results;
             _isLoading = false;
           });
+          
+          // 如果没有有效结果，显示提示
+          if (results.isEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('搜索结果中没有找到有效的视频ID'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            });
+          }
         } else {
           print('videoList 为空或 null');
           setState(() {
@@ -328,6 +398,39 @@ class _SearchPageState extends State<SearchPage> {
         )),
       ],
     );
+  }
+
+  /// 深度搜索视频列表
+  List? _deepSearchVideoList(dynamic data, {int depth = 0, int maxDepth = 3}) {
+    if (depth > maxDepth) return null;
+    
+    if (data is List && data.isNotEmpty) {
+      // 检查是否是视频列表
+      final firstItem = data.first;
+      if (firstItem is Map) {
+        final hasVideoFields = firstItem.keys.any((k) => 
+          ['title', 'bvid', 'aid', 'author', 'cover', 'play'].contains(k));
+        
+        if (hasVideoFields) {
+          print('✓ 在深度 $depth 处找到视频列表，长度: ${data.length}');
+          return data;
+        }
+      }
+    } else if (data is Map) {
+      // 递归搜索 Map 中的所有值
+      for (final key in data.keys) {
+        final value = data[key];
+        if (value is List || value is Map) {
+          final result = _deepSearchVideoList(value, depth: depth + 1);
+          if (result != null) {
+            print('✓ 在字段 $key (深度 ${depth + 1}) 找到视频列表');
+            return result;
+          }
+        }
+      }
+    }
+    
+    return null;
   }
 
   @override
