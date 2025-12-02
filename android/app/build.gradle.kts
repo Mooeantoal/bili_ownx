@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.bili_ownx"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -44,6 +44,12 @@ android {
             )
             
             signingConfig = signingConfigs.getByName("debug")
+        }
+        
+        debug {
+            // 为debug构建也启用基本优化以减小APK大小
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     
