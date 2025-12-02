@@ -26,10 +26,6 @@ jobs:
         
     - name: 设置 Android SDK
       uses: android-actions/setup-android@v3
-      with:
-        api-level: 33
-        arch: x64
-        ndk: false
       
     - name: 设置 Flutter
       uses: subosito/flutter-action@v2
@@ -54,11 +50,18 @@ jobs:
     - name: 构建 APK (Debug)
       run: flutter build apk --debug
       
+    - name: 查找生成的 APK 文件
+      run: |
+        echo "查找所有生成的 APK 文件..."
+        find build -name "*.apk" -type f
+        echo "APK 文件详情："
+        ls -la build/app/outputs/flutter-apk/ || echo "目录不存在"
+        
     - name: 上传 APK 为 Artifact
       uses: actions/upload-artifact@v4
       with:
         name: bili-ownx-debug-${{ github.run_number }}
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        path: build/app/outputs/flutter-apk/*.apk
         retention-days: 30
         compression-level: 6  # 平衡压缩速度和大小
         
@@ -74,7 +77,11 @@ jobs:
           - Commit: ${{ github.sha }}
           - Branch: ${{ github.ref_name }}
           - Build Time: ${{ github.event.head_commit.timestamp }}
-        files: build/app/outputs/flutter-apk/app-debug.apk
+          
+          **注意：** 由于启用了 ABI 拆分，请根据您的设备架构下载对应的 APK：
+          - `app-arm64-v8a-debug.apk`: 适用于 64 位 ARM 设备（推荐）
+          - `app-armeabi-v7a-debug.apk`: 适用于 32 位 ARM 设备
+        files: build/app/outputs/flutter-apk/*.apk
         draft: false
         prerelease: true
       env:
