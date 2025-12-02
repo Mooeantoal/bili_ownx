@@ -321,11 +321,11 @@ class _SearchPageState extends State<SearchPage> {
           trailing: Text(video.duration),
           onTap: () {
             // 验证视频ID是否有效
-            if (video.bvid.isEmpty && video.aid == 0) {
+            if (!video.hasValidId) {
               // 显示错误提示
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('无法播放此视频：缺少视频ID信息'),
+                  content: Text('无法播放此视频：缺少有效的视频ID信息'),
                   backgroundColor: Colors.red,
                   duration: Duration(seconds: 3),
                 ),
@@ -333,11 +333,15 @@ class _SearchPageState extends State<SearchPage> {
               return;
             }
             
+            // 只传递有效的 ID
+            final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
+            final int? validAid = video.aid != 0 ? video.aid : null;
+            
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => PlayerPage(
-                  bvid: video.bvid,
-                  aid: video.aid == 0 ? null : video.aid,
+                  bvid: validBvid ?? '',
+                  aid: validAid,
                 ),
               ),
             );

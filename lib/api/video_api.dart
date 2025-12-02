@@ -30,12 +30,24 @@ class VideoApi {
       throw ArgumentError('bvid 和 aid 必须提供其中一个');
     }
 
+    // 检查 bvid 是否为空字符串
+    if (bvid != null && bvid.isEmpty) {
+      bvid = null;
+    }
+
+    // 确保至少有一个有效的 ID
+    if ((bvid == null || bvid.isEmpty) && (aid == null || aid == 0)) {
+      throw ArgumentError('必须提供有效的 bvid 或 aid');
+    }
+
     try {
       final params = <String, dynamic>{};
-      if (bvid != null) {
+      if (bvid != null && bvid.isNotEmpty) {
         params['bvid'] = bvid;
-      } else {
+      } else if (aid != null && aid != 0) {
         params['aid'] = aid;
+      } else {
+        throw ArgumentError('没有有效的视频ID');
       }
 
       final url = ApiHelper.buildUrl(

@@ -15,7 +15,7 @@ class PlayerPage extends StatefulWidget {
     super.key,
     required this.bvid,
     this.aid,
-  });
+  }) : assert(bvid.isNotEmpty || aid != null, 'bvid 和 aid 必须提供其中一个');
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
