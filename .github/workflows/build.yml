@@ -54,23 +54,21 @@ jobs:
         flutter clean
         flutter pub get
         
-        echo "尝试构建通用APK（不使用ABI拆分）..."
-        cd android
-        ./gradlew assembleDebug -x lint || echo "Gradle构建失败"
-        cd ..
-        
-        echo "如果上述失败，尝试Flutter构建..."
+        echo "使用 Flutter 构建 APK（支持 ABI 拆分）..."
         flutter build apk --debug --verbose || echo "Flutter构建失败"
         
         echo "构建完成，检查输出文件..."
         echo "当前目录内容："
         ls -la
-        echo "build目录内容："
-        find build -name "*.apk" -type f -exec ls -la {} \; || echo "未找到APK文件"
+        echo "查找所有APK文件："
+        find . -name "*.apk" -type f -exec ls -la {} \; || echo "未找到APK文件"
         echo "Flutter输出目录："
         ls -la build/app/outputs/flutter-apk/ || echo "Flutter输出目录不存在"
         echo "Android输出目录："
         ls -la android/app/build/outputs/apk/debug/ || echo "Android输出目录不存在"
+        echo "ABI拆分目录："
+        ls -la android/app/build/outputs/apk/debug/arm64-v8a/ || echo "arm64-v8a目录不存在"
+        ls -la android/app/build/outputs/apk/debug/armeabi-v7a/ || echo "armeabi-v7a目录不存在"
       
     - name: 上传 APK 为 Artifact
       uses: actions/upload-artifact@v4
@@ -81,9 +79,10 @@ jobs:
           build/**/*.apk
           build/app/outputs/**/*.apk
           android/app/build/outputs/**/*.apk
+          android/app/build/outputs/apk/debug/**/*.apk
         retention-days: 30
         compression-level: 6  # 平衡压缩速度和大小
-        continue-on-error: true  # 如果没有找到APK文件也不失败
+        if-no-files-found: warn  # 如果没有找到APK文件则发出警告
         
     - name: 创建 Release（仅当推送到主分支时）
       if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -105,8 +104,8 @@ jobs:
           build/**/*.apk
           build/app/outputs/**/*.apk
           android/app/build/outputs/**/*.apk
+          android/app/build/outputs/apk/debug/**/*.apk
         draft: false
         prerelease: true
-        fail_on_unmatched_files: false  # 如果没有找到文件也不失败
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
