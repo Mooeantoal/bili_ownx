@@ -11,11 +11,27 @@ class PlayerPage extends StatefulWidget {
   final String bvid;
   final int? aid;
 
-  const PlayerPage({
+  PlayerPage({
     super.key,
     required this.bvid,
     this.aid,
-  }) : assert(bvid.isNotEmpty || aid != null, 'bvid 和 aid 必须提供其中一个');
+  }) : super() {
+    assert(bvid.isNotEmpty || aid != null, 'bvid 和 aid 必须提供其中一个');
+  }
+
+  /// 工厂构造函数，用于处理可选的 bvid
+  factory PlayerPage.withIds({
+    Key? key,
+    String? bvid,
+    int? aid,
+  }) {
+    assert(bvid != null || aid != null, 'bvid 和 aid 必须提供其中一个');
+    return PlayerPage(
+      key: key,
+      bvid: bvid ?? '',
+      aid: aid,
+    );
+  }
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();

@@ -337,10 +337,22 @@ class _SearchPageState extends State<SearchPage> {
             final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
             final int? validAid = video.aid != 0 ? video.aid : null;
             
+            // 确保至少有一个有效的 ID
+            if (validBvid == null && validAid == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('无法播放此视频：缺少有效的视频ID信息'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              return;
+            }
+            
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => PlayerPage(
-                  bvid: validBvid ?? '',
+                builder: (context) => PlayerPage.withIds(
+                  bvid: validBvid,
                   aid: validAid,
                 ),
               ),
