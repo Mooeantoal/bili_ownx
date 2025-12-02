@@ -56,10 +56,10 @@ android {
     // 启用包拆分，按ABI分离以减小APK大小
     splits {
         abi {
-            isEnable = true
+            isEnable = false  // 暂时禁用以确保CI构建成功
             reset()
             include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
+            isUniversalApk = true  // 生成通用APK
         }
     }
 }

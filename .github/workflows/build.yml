@@ -7,6 +7,10 @@ on:
     branches: [ main, master ]
   workflow_dispatch: # 允许手动触发
 
+permissions:
+  contents: write
+  releases: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -54,8 +58,11 @@ jobs:
         flutter clean
         flutter pub get
         
-        echo "使用 Flutter 构建 APK（支持 ABI 拆分）..."
-        flutter build apk --debug --verbose || echo "Flutter构建失败"
+        echo "检查 Flutter 环境..."
+        flutter doctor -v
+        
+        echo "构建 Debug APK（通用版本）..."
+        flutter build apk --debug --verbose
         
         echo "构建完成，检查输出文件..."
         echo "当前目录内容："
@@ -66,9 +73,6 @@ jobs:
         ls -la build/app/outputs/flutter-apk/ || echo "Flutter输出目录不存在"
         echo "Android输出目录："
         ls -la android/app/build/outputs/apk/debug/ || echo "Android输出目录不存在"
-        echo "ABI拆分目录："
-        ls -la android/app/build/outputs/apk/debug/arm64-v8a/ || echo "arm64-v8a目录不存在"
-        ls -la android/app/build/outputs/apk/debug/armeabi-v7a/ || echo "armeabi-v7a目录不存在"
       
     - name: 上传 APK 为 Artifact
       uses: actions/upload-artifact@v4
@@ -80,6 +84,7 @@ jobs:
           build/app/outputs/**/*.apk
           android/app/build/outputs/**/*.apk
           android/app/build/outputs/apk/debug/**/*.apk
+          **/*.apk
         retention-days: 30
         compression-level: 6  # 平衡压缩速度和大小
         if-no-files-found: warn  # 如果没有找到APK文件则发出警告
@@ -105,6 +110,7 @@ jobs:
           build/app/outputs/**/*.apk
           android/app/build/outputs/**/*.apk
           android/app/build/outputs/apk/debug/**/*.apk
+          **/*.apk
         draft: false
         prerelease: true
       env:
