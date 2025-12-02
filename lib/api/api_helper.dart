@@ -56,6 +56,11 @@ class ApiHelper {
       'c_locale': locale,
       's_locale': locale,
       'ts': getTimeSpan(),
+      // 添加一些必要的默认参数
+      'device': 'android',
+      'mobi_app': 'android_hd',
+      'buvid': 'XY${DateTime.now().millisecondsSinceEpoch}',
+      'statistics': '{"appId":1,"platform":3,"version":"7.75.0","abtest":""}',
     };
     
     // 合并自定义参数

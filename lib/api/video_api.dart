@@ -6,6 +6,18 @@ class VideoApi {
   static final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Referer': 'https://www.bilibili.com',
+      'Origin': 'https://www.bilibili.com',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-site',
+    },
   ));
 
   /// 获取视频详情
@@ -34,7 +46,17 @@ class VideoApi {
       final response = await _dio.get(url);
       return response.data;
     } on DioException catch (e) {
+      final errorInfo = {
+        'type': 'DioException',
+        'message': e.message,
+        'responseCode': e.response?.statusCode,
+        'responseData': e.response?.data,
+        'requestUrl': e.requestOptions.uri.toString(),
+        'requestHeaders': e.requestOptions.headers,
+        'requestParams': e.requestOptions.queryParameters,
+      };
       print('获取视频详情失败: ${e.message}');
+      print('详细错误信息: $errorInfo');
       rethrow;
     }
   }
@@ -65,7 +87,17 @@ class VideoApi {
       final response = await _dio.get(url);
       return response.data;
     } on DioException catch (e) {
+      final errorInfo = {
+        'type': 'DioException',
+        'message': e.message,
+        'responseCode': e.response?.statusCode,
+        'responseData': e.response?.data,
+        'requestUrl': e.requestOptions.uri.toString(),
+        'requestHeaders': e.requestOptions.headers,
+        'requestParams': e.requestOptions.queryParameters,
+      };
       print('获取播放地址失败: ${e.message}');
+      print('详细错误信息: $errorInfo');
       rethrow;
     }
   }

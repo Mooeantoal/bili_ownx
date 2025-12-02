@@ -81,8 +81,21 @@ class _PlayerPageState extends State<PlayerPage> {
           ErrorHandler.showErrorDialog(
             context: context,
             title: '加载视频失败',
-            error: 'API返回错误',
-            additionalInfo: ErrorHandler.formatApiResponseError(response),
+            error: 'API返回错误 (code: ${response['code']})',
+            stackTrace: StackTrace.current,
+            additionalInfo: '''请求参数:
+- BVID: ${widget.bvid}
+- AID: ${widget.aid}
+
+API响应:
+${ErrorHandler.formatApiResponseError(response)}
+
+可能的原因:
+1. 视频不存在或已被删除
+2. 视频为私密或需要登录
+3. 请求参数格式错误
+4. API请求频率过高
+5. 网络连接问题''',
           );
         });
       }
@@ -187,7 +200,21 @@ class _PlayerPageState extends State<PlayerPage> {
               context: context,
               title: '播放地址解析失败',
               error: '无法获取播放地址',
-              additionalInfo: 'API响应数据: ${ErrorHandler.formatApiResponseError(response)}',
+              stackTrace: StackTrace.current,
+              additionalInfo: '''请求参数:
+- BVID: ${widget.bvid}
+- CID: $cid
+- 画质: $_selectedQuality
+
+API响应:
+${ErrorHandler.formatApiResponseError(response)}
+
+可能的原因:
+1. 视频播放地址解析失败
+2. 选择的画质不支持
+3. 视频正在转码中
+4. 地区限制或版权限制
+5. 需要登录才能观看''',
             );
           });
         }
@@ -201,8 +228,22 @@ class _PlayerPageState extends State<PlayerPage> {
           ErrorHandler.showErrorDialog(
             context: context,
             title: '获取播放地址失败',
-            error: 'API返回错误',
-            additionalInfo: ErrorHandler.formatApiResponseError(response),
+            error: 'API返回错误 (code: ${response['code']})',
+            stackTrace: StackTrace.current,
+            additionalInfo: '''请求参数:
+- BVID: ${widget.bvid}
+- CID: $cid
+- 画质: $_selectedQuality
+
+API响应:
+${ErrorHandler.formatApiResponseError(response)}
+
+可能的原因:
+1. 视频播放权限不足
+2. 请求参数错误
+3. API服务异常
+4. 网络连接问题
+5. 需要重新登录''',
           );
         });
       }
