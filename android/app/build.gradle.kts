@@ -32,9 +32,28 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // 启用代码压缩
+            isMinifyEnabled = true
+            // 启用资源压缩
+            isShrinkResources = true
+            
+            // 启用 R8 优化
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+    
+    // 启用包拆分，按ABI分离以减小APK大小
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
         }
     }
 }

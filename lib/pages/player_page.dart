@@ -56,6 +56,33 @@ class _PlayerPageState extends State<PlayerPage> {
 
   /// 加载视频信息
   Future<void> _loadVideoInfo() async {
+    // 参数验证
+    if (widget.bvid.isEmpty && widget.aid == null) {
+      setState(() {
+        _errorMessage = '参数错误: 缺少视频标识符 (BVID 或 AID)';
+        _isLoading = false;
+      });
+      
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ErrorHandler.showErrorDialog(
+          context: context,
+          title: '参数错误',
+          error: '缺少视频标识符',
+          stackTrace: StackTrace.current,
+          additionalInfo: '''BVID: "${widget.bvid}"
+AID: ${widget.aid}
+
+可能的原因:
+1. 搜索结果中缺少视频ID信息
+2. API返回数据格式异常
+3. 视频已被删除或不可访问
+
+请尝试重新搜索或选择其他视频。''',
+        );
+      });
+      return;
+    }
+    
     try {
       final response = await VideoApi.getVideoDetail(
         bvid: widget.bvid,
@@ -100,8 +127,32 @@ ${ErrorHandler.formatApiResponseError(response)}
         });
       }
     } catch (e, s) {
+      String detailedError = e.toString();
+      String additionalInfo = '''请求参数:
+- BVID: "${widget.bvid}"
+- AID: ${widget.aid}
+
+错误详情:''';
+      
+      // 如果是 DioException，提供更详细的信息
+      if (e.toString().contains('DioException')) {
+        additionalInfo += '''
+- 错误类型: DioException
+- 可能原因: API请求失败、网络连接问题、服务器错误
+- 建议: 检查网络连接，稍后重试''';
+      } else if (e.toString().contains('FormatException')) {
+        additionalInfo += '''
+- 错误类型: 数据格式错误
+- 可能原因: API返回数据格式异常
+- 建议: 检查API响应数据格式''';
+      } else {
+        additionalInfo += '''
+- 错误类型: ${e.runtimeType}
+- 错误信息: $e''';
+      }
+      
       setState(() {
-        _errorMessage = '加载视频失败: $e';
+        _errorMessage = '加载视频失败: $detailedError';
         _isLoading = false;
       });
       
@@ -110,9 +161,9 @@ ${ErrorHandler.formatApiResponseError(response)}
         ErrorHandler.showErrorDialog(
           context: context,
           title: '加载视频出错',
-          error: e,
+          error: detailedError,
           stackTrace: s,
-          additionalInfo: '视频BVID: ${widget.bvid}',
+          additionalInfo: additionalInfo,
         );
       });
     }

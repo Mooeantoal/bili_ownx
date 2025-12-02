@@ -250,9 +250,25 @@ class _SearchPageState extends State<SearchPage> {
           ),
           trailing: Text(video.duration),
           onTap: () {
+            // 验证视频ID是否有效
+            if (video.bvid.isEmpty && video.aid == 0) {
+              // 显示错误提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('无法播放此视频：缺少视频ID信息'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              return;
+            }
+            
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => PlayerPage(bvid: video.bvid),
+                builder: (context) => PlayerPage(
+                  bvid: video.bvid,
+                  aid: video.aid == 0 ? null : video.aid,
+                ),
               ),
             );
           },
