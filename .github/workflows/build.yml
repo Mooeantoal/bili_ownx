@@ -9,7 +9,8 @@ on:
 
 permissions:
   contents: write
-  releases: write
+  # 修复：将 releases: write 改为 contents: write
+  # GitHub Actions 创建release需要contents权限，而不是releases权限
 
 jobs:
   build:
