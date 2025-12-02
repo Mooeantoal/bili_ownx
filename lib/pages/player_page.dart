@@ -194,8 +194,22 @@ ${ErrorHandler.formatApiResponseError(response)}
     _videoPlayerController = null;
 
     try {
+      // 确定要使用的 bvid
+      String bvidToUse = widget.bvid;
+      
+      // 如果 widget.bvid 为空，尝试从 _videoInfo 获取
+      if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
+        bvidToUse = _videoInfo!.bvid;
+        print('使用从视频信息中获取的 BVID: $bvidToUse');
+      }
+      
+      // 最终验证
+      if (bvidToUse.isEmpty) {
+        throw Exception('无法获取有效的 BVID：widget.bvid 为空，且无法从视频信息中获取');
+      }
+      
       final response = await VideoApi.getPlayUrl(
-        bvid: widget.bvid,
+        bvid: bvidToUse,
         cid: cid,
         qn: _selectedQuality, // 使用选定的画质
       );

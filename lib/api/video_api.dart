@@ -85,6 +85,15 @@ class VideoApi {
     int fnval = 16, // 默认返回 DASH 格式
   }) async {
     try {
+      // 验证参数
+      if (bvid.isEmpty) {
+        throw ArgumentError('BVID 不能为空');
+      }
+      
+      if (cid <= 0) {
+        throw ArgumentError('CID 必须大于 0');
+      }
+      
       final url = ApiHelper.buildUrl(
         'https://api.bilibili.com/x/player/playurl',
         {
