@@ -23,19 +23,17 @@ jobs:
         fetch-depth: 0  # 获取完整历史记录，用于更好的版本信息
       
     - name: 设置 Java
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: '17'
         cache: 'gradle'  # 缓存 Gradle 依赖以加速构建
         
-    - name: 设置 Android SDK
-      uses: android-actions/setup-android@v3
       
     - name: 设置 Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0' # 升级到 Dart SDK 3.5.0 以支持新版依赖
+        flutter-version: '3.24.0'
         channel: 'stable'
         cache: true # 启用缓存以加速构建
         
@@ -55,12 +53,14 @@ jobs:
     - name: 构建 APK (Debug)
       run: |
         echo "开始构建 APK..."
-        echo "清理之前的构建..."
-        flutter clean
-        flutter pub get
-        
         echo "检查 Flutter 环境..."
         flutter doctor -v
+        
+        echo "清理之前的构建..."
+        flutter clean
+        
+        echo "获取依赖..."
+        flutter pub get
         
         echo "构建 Debug APK（通用版本）..."
         flutter build apk --debug --verbose
@@ -76,7 +76,7 @@ jobs:
         ls -la android/app/build/outputs/apk/debug/ || echo "Android输出目录不存在"
       
     - name: 上传 APK 为 Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       if: always()  # 即使构建失败也尝试上传可能存在的文件
       with:
         name: bili-ownx-debug-${{ github.run_number }}
@@ -87,7 +87,7 @@ jobs:
           android/app/build/outputs/apk/debug/**/*.apk
           **/*.apk
         retention-days: 30
-        compression-level: 6  # 平衡压缩速度和大小
+        # compression-level: 6  # 平衡压缩速度和大小 (已注释，因为v3不支持此参数)
         if-no-files-found: warn  # 如果没有找到APK文件则发出警告
         
     - name: 创建 Release（仅当推送到主分支时）
