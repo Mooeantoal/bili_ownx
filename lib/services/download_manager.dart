@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:hive/hive.dart';
 import '../models/download_task.dart';
 import '../api/video_api.dart';
+import 'notification_service.dart';
 
 /// 下载管理器
 class DownloadManager {
@@ -23,6 +24,9 @@ class DownloadManager {
 
   /// 初始化
   Future<void> initialize() async {
+    // 初始化通知服务
+    await NotificationService().initialize();
+    
     // 请求存储权限
     final permissionGranted = await _requestStoragePermission();
     if (!permissionGranted && Platform.isAndroid) {
@@ -67,6 +71,7 @@ class DownloadManager {
     required String qualityName,
     required int partIndex,
     required String partTitle,
+    DownloadType downloadType = DownloadType.combined,
   }) async {
     final id = '${bvid}_$cid';
     
@@ -88,6 +93,7 @@ class DownloadManager {
       partIndex: partIndex,
       partTitle: partTitle,
       createdAt: DateTime.now(),
+      downloadType: downloadType,
     );
 
     await _taskBox.put(id, task);
@@ -122,6 +128,9 @@ class DownloadManager {
     final errorLog = StringBuffer();
     
     try {
+      // 发送下载开始通知
+      await NotificationService().showDownloadStarted(task.title, task.bvid);
+      
       // 更新状态为获取播放地址
       await _updateTaskStatus(task, DownloadStatus.gettingUrl);
 
@@ -215,42 +224,91 @@ class DownloadManager {
         errorLog.writeln('目录已存在');
       }
 
-      // 下载视频文件
-      final videoFileName = '${task.partIndex + 1}_${task.qualityName}.mp4';
-      final videoPath = '${downloadDir.path}/$videoFileName';
-      errorLog.writeln('开始下载视频文件: $videoFileName');
-      errorLog.writeln('保存路径: $videoPath');
+      String? finalSavePath;
       
-      await _downloadFile(
-        url: videoUrl,
-        savePath: videoPath,
-        task: updatedTask,
-        errorLog: errorLog,
-      );
+      // 根据下载类型决定下载内容
+      switch (task.downloadType) {
+        case DownloadType.videoOnly:
+          // 仅下载视频
+          final videoFileName = '${task.partIndex + 1}_${task.qualityName}_video.mp4';
+          final videoPath = '${downloadDir.path}/$videoFileName';
+          errorLog.writeln('开始下载视频文件: $videoFileName');
+          errorLog.writeln('保存路径: $videoPath');
+          
+          await _downloadFile(
+            url: videoUrl!,
+            savePath: videoPath,
+            task: updatedTask,
+            errorLog: errorLog,
+          );
+          finalSavePath = videoPath;
+          break;
+          
+        case DownloadType.audioOnly:
+          // 仅下载音频
+          if (audioUrl == null) {
+            throw Exception('音频流不可用，无法仅下载音频');
+          }
+          await _updateTaskStatus(updatedTask, DownloadStatus.downloadingAudio);
+          
+          final audioFileName = '${task.partIndex + 1}_${task.qualityName}_audio.m4a';
+          final audioPath = '${downloadDir.path}/$audioFileName';
+          errorLog.writeln('开始下载音频文件: $audioFileName');
+          errorLog.writeln('保存路径: $audioPath');
+          
+          await _downloadFile(
+            url: audioUrl,
+            savePath: audioPath,
+            task: updatedTask,
+            isAudio: true,
+            errorLog: errorLog,
+          );
+          finalSavePath = audioPath;
+          break;
+          
+        case DownloadType.combined:
+          // 下载音视频合并
+          final videoFileName = '${task.partIndex + 1}_${task.qualityName}.mp4';
+          final videoPath = '${downloadDir.path}/$videoFileName';
+          errorLog.writeln('开始下载视频文件: $videoFileName');
+          errorLog.writeln('保存路径: $videoPath');
+          
+          await _downloadFile(
+            url: videoUrl!,
+            savePath: videoPath,
+            task: updatedTask,
+            errorLog: errorLog,
+          );
 
-      // 如果有音频，下载音频文件
-      if (audioUrl != null) {
-        errorLog.writeln('开始下载音频文件...');
-        await _updateTaskStatus(updatedTask, DownloadStatus.downloadingAudio);
-        
-        final audioFileName = '${task.partIndex + 1}_audio.m4a';
-        final audioPath = '${downloadDir.path}/$audioFileName';
-        errorLog.writeln('音频文件名: $audioFileName');
-        errorLog.writeln('音频保存路径: $audioPath');
-        
-        await _downloadFile(
-          url: audioUrl,
-          savePath: audioPath,
-          task: updatedTask,
-          isAudio: true,
-          errorLog: errorLog,
-        );
+          // 如果有音频，下载音频文件
+          if (audioUrl != null) {
+            errorLog.writeln('开始下载音频文件...');
+            await _updateTaskStatus(updatedTask, DownloadStatus.downloadingAudio);
+            
+            final audioFileName = '${task.partIndex + 1}_audio.m4a';
+            final audioPath = '${downloadDir.path}/$audioFileName';
+            errorLog.writeln('音频文件名: $audioFileName');
+            errorLog.writeln('音频保存路径: $audioPath');
+            
+            await _downloadFile(
+              url: audioUrl,
+              savePath: audioPath,
+              task: updatedTask,
+              isAudio: true,
+              errorLog: errorLog,
+            );
+          }
+          finalSavePath = videoPath;
+          break;
       }
 
       // 标记完成
       errorLog.writeln('下载完成!');
       errorLog.writeln('完成时间: ${DateTime.now().toIso8601String()}');
-      await _updateTaskStatus(updatedTask, DownloadStatus.completed, savePath: videoPath);
+      await _updateTaskStatus(updatedTask, DownloadStatus.completed, savePath: finalSavePath);
+      
+      // 发送完成通知
+      await NotificationService().showDownloadCompleted(task.title, task.bvid, finalSavePath ?? '');
 
     } catch (e, stackTrace) {
       errorLog.writeln('');
@@ -267,6 +325,9 @@ class DownloadManager {
         errorMessage: e.toString(),
         errorLog: errorLog.toString(),
       );
+      
+      // 发送失败通知
+      await NotificationService().showDownloadFailed(task.title, task.bvid, e.toString());
     }
 
     // 继续下一个任务
@@ -308,6 +369,12 @@ class DownloadManager {
         onReceiveProgress: (received, total) {
           if (!isAudio) {
             _updateTaskProgress(task, downloadedLength + received);
+            
+            // 更新进度通知
+            if (total > 0) {
+              final progress = ((downloadedLength + received) / total * 100).round();
+              NotificationService().showDownloadProgress(task.title, task.bvid, progress);
+            }
           }
           
           // 每10MB记录一次进度

@@ -1,3 +1,6 @@
+import 'package:hive/hive.dart';
+import 'download_option.dart';
+
 /// 下载任务状态
 enum DownloadStatus {
   waiting,        // 等待中
@@ -24,6 +27,7 @@ class DownloadTask {
   final int partIndex;
   final String partTitle;
   final DateTime createdAt;
+  final DownloadType downloadType;  // 下载类型
   
   DownloadStatus status;
   int progress;      // 已下载字节数
@@ -48,6 +52,7 @@ class DownloadTask {
     required this.partIndex,
     required this.partTitle,
     required this.createdAt,
+    this.downloadType = DownloadType.combined,
     this.status = DownloadStatus.waiting,
     this.progress = 0,
     this.totalSize = 0,
@@ -83,6 +88,7 @@ class DownloadTask {
     String? videoUrl,
     String? audioUrl,
     String? danmakuUrl,
+    DownloadType? downloadType,
   }) {
     return DownloadTask(
       id: id ?? this.id,
@@ -106,6 +112,7 @@ class DownloadTask {
       videoUrl: videoUrl ?? this.videoUrl,
       audioUrl: audioUrl ?? this.audioUrl,
       danmakuUrl: danmakuUrl ?? this.danmakuUrl,
+      downloadType: downloadType ?? this.downloadType,
     );
   }
 
@@ -200,6 +207,7 @@ class DownloadTask {
       'progress': progress,
       'totalSize': totalSize,
       'speed': speed,
+      'downloadType': downloadType.index,
       'errorMessage': errorMessage,
       'errorLog': errorLog,
       'savePath': savePath,
@@ -227,6 +235,7 @@ class DownloadTask {
       progress: json['progress'],
       totalSize: json['totalSize'],
       speed: json['speed'],
+      downloadType: DownloadType.values[json['downloadType']],
       errorMessage: json['errorMessage'],
       errorLog: json['errorLog'],
       savePath: json['savePath'],

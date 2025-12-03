@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'pages/search_page.dart';
+import 'pages/metadata_page.dart';
 import 'services/download_manager.dart';
+import 'services/metadata_service.dart';
 import 'models/download_task.dart';
 
 void main() async {
@@ -17,6 +19,9 @@ void main() async {
   
   // 初始化下载管理器
   await DownloadManager().initialize();
+  
+  // 初始化元数据服务
+  await MetadataService().initialize();
   
   runApp(const MyApp());
 }

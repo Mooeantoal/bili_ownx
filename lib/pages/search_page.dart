@@ -249,6 +249,11 @@ class _SearchPageState extends State<SearchPage> {
             tooltip: '下载管理',
           ),
           IconButton(
+            icon: const Icon(Icons.folder),
+            onPressed: () => _navigateToMetadata(),
+            tooltip: '元数据管理',
+          ),
+          IconButton(
             icon: const Icon(Icons.high_quality),
             onPressed: _openQualityTest,
             tooltip: '画质测试',
@@ -405,6 +410,22 @@ class _SearchPageState extends State<SearchPage> {
       MaterialPageRoute(
         builder: (context) => const DownloadListPage(),
       ),
+    );
+  }
+
+  /// 导航到元数据管理页面
+  void _navigateToMetadata() {
+    // TODO: 导入元数据管理页面
+    /*
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MetadataPage(),
+      ),
+    );
+    */
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('元数据管理页面开发中...')),
     );
   }
 
