@@ -76,7 +76,7 @@ jobs:
         ls -la android/app/build/outputs/apk/debug/ || echo "Android输出目录不存在"
       
     - name: 上传 APK 为 Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()  # 即使构建失败也尝试上传可能存在的文件
       with:
         name: bili-ownx-debug-${{ github.run_number }}
@@ -87,7 +87,7 @@ jobs:
           android/app/build/outputs/apk/debug/**/*.apk
           **/*.apk
         retention-days: 30
-        # compression-level: 6  # 平衡压缩速度和大小 (已注释，因为v3不支持此参数)
+        compression-level: 6  # 平衡压缩速度和大小
         if-no-files-found: warn  # 如果没有找到APK文件则发出警告
         
     - name: 创建 Release（仅当推送到主分支时）
