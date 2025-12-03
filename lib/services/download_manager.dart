@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:hive/hive.dart';
 import '../models/download_task.dart';
+import '../models/download_option.dart';
 import '../api/video_api.dart';
 import 'notification_service.dart';
 

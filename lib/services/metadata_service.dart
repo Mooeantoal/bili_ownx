@@ -158,7 +158,9 @@ class MetadataService {
     final now = DateTime.now();
     final expiredKeys = <String>[];
     
-    for (final entry in _metadataBox.entries) {
+    // 使用 toMap() 方法获取映射，然后遍历条目
+    final entries = _metadataBox.toMap().entries;
+    for (final entry in entries) {
       final metadata = entry.value;
       final daysSinceCached = now.difference(metadata.cachedAt).inDays;
       

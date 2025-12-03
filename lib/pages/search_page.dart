@@ -1,4 +1,22 @@
 import 'package:flutter/material.dart';
+
+/// 元数据管理页面
+class MetadataPage extends StatelessWidget {
+  const MetadataPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('元数据管理'),
+      ),
+      body: const Center(
+        child: Text('元数据管理功能正在开发中...'),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
 import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
