@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:hive/hive.dart';
 import '../models/download_task.dart';
 import '../api/video_api.dart';
@@ -21,6 +23,12 @@ class DownloadManager {
 
   /// 初始化
   Future<void> initialize() async {
+    // 请求存储权限
+    final permissionGranted = await _requestStoragePermission();
+    if (!permissionGranted && Platform.isAndroid) {
+      print('警告: 存储权限未授予，下载功能可能受限');
+    }
+    
     // 打开Hive数据库
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(DownloadTaskAdapter());
@@ -196,8 +204,8 @@ class DownloadManager {
 
       // 创建下载目录
       errorLog.writeln('创建下载目录...');
-      final directory = await getApplicationDocumentsDirectory();
-      final downloadDir = Directory('${directory.path}/downloads/${task.bvid}');
+      final directory = await _getDownloadDirectory();
+      final downloadDir = Directory('${directory.path}/${task.bvid}');
       errorLog.writeln('下载目录: ${downloadDir.path}');
       
       if (!await downloadDir.exists()) {
@@ -482,6 +490,32 @@ class DownloadManager {
     return _downloadQueue.where((t) => t.isDownloading).length;
   }
 
+  /// 获取下载路径信息
+  Future<String> getDownloadPathInfo() async {
+    final directory = await _getDownloadDirectory();
+    if (Platform.isAndroid) {
+      final androidInfo = await _getAndroidInfo();
+      final sdkInt = androidInfo['version']['sdkInt'] as int? ?? 30;
+      
+      String pathType = '';
+      if (sdkInt >= 34 && directory.path.contains('/Download/')) {
+        pathType = 'Android 14+ 系统下载目录';
+      } else if (sdkInt >= 34 && directory.path.contains('biliownxdownloads')) {
+        pathType = 'Android 14+ 自定义目录';
+      } else if (sdkInt >= 29 && directory.path.contains('biliownxdownloads')) {
+        pathType = 'Android 10+ 外部存储';
+      } else if (directory.path.contains('/storage/emulated/0/')) {
+        pathType = 'Android 外部存储';
+      } else {
+        pathType = 'Android 内部存储';
+      }
+      
+      return '$pathType: ${directory.path}';
+    } else {
+      return '${Platform.operatingSystem}: ${directory.path}';
+    }
+  }
+
   /// 清理已完成的任务
   Future<void> clearCompletedTasks() async {
     final completedTasks = _taskBox.values.where((t) => t.isCompleted).toList();
@@ -494,6 +528,284 @@ class DownloadManager {
   void dispose() {
     _speedTimer?.cancel();
     _taskBox.close();
+  }
+
+  /// 请求存储权限
+  Future<bool> _requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      try {
+        // 获取 Android SDK 版本
+        final androidInfo = await _getAndroidInfo();
+        final sdkInt = androidInfo['version.sdkInt'] as int? ?? 30;
+        
+        print('Android SDK 版本: $sdkInt');
+        
+        // Android 14+ 需要通知权限
+        if (sdkInt >= 34) {
+          await _requestNotificationPermission();
+        }
+        
+        // Android 15+ 需要部分访问媒体权限
+        if (sdkInt >= 35) {
+          await _requestPartialMediaPermission();
+        }
+        
+        // Android 13+ (API 33) 使用媒体权限替代存储权限
+        if (sdkInt >= 33) {
+          return await _requestMediaPermissions();
+        }
+        
+        // Android 10-12 使用传统存储权限
+        if (sdkInt >= 29) {
+          return await _requestLegacyStoragePermissions();
+        }
+        
+        // Android 9 及以下使用基础存储权限
+        return await _requestBasicStoragePermission();
+        
+      } catch (e) {
+        print('请求权限时出错: $e');
+        return false;
+      }
+    }
+    return true; // 非 Android 平台不需要特殊权限
+  }
+
+  /// 请求通知权限 (Android 14+)
+  Future<void> _requestNotificationPermission() async {
+    if (await Permission.notification.isDenied) {
+      final result = await Permission.notification.request();
+      if (result.isGranted) {
+        print('通知权限已授予');
+      } else {
+        print('通知权限被拒绝，将无法显示下载进度通知');
+      }
+    }
+  }
+
+  /// 请求部分访问媒体权限 (Android 15+)
+  Future<void> _requestPartialMediaPermission() async {
+    if (await Permission.photos.isDenied) {
+      final result = await Permission.photos.request();
+      if (result.isGranted) {
+        print('照片访问权限已授予');
+      } else {
+        print('照片访问权限被拒绝');
+      }
+    }
+  }
+
+  /// 请求媒体权限 (Android 13+)
+  Future<bool> _requestMediaPermissions() async {
+    bool hasPermission = true;
+    
+    // 请求视频权限
+    if (await Permission.videos.isDenied) {
+      final result = await Permission.videos.request();
+      if (!result.isGranted) {
+        print('视频访问权限被拒绝');
+        hasPermission = false;
+      }
+    }
+    
+    // 请求音频权限
+    if (await Permission.audio.isDenied) {
+      final result = await Permission.audio.request();
+      if (!result.isGranted) {
+        print('音频访问权限被拒绝');
+        hasPermission = false;
+      }
+    }
+    
+    return hasPermission;
+  }
+
+  /// 请求传统存储权限 (Android 10-12)
+  Future<bool> _requestLegacyStoragePermissions() async {
+    bool hasPermission = true;
+    
+    // 基础存储权限
+    if (await Permission.storage.isDenied) {
+      final result = await Permission.storage.request();
+      if (!result.isGranted) {
+        print('存储权限被拒绝');
+        hasPermission = false;
+      }
+    }
+    
+    // 管理外部存储权限 (Android 11+)
+    if (await Permission.manageExternalStorage.isDenied) {
+      final result = await Permission.manageExternalStorage.request();
+      if (!result.isGranted) {
+        print('管理外部存储权限被拒绝，将使用内部存储');
+        // 这个权限不是必需的，可以继续使用内部存储
+      }
+    }
+    
+    return hasPermission;
+  }
+
+  /// 请求基础存储权限 (Android 9 及以下)
+  Future<bool> _requestBasicStoragePermission() async {
+    if (await Permission.storage.isDenied) {
+      final result = await Permission.storage.request();
+      if (!result.isGranted) {
+        print('存储权限被拒绝');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// 获取 Android 系统信息
+  Future<Map<String, dynamic>> _getAndroidInfo() async {
+    try {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      return {
+        'version': {
+          'sdkInt': androidInfo.version.sdkInt,
+          'release': androidInfo.version.release,
+        },
+        'manufacturer': androidInfo.manufacturer,
+        'model': androidInfo.model,
+      };
+    } catch (e) {
+      print('获取 Android 信息失败: $e');
+      return {'version': {'sdkInt': 30}};
+    }
+  }
+
+  /// 获取下载目录
+  Future<Directory> _getDownloadDirectory() async {
+    if (Platform.isAndroid) {
+      try {
+        final androidInfo = await _getAndroidInfo();
+        final sdkInt = androidInfo['version']['sdkInt'] as int? ?? 30;
+        
+        print('Android SDK: $sdkInt, 获取下载目录...');
+        
+        // Android 14+ (API 34+) 优先使用 Downloads 目录
+        if (sdkInt >= 34) {
+          final downloadsDir = await _getAndroid14DownloadDirectory();
+          if (downloadsDir != null) {
+            return downloadsDir;
+          }
+        }
+        
+        // Android 10+ (API 29+) 使用外部存储
+        if (sdkInt >= 29) {
+          final externalDir = await _getModernAndroidDownloadDirectory();
+          if (externalDir != null) {
+            return externalDir;
+          }
+        }
+        
+        // Android 9 及以下使用传统方法
+        final legacyDir = await _getLegacyAndroidDownloadDirectory();
+        if (legacyDir != null) {
+          return legacyDir;
+        }
+        
+      } catch (e) {
+        print('获取 Android 下载目录失败: $e');
+      }
+      
+      // 最终备选方案：使用内部存储
+      return await _getInternalDownloadDirectory();
+      
+    } else {
+      // 非 Android 平台使用应用文档目录
+      return await _getNonAndroidDownloadDirectory();
+    }
+  }
+
+  /// Android 14+ 下载目录 (优先使用系统 Downloads 目录)
+  Future<Directory?> _getAndroid14DownloadDirectory() async {
+    try {
+      // 尝试访问系统 Downloads 目录
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      final appDownloadDir = Directory('${downloadsDir.path}/BiliOwnx');
+      
+      if (!await appDownloadDir.exists()) {
+        await appDownloadDir.create(recursive: true);
+      }
+      
+      print('Android 14+ 使用系统 Downloads 目录: ${appDownloadDir.path}');
+      return appDownloadDir;
+    } catch (e) {
+      print('无法访问系统 Downloads 目录: $e');
+      return null;
+    }
+  }
+
+  /// Android 10+ 下载目录
+  Future<Directory?> _getModernAndroidDownloadDirectory() async {
+    try {
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir != null) {
+        // 从 /storage/emulated/0/Android/data/package.name/files
+        // 提取基础路径 /storage/emulated/0/
+        final basePath = externalDir.path.split('Android')[0];
+        final customDownloadDir = Directory('${basePath}biliownxdownloads');
+        
+        if (!await customDownloadDir.exists()) {
+          await customDownloadDir.create(recursive: true);
+        }
+        
+        print('Android 10+ 使用自定义目录: ${customDownloadDir.path}');
+        return customDownloadDir;
+      }
+    } catch (e) {
+      print('获取现代 Android 下载目录失败: $e');
+      return null;
+    }
+    return null;
+  }
+
+  /// Android 9 及以下下载目录
+  Future<Directory?> _getLegacyAndroidDownloadDirectory() async {
+    try {
+      final externalDir = await getExternalStorageDirectory();
+      if (externalDir != null) {
+        final downloadDir = Directory('${externalDir.path}/downloads');
+        
+        if (!await downloadDir.exists()) {
+          await downloadDir.create(recursive: true);
+        }
+        
+        print('Android 9- 使用传统目录: ${downloadDir.path}');
+        return downloadDir;
+      }
+    } catch (e) {
+      print('获取传统 Android 下载目录失败: $e');
+      return null;
+    }
+    return null;
+  }
+
+  /// 内部存储备选目录
+  Future<Directory> _getInternalDownloadDirectory() async {
+    final internalDir = await getApplicationDocumentsDirectory();
+    final fallbackDir = Directory('${internalDir.path}/downloads');
+    
+    if (!await fallbackDir.exists()) {
+      await fallbackDir.create(recursive: true);
+    }
+    
+    print('使用内部存储备选目录: ${fallbackDir.path}');
+    return fallbackDir;
+  }
+
+  /// 非 Android 平台下载目录
+  Future<Directory> _getNonAndroidDownloadDirectory() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final downloadDir = Directory('${directory.path}/downloads');
+    
+    if (!await downloadDir.exists()) {
+      await downloadDir.create(recursive: true);
+    }
+    
+    return downloadDir;
   }
 }
 
