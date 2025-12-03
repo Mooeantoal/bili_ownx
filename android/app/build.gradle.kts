@@ -18,6 +18,13 @@ android {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
+    
+    // 解决 AAR 元数据冲突
+    dependenciesInfo {
+        // 禁用依赖元数据检查以避免冲突
+        includeInApk = false
+        includeInBundle = false
+    }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
@@ -78,4 +85,20 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// 解决依赖版本冲突
+configurations.all {
+    resolutionStrategy {
+        // 强制使用兼容版本的依赖
+        force("androidx.core:core-ktx:1.12.0")
+        force("androidx.appcompat:appcompat:1.6.1")
+        force("androidx.lifecycle:lifecycle-runtime:2.7.0")
+        force("androidx.lifecycle:lifecycle-common:2.7.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22")
+        
+        // 排除冲突的模块
+        exclude(group: "com.google.guava", module: "listenablefuture")
+    }
 }

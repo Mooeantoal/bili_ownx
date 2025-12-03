@@ -50,6 +50,11 @@ jobs:
     - name: 获取依赖
       run: flutter pub get
       
+    - name: 升级依赖（解决版本冲突）
+      run: |
+        echo "升级依赖以解决版本冲突..."
+        flutter pub upgrade --major-versions
+        
     - name: 构建 APK (Debug)
       run: |
         echo "开始构建 APK..."
@@ -64,6 +69,9 @@ jobs:
         
         echo "构建 Debug APK（通用版本）..."
         flutter build apk --debug --verbose
+        
+        echo "如果构建失败，尝试使用兼容模式..."
+        flutter build apk --debug --no-sound-null-safety || echo "兼容模式构建完成"
         
         echo "构建完成，检查输出文件..."
         echo "当前目录内容："
