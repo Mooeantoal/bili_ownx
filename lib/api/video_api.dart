@@ -77,12 +77,12 @@ class VideoApi {
   /// - bvid: BV号
   /// - cid: 分P的cid
   /// - qn: 画质 (16:流畅 32:清晰 64:高清 80:超清 112:高清1080P 116:高清1080P60)
-  /// - fnval: 返回格式 (1:mp4 16:dash)
+  /// - fnval: 返回格式 (1:mp4/flv, 16:dash)
   static Future<Map<String, dynamic>> getPlayUrl({
     required String bvid,
     required int cid,
     int qn = 80,
-    int fnval = 16, // 默认返回 DASH 格式
+    int fnval = 1, // 默认返回 MP4/FLV 格式，画质切换更明显
   }) async {
     try {
       // 验证参数
@@ -93,6 +93,8 @@ class VideoApi {
       if (cid <= 0) {
         throw ArgumentError('CID 必须大于 0');
       }
+      
+      print('请求播放地址: bvid=$bvid, cid=$cid, qn=$qn, fnval=$fnval');
       
       final url = ApiHelper.buildUrl(
         'https://api.bilibili.com/x/player/playurl',
@@ -106,7 +108,34 @@ class VideoApi {
       );
 
       final response = await _dio.get(url);
-      return response.data;
+      final data = response.data;
+      
+      // 打印响应信息用于调试
+      if (data['code'] == 0) {
+        final playData = data['data'];
+        print('API 响应成功:');
+        
+        if (playData['durl'] != null) {
+          final durl = playData['durl'][0];
+          print('- 格式: MP4/FLV');
+          print('- 文件大小: ${(durl['size'] / 1024 / 1024).toStringAsFixed(2)} MB');
+          print('- 画质: ${playData['quality'] ?? '未知'}');
+        } else if (playData['dash'] != null) {
+          print('- 格式: DASH');
+          final videos = playData['dash']['video'] as List?;
+          if (videos != null) {
+            print('- 可用视频流: ${videos.length} 个');
+          }
+        }
+        
+        if (playData['accept_quality'] != null) {
+          print('- 支持的画质: ${playData['accept_quality']}');
+        }
+      } else {
+        print('API 响应错误: ${data['message']}');
+      }
+      
+      return data;
     } on DioException catch (e) {
       final errorInfo = {
         'type': 'DioException',

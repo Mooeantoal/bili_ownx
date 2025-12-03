@@ -4,7 +4,10 @@ import 'package:chewie/chewie.dart';
 import '../api/video_api.dart';
 import '../models/video_info.dart';
 import '../services/play_history_service.dart';
+import '../services/download_service.dart';
+import '../services/download_manager.dart';
 import '../utils/error_handler.dart';
+import 'download_list_page.dart';
 
 /// 视频播放器页面
 class PlayerPage extends StatefulWidget {
@@ -48,7 +51,7 @@ class _PlayerPageState extends State<PlayerPage> {
   int _selectedQuality = 80; // 默认超清画质
   
   // 可选画质列表
-  final List<Map<String, dynamic>> _qualityOptions = [
+  final List<Map<String, dynamic>> _allQualityOptions = [
     {'qn': 16, 'name': '流畅'},
     {'qn': 32, 'name': '清晰'},
     {'qn': 64, 'name': '高清'},
@@ -56,6 +59,9 @@ class _PlayerPageState extends State<PlayerPage> {
     {'qn': 112, 'name': '高清 1080P'},
     {'qn': 116, 'name': '高清 1080P60'},
   ];
+  
+  // 当前视频支持的画质列表
+  List<Map<String, dynamic>> _availableQualities = [];
 
   @override
   void initState() {
@@ -108,10 +114,12 @@ AID: ${widget.aid}
       if (response['code'] == 0 && response['data'] != null) {
         setState(() {
           _videoInfo = VideoInfo.fromJson(response['data']);
-          _isLoading = false;
         });
         
-        // 加载播放地址
+        // 先获取可用画质列表
+        await _loadAvailableQualities(_videoInfo!.cid);
+        
+        // 然后加载播放地址
         await _loadPlayUrl(_videoInfo!.cid);
       } else {
         setState(() {
@@ -185,6 +193,62 @@ ${ErrorHandler.formatApiResponseError(response)}
     }
   }
 
+  /// 获取视频支持的画质列表
+  Future<void> _loadAvailableQualities(int cid) async {
+    try {
+      String bvidToUse = widget.bvid;
+      if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
+        bvidToUse = _videoInfo!.bvid;
+      }
+      
+      if (bvidToUse.isEmpty) return;
+      
+      // 使用默认画质请求，获取支持的画质列表
+      final response = await VideoApi.getPlayUrl(
+        bvid: bvidToUse,
+        cid: cid,
+        qn: 80, // 使用超清画质查询
+      );
+      
+      if (response['code'] == 0 && response['data'] != null) {
+        final data = response['data'];
+        
+        // 从 API 响应中获取支持的画质
+        List<int> supportedQualities = [];
+        
+        if (data['accept_quality'] != null) {
+          // 如果有 accept_quality 字段，直接使用
+          final acceptQuality = data['accept_quality'] as List;
+          supportedQualities = acceptQuality.cast<int>();
+        } else {
+          // 否则根据常见的画质等级推断
+          supportedQualities = [16, 32, 64, 80, 112, 116];
+        }
+        
+        // 过滤出可用的画质选项
+        setState(() {
+          _availableQualities = _allQualityOptions
+              .where((quality) => supportedQualities.contains(quality['qn']))
+              .toList();
+          
+          // 如果当前选择的画质不可用，选择第一个可用的画质
+          if (!_availableQualities.any((q) => q['qn'] == _selectedQuality) && _availableQualities.isNotEmpty) {
+            _selectedQuality = _availableQualities.first['qn'];
+            print('自动选择可用画质: ${_getQualityName(_selectedQuality)}');
+          }
+        });
+        
+        print('可用画质列表: ${_availableQualities.map((q) => '${q['name']}(${q['qn']})').join(', ')}');
+      }
+    } catch (e) {
+      print('获取可用画质失败: $e');
+      // 使用默认画质列表
+      setState(() {
+        _availableQualities = List.from(_allQualityOptions);
+      });
+    }
+  }
+
   /// 加载播放地址
   Future<void> _loadPlayUrl(int cid) async {
     // 释放旧控制器
@@ -208,6 +272,8 @@ ${ErrorHandler.formatApiResponseError(response)}
         throw Exception('无法获取有效的 BVID：widget.bvid 为空，且无法从视频信息中获取');
       }
       
+      print('开始加载播放地址: 画质=$_selectedQuality (${_getQualityName(_selectedQuality)})');
+      
       final response = await VideoApi.getPlayUrl(
         bvid: bvidToUse,
         cid: cid,
@@ -217,12 +283,27 @@ ${ErrorHandler.formatApiResponseError(response)}
       if (response['code'] == 0 && response['data'] != null) {
         final data = response['data'];
         String? videoUrl;
+        int actualQuality = _selectedQuality;
+
+        // 检查实际返回的画质
+        if (data['quality'] != null) {
+          actualQuality = data['quality'];
+          print('API 返回的实际画质: $actualQuality (${_getQualityName(actualQuality)})');
+          
+          // 如果实际画质与请求画质不同，更新状态
+          if (actualQuality != _selectedQuality) {
+            print('画质自动调整: ${_getQualityName(_selectedQuality)} -> ${_getQualityName(actualQuality)}');
+            _selectedQuality = actualQuality;
+          }
+        }
 
         // 优先使用 durl 格式 (video_player 对 DASH 支持有限，优先用 MP4/FLV)
         if (data['durl'] != null) {
           final durl = data['durl'];
           if (durl is List && durl.isNotEmpty) {
             videoUrl = durl[0]['url'];
+            final size = durl[0]['size'];
+            print('获取到 MP4/FLV 播放地址，文件大小: ${(size / 1024 / 1024).toStringAsFixed(2)} MB');
           }
         }
         // 降级到 DASH 格式 (可能需要额外配置)
@@ -230,6 +311,7 @@ ${ErrorHandler.formatApiResponseError(response)}
           final video = data['dash']['video'];
           if (video != null && video is List && video.isNotEmpty) {
             videoUrl = video[0]['baseUrl'] ?? video[0]['base_url'];
+            print('获取到 DASH 播放地址，视频流数量: ${video.length}');
           }
         }
 
@@ -266,13 +348,18 @@ ${ErrorHandler.formatApiResponseError(response)}
             },
           );
           
-          setState(() {});
+          setState(() {
+            _isLoading = false;
+          });
           
           // 监听播放位置以保存历史
           _setupPlaybackListener();
+          
+          print('播放器初始化成功，当前画质: ${_getQualityName(_selectedQuality)}');
         } else {
           setState(() {
             _errorMessage = '无法获取播放地址';
+            _isLoading = false;
           });
           
           // 显示详细错误信息对话框
@@ -285,7 +372,7 @@ ${ErrorHandler.formatApiResponseError(response)}
               additionalInfo: '''请求参数:
 - BVID: ${widget.bvid}
 - CID: $cid
-- 画质: $_selectedQuality
+- 画质: $_selectedQuality (${_getQualityName(_selectedQuality)})
 
 API响应:
 ${ErrorHandler.formatApiResponseError(response)}
@@ -302,6 +389,7 @@ ${ErrorHandler.formatApiResponseError(response)}
       } else {
         setState(() {
           _errorMessage = '获取播放地址失败: ${response['message'] ?? '未知错误'}';
+          _isLoading = false;
         });
         
         // 显示详细错误信息对话框
@@ -314,7 +402,7 @@ ${ErrorHandler.formatApiResponseError(response)}
             additionalInfo: '''请求参数:
 - BVID: ${widget.bvid}
 - CID: $cid
-- 画质: $_selectedQuality
+- 画质: $_selectedQuality (${_getQualityName(_selectedQuality)})
 
 API响应:
 ${ErrorHandler.formatApiResponseError(response)}
@@ -331,6 +419,7 @@ ${ErrorHandler.formatApiResponseError(response)}
     } catch (e, s) {
       setState(() {
         _errorMessage = '播放失败: $e';
+        _isLoading = false;
       });
       
       // 显示详细错误信息对话框
@@ -340,7 +429,7 @@ ${ErrorHandler.formatApiResponseError(response)}
           title: '播放出错',
           error: e,
           stackTrace: s,
-          additionalInfo: '视频BVID: ${widget.bvid}, CID: $cid',
+          additionalInfo: '视频BVID: ${widget.bvid}, CID: $cid, 画质: $_selectedQuality',
         );
       });
     }
@@ -397,31 +486,111 @@ ${ErrorHandler.formatApiResponseError(response)}
         title: Text(_videoInfo?.title ?? '加载中...'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // 下载按钮
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: _downloadVideo,
+            tooltip: '下载视频',
+          ),
+          
           // 画质选择
           PopupMenuButton<int>(
-            icon: const Icon(Icons.hd),
-            onSelected: (qn) {
+            icon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.hd),
+                const SizedBox(width: 4),
+                Text(
+                  _getQualityName(_selectedQuality),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            onSelected: (qn) async {
+              if (_selectedQuality == qn) return; // 相同画质不切换
+              
+              // 显示切换提示
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('正在切换到${_getQualityName(qn)}...'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+              
               setState(() {
                 _selectedQuality = qn;
+                _isLoading = true;
               });
+              
               // 重新加载视频
               if (_videoInfo != null) {
-                _loadPlayUrl(_videoInfo!.parts[_currentPartIndex].cid);
+                try {
+                  await _loadPlayUrl(_videoInfo!.parts[_currentPartIndex].cid);
+                  
+                  // 显示切换成功提示
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('已切换到${_getQualityName(qn)}'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // 切换失败，恢复原画质
+                  setState(() {
+                    _selectedQuality = _qualityOptions.first['qn']; // 恢复默认画质
+                    _isLoading = false;
+                  });
+                  
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('画质切换失败: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               }
             },
-            itemBuilder: (context) => _qualityOptions
-                .map((quality) => PopupMenuItem<int>(
+            itemBuilder: (context) => _availableQualities.isEmpty
+                ? _allQualityOptions.map((quality) => PopupMenuItem<int>(
                       value: quality['qn'],
-                      child: Text(
-                        quality['name'],
-                        style: TextStyle(
-                          fontWeight: quality['qn'] == _selectedQuality
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            quality['name'],
+                            style: TextStyle(
+                              fontWeight: quality['qn'] == _selectedQuality
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          if (quality['qn'] == _selectedQuality)
+                            const Icon(Icons.check, color: Colors.blue),
+                        ],
                       ),
-                    ))
-                .toList(),
+                    )).toList()
+                : _availableQualities.map((quality) => PopupMenuItem<int>(
+                      value: quality['qn'],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            quality['name'],
+                            style: TextStyle(
+                              fontWeight: quality['qn'] == _selectedQuality
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          if (quality['qn'] == _selectedQuality)
+                            const Icon(Icons.check, color: Colors.blue),
+                        ],
+                      ),
+                    )).toList(),
           ),
         ],
       ),
@@ -539,5 +708,99 @@ ${ErrorHandler.formatApiResponseError(response)}
     } else {
       return '$minutes:${secs.toString().padLeft(2, '0')}';
     }
+  }
+
+  /// 下载视频
+  Future<void> _downloadVideo() async {
+    if (_videoInfo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('视频信息未加载完成')),
+      );
+      return;
+    }
+
+    final currentPart = _videoInfo!.parts[_currentPartIndex];
+
+    try {
+      // 显示下载对话框
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('添加到下载队列'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('标题: ${_videoInfo!.title}'),
+              const SizedBox(height: 8),
+              Text('UP主: ${_videoInfo!.author}'),
+              const SizedBox(height: 8),
+              Text('分P: P${currentPart.page} ${currentPart.title}'),
+              const SizedBox(height: 8),
+              Text('画质: ${_getQualityName(_selectedQuality)}'),
+              const SizedBox(height: 16),
+              const Text('确定要添加到下载队列吗？'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      // 添加到下载队列
+      final manager = DownloadManager();
+      final taskId = await manager.addDownloadTask(
+        bvid: _videoInfo!.bvid,
+        cid: currentPart.cid,
+        title: _videoInfo!.title,
+        cover: _videoInfo!.cover,
+        author: _videoInfo!.author,
+        quality: _selectedQuality,
+        qualityName: _getQualityName(_selectedQuality),
+        partIndex: currentPart.page,
+        partTitle: currentPart.title,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已添加到下载队列'),
+          action: SnackBarAction(
+            label: '查看',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DownloadListPage(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('添加下载失败: $e')),
+      );
+    }
+  }
+
+  /// 获取画质名称
+  String _getQualityName(int qn) {
+    final quality = _qualityOptions.firstWhere(
+      (q) => q['qn'] == qn,
+      orElse: () => {'name': '未知'},
+    );
+    return quality['name'] ?? '未知';
   }
 }

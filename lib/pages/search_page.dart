@@ -3,6 +3,8 @@ import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
 import 'player_page.dart';
+import 'quality_test_page.dart';
+import 'download_list_page.dart';
 import '../utils/error_handler.dart';
 
 /// 搜索页面
@@ -235,6 +237,23 @@ class _SearchPageState extends State<SearchPage> {
       appBar: AppBar(
         title: const Text('Bilibili 搜索'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => _navigateToPlayHistory(),
+            tooltip: '播放历史',
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () => _navigateToDownloads(),
+            tooltip: '下载管理',
+          ),
+          IconButton(
+            icon: const Icon(Icons.high_quality),
+            onPressed: _openQualityTest,
+            tooltip: '画质测试',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -369,6 +388,38 @@ class _SearchPageState extends State<SearchPage> {
       return '${(count / 10000.0).toStringAsFixed(1)}万';
     }
     return count.toString();
+  }
+
+  /// 导航到播放历史页面
+  void _navigateToPlayHistory() {
+    // TODO: 实现播放历史页面
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('播放历史页面开发中...')),
+    );
+  }
+
+  /// 导航到下载管理页面
+  void _navigateToDownloads() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DownloadListPage(),
+      ),
+    );
+  }
+
+  /// 打开画质测试页面
+  void _openQualityTest() {
+    // 使用一个常见的测试视频
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QualityTestPage(
+          bvid: 'BV1xx411c7mD', // 测试视频
+          cid: 19772637, // 对应的 CID
+        ),
+      ),
+    );
   }
 
   /// 构建搜索历史视图
