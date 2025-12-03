@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.bili_ownx"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -31,8 +31,8 @@ android {
         applicationId = "com.example.bili_ownx"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -59,8 +59,8 @@ android {
             isShrinkResources = false
         }
     }
-    
-    // 启用包拆分，按ABI分离以减小APK大小
+   
+// 启用包拆分，按ABI分离以减小APK大小
     splits {
         abi {
             isEnable = true  // 启用ABI分割以减小APK体积
@@ -90,13 +90,18 @@ flutter {
 // 解决依赖版本冲突
 configurations.all {
     resolutionStrategy {
-        // 强制使用兼容版本的依赖
-        force("androidx.core:core-ktx:1.12.0")
-        force("androidx.appcompat:appcompat:1.6.1")
-        force("androidx.lifecycle:lifecycle-runtime:2.7.0")
-        force("androidx.lifecycle:lifecycle-common:2.7.0")
-        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22")
+        // 强制使用兼容版本的依赖 - 更新到最新稳定版
+        force("androidx.core:core-ktx:1.13.1")
+        force("androidx.appcompat:appcompat:1.7.0")
+        force("androidx.lifecycle:lifecycle-runtime:2.8.7")
+        force("androidx.lifecycle:lifecycle-common:2.8.7")
+        force("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+        force("org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21")
+        
+        // Media3 版本对齐
+        force("androidx.media3:media3-exoplayer:1.5.0")
+        force("androidx.media3:media3-common:1.5.0")
+        force("androidx.media3:media3-ui:1.5.0")
         
         // 排除冲突的模块 - 使用 Kotlin DSL 正确语法
         exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
