@@ -539,7 +539,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 } catch (e) {
                   // 切换失败，恢复原画质
                   setState(() {
-                    _selectedQuality = _qualityOptions.first['qn']; // 恢复默认画质
+                    _selectedQuality = _allQualityOptions.first['qn']; // 恢复默认画质
                     _isLoading = false;
                   });
                   
@@ -797,7 +797,7 @@ ${ErrorHandler.formatApiResponseError(response)}
 
   /// 获取画质名称
   String _getQualityName(int qn) {
-    final quality = _qualityOptions.firstWhere(
+    final quality = _allQualityOptions.firstWhere(
       (q) => q['qn'] == qn,
       orElse: () => {'name': '未知'},
     );

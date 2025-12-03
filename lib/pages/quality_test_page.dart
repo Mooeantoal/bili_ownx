@@ -278,11 +278,11 @@ class _QualityTestPageState extends State<QualityTestPage> {
           const SizedBox(height: 8),
           if (_currentPlayData['quality'] != null)
             Text('返回画质: ${_currentPlayData['quality']}'),
-          if (_currentPlayData['durl'] != null) {
+          if (_currentPlayData['durl'] != null) ...[
             final durl = _currentPlayData['durl'][0];
             Text('文件大小: ${(durl['size'] / 1024 / 1024).toStringAsFixed(2)} MB'),
             Text('时长: ${Duration(seconds: durl['length']).inSeconds} 秒'),
-          },
+          ],
           if (_currentPlayData['accept_quality'] != null)
             Text('支持画质: ${_currentPlayData['accept_quality']}'),
         ],

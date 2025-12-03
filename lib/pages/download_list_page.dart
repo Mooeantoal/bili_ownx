@@ -117,6 +117,7 @@ class _DownloadListPageState extends State<DownloadListPage> {
           return _DownloadTaskCard(
             task: task,
             onTaskAction: _handleTaskAction,
+            onShowErrorLog: _showErrorLogDialog,
           );
         },
       ),
@@ -293,10 +294,12 @@ class _DownloadListPageState extends State<DownloadListPage> {
 class _DownloadTaskCard extends StatelessWidget {
   final DownloadTask task;
   final Function(String taskId, String action) onTaskAction;
+  final Function(DownloadTask task) onShowErrorLog;
 
   const _DownloadTaskCard({
     required this.task,
     required this.onTaskAction,
+    required this.onShowErrorLog,
   });
 
   @override
@@ -450,7 +453,7 @@ class _DownloadTaskCard extends StatelessWidget {
                     if (task.errorLog != null)
                       IconButton(
                         icon: const Icon(Icons.bug_report, size: 16),
-                        onPressed: () => _showErrorLogDialog(task),
+                        onPressed: () => onShowErrorLog(task),
                         tooltip: '查看错误日志',
                         color: Colors.red,
                       ),
