@@ -98,7 +98,7 @@ configurations.all {
         force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
         force("org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22")
         
-        // 排除冲突的模块
-        exclude(group: "com.google.guava", module: "listenablefuture")
+        // 排除冲突的模块 - 使用 Kotlin DSL 正确语法
+        exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
     }
 }
