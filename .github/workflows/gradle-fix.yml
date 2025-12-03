@@ -1,0 +1,198 @@
+name: Gradle Fix Build
+
+on:
+  workflow_dispatch:  # 手动触发，用于专门修复 Gradle 问题
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/gradle-fix.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  gradle-fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Java (基于参考信息优化)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+        
+    - name: 设置 Gradle (参考信息最佳实践)
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-read-only: false
+        cache-encryption-key: ${{ secrets.GITHUB_TOKEN }}
+        gradle-home-cache-inclusion: |
+          **/*.gradle
+          **/*.gradle.kts
+          gradle-wrapper.properties
+        
+    - name: 设置 Flutter
+      uses: subosito/flutter-action@v3
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        cache-key: "flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}"
+        
+    - name: 应用参考信息的修复方案
+      run: |
+        echo "=== 应用基于参考信息的 Gradle 修复方案 ==="
+        
+        # 1. 清理环境
+        echo "清理构建环境..."
+        flutter clean
+        cd android && ./gradlew clean && cd ..
+        
+        # 2. 验证依赖版本 (参考信息中的关键版本)
+        echo "验证关键依赖版本..."
+        if ! grep -q "dio: ^5.7.0" pubspec.yaml; then
+          echo "⚠️  dio 版本可能不是推荐的 ^5.7.0"
+        fi
+        
+        if ! grep -q "shared_preferences: ^2.3.2" pubspec.yaml; then
+          echo "⚠️  shared_preferences 版本可能不是推荐的 ^2.3.2"
+        fi
+        
+        # 3. 获取依赖
+        echo "获取 Flutter 依赖..."
+        flutter pub get
+        
+        # 4. 升级依赖
+        echo "升级依赖到最新兼容版本..."
+        flutter pub upgrade --major-versions
+        
+        # 5. 运行诊断工具 (参考信息中的诊断脚本)
+        echo "运行依赖冲突诊断..."
+        if [ -f "diagnose_dependencies.dart" ]; then
+          dart diagnose_dependencies.dart || echo "诊断完成"
+        else
+          echo "诊断工具不存在，跳过诊断"
+        fi
+        
+        # 6. 验证 Android Gradle 配置 (参考信息中的修复配置)
+        echo "验证 Android Gradle 配置..."
+        if [ -f "android/app/build.gradle.kts" ]; then
+          # 检查是否包含参考信息中的关键配置
+          if ! grep -q "dependenciesInfo" android/app/build.gradle.kts; then
+            echo "⚠️  缺少 dependenciesInfo 配置"
+          fi
+          
+          if ! grep -q "resolutionStrategy" android/app/build.gradle.kts; then
+            echo "⚠️  缺少 resolutionStrategy 配置"
+          fi
+        fi
+        
+    - name: 执行修复脚本 (参考信息中的自动化修复)
+      run: |
+        echo "=== 执行参考信息中的修复脚本 ==="
+        
+        if [ -f "fix_gradle_build.sh" ]; then
+          echo "执行 Gradle 修复脚本..."
+          chmod +x fix_gradle_build.sh
+          ./fix_gradle_build.sh
+        else
+          echo "修复脚本不存在，执行手动修复..."
+          
+          # 手动执行参考信息中的修复步骤
+          flutter clean
+          cd android && ./gradlew clean && cd ..
+          flutter pub get
+          flutter pub upgrade --major-versions
+        fi
+        
+    - name: 尝试构建 (参考信息中的多级构建策略)
+      run: |
+        echo "=== 基于参考信息的多级构建尝试 ==="
+        
+        # 构建策略 1: 标准构建
+        echo "尝试标准构建..."
+        if flutter build apk --debug; then
+          echo "✅ 标准构建成功"
+          exit 0
+        fi
+        
+        # 构建策略 2: 兼容模式
+        echo "标准构建失败，尝试兼容模式..."
+        if flutter build apk --debug --no-sound-null-safety; then
+          echo "✅ 兼容模式构建成功"
+          exit 0
+        fi
+        
+        # 构建策略 3: 最小化构建
+        echo "兼容模式失败，尝试最小化构建..."
+        if flutter build apk --debug --no-tree-shake-icons --no-pub; then
+          echo "✅ 最小化构建成功"
+          exit 0
+        fi
+        
+        # 构建策略 4: 强制构建
+        echo "最小化构建失败，尝试强制构建..."
+        if flutter build apk --debug --no-tree-shake-icons --no-pub --split-debug-info=build/debug-info; then
+          echo "✅ 强制构建成功"
+          exit 0
+        fi
+        
+        echo "❌ 所有构建策略都失败"
+        exit 1
+        
+    - name: 收集构建信息
+      if: always()
+      run: |
+        echo "=== 收集构建信息 ==="
+        
+        echo "## Gradle 修复构建报告" > gradle-fix-report.md
+        echo "- 修复时间: $(date)" >> gradle-fix-report.md
+        echo "- 基于参考信息: GRADLE_BUILD_FIX_SUMMARY.md" >> gradle-fix-report.md
+        echo "- Flutter 版本: $(flutter --version | head -1)" >> gradle-fix-report.md
+        echo "- Java 版本: $(java -version 2>&1 | head -1)" >> gradle-fix-report.md
+        echo "" >> gradle-fix-report.md
+        
+        echo "### 修复状态" >> gradle-fix-report.md
+        echo "- 修复脚本: $([ -f "fix_gradle_build.sh" ] && echo "✅ 可用" || echo "❌ 缺失")" >> gradle-fix-report.md
+        echo "- 诊断工具: $([ -f "diagnose_dependencies.dart" ] && echo "✅ 可用" || echo "❌ 缺失")" >> gradle-fix-report.md
+        echo "- 修复文档: $([ -f "GRADLE_BUILD_FIX_SUMMARY.md" ] && echo "✅ 可用" || echo "❌ 缺失")" >> gradle-fix-report.md
+        echo "" >> gradle-fix-report.md
+        
+        echo "### APK 文件" >> gradle-fix-report.md
+        find . -name "*.apk" -type f -exec echo "- {}" \; >> gradle-fix-report.md || echo "- 无APK文件" >> gradle-fix-report.md
+        
+        # 输出报告内容
+        cat gradle-fix-report.md
+        
+    - name: 上传构建产物
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gradle-fixed-apk-${{ github.run_number }}
+        path: |
+          **/*.apk
+          gradle-fix-report.md
+        retention-days: 30
+        
+    - name: 上传失败日志
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gradle-fix-logs-${{ github.run_number }}
+        path: |
+          android/app/build/logs/
+          android/.gradle/
+          build/
+          gradle-fix-report.md
+        retention-days: 7

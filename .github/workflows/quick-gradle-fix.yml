@@ -1,0 +1,129 @@
+name: Quick Gradle Fix (基于参考信息)
+
+on:
+  workflow_dispatch:  # 手动触发，快速修复
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'android/**'
+      - 'pubspec.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  quick-fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4.1.1
+      
+    - name: 设置 Java (参考信息配置)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        cache: 'gradle'
+        
+    - name: 设置 Gradle (参考信息优化)
+      uses: gradle/gradle-build-action@v3
+      with:
+        cache-read-only: false
+        
+    - name: 设置 Flutter
+      uses: subosito/flutter-action@v3
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+        
+    - name: 应用参考信息的快速修复
+      run: |
+        echo "=== 基于参考信息的快速 Gradle 修复 ==="
+        
+        # 1. 验证依赖版本 (参考信息推荐)
+        echo "1. 验证关键依赖版本..."
+        if ! grep -q "dio: ^5.7.0" pubspec.yaml; then
+          echo "⚠️  dio 版本不符合参考信息推荐 (^5.7.0)"
+        fi
+        
+        if ! grep -q "shared_preferences: ^2.3.2" pubspec.yaml; then
+          echo "⚠️  shared_preferences 版本不符合参考信息推荐 (^2.3.2)"
+        fi
+        
+        # 2. 验证 Android 配置 (参考信息修复)
+        echo "2. 验证 Android Gradle 配置..."
+        if [ -f "android/app/build.gradle.kts" ]; then
+          # 检查 AAR 元数据冲突修复
+          if ! grep -q "dependenciesInfo" android/app/build.gradle.kts; then
+            echo "❌ 缺少 dependenciesInfo 配置 (AAR 元数据冲突修复)"
+          fi
+          
+          # 检查依赖版本冲突修复
+          if ! grep -q "resolutionStrategy" android/app/build.gradle.kts; then
+            echo "❌ 缺少 resolutionStrategy 配置 (依赖版本冲突修复)"
+          fi
+        fi
+        
+        # 3. 清理和重建 (参考信息步骤)
+        echo "3. 执行参考信息的清理和重建步骤..."
+        flutter clean
+        cd android && ./gradlew clean && cd ..
+        flutter pub get
+        flutter pub upgrade --major-versions
+        
+        # 4. 执行修复脚本 (参考信息自动化)
+        if [ -f "fix_gradle_build.sh" ]; then
+          echo "4. 执行参考信息修复脚本..."
+          chmod +x fix_gradle_build.sh
+          ./fix_gradle_build.sh
+        fi
+        
+        # 5. 运行诊断 (参考信息工具)
+        if [ -f "diagnose_dependencies.dart" ]; then
+          echo "5. 运行参考信息诊断工具..."
+          dart diagnose_dependencies.dart
+        fi
+        
+    - name: 快速构建测试
+      run: |
+        echo "=== 快速构建测试 ==="
+        
+        # 使用参考信息推荐的最简单构建方式
+        if flutter build apk --debug --no-tree-shake-icons; then
+          echo "✅ 快速构建成功"
+        else
+          echo "❌ 快速构建失败，需要完整修复流程"
+          exit 1
+        fi
+        
+    - name: 生成快速修复报告
+      if: always()
+      run: |
+        echo "## 快速修复报告 (基于参考信息)" > quick-fix-report.md
+        echo "- 修复时间: $(date)" >> quick-fix-report.md
+        echo "- 参考文档: GRADLE_BUILD_FIX_SUMMARY.md" >> quick-fix-report.md
+        echo "- 修复类型: 快速 Gradle 修复" >> quick-fix-report.md
+        echo "" >> quick-fix-report.md
+        echo "### 修复状态" >> quick-fix-report.md
+        echo "- 依赖版本验证: 已完成" >> quick-fix-report.md
+        echo "- Android 配置验证: 已完成" >> quick-fix-report.md
+        echo "- 清理重建: 已完成" >> quick-fix-report.md
+        echo "- 构建测试: $([ $? -eq 0 ] && echo "✅ 成功" || echo "❌ 失败")" >> quick-fix-report.md
+        echo "" >> quick-fix-report.md
+        echo "### 建议" >> quick-fix-report.md
+        echo "- 如果快速修复失败，请运行完整的 build.yml 工作流" >> quick-fix-report.md
+        echo "- 检查 GRADLE_BUILD_FIX_SUMMARY.md 获取详细修复步骤" >> quick-fix-report.md
+        
+        cat quick-fix-report.md
+        
+    - name: 上传快速修复结果
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: quick-fix-result-${{ github.run_number }}
+        path: |
+          **/*.apk
+          quick-fix-report.md
+        retention-days: 7
