@@ -413,6 +413,15 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  /// 导航到元数据管理页面
+  void _navigateToMetadata() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MetadataPage(),
+      ),
+    );
+  }
 
   /// 打开画质测试页面
   void _openQualityTest() {
