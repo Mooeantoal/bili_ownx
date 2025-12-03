@@ -79,7 +79,7 @@ class NotificationService {
   }
 
   Future<void> showDownloadProgress(String title, String bvid, int progress) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'download_channel',
       '下载通知',
@@ -94,7 +94,7 @@ class NotificationService {
       onlyAlertOnce: true,
     );
 
-    const NotificationDetails platformChannelSpecifics =
+    final NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await _notifications.show(

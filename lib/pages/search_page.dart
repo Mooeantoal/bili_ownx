@@ -1,22 +1,4 @@
 import 'package:flutter/material.dart';
-
-/// 元数据管理页面
-class MetadataPage extends StatelessWidget {
-  const MetadataPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('元数据管理'),
-      ),
-      body: const Center(
-        child: Text('元数据管理功能正在开发中...'),
-      ),
-    );
-  }
-}
-import 'package:flutter/material.dart';
 import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
@@ -431,21 +413,6 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  /// 导航到元数据管理页面
-  void _navigateToMetadata() {
-    // TODO: 导入元数据管理页面
-    /*
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MetadataPage(),
-      ),
-    );
-    */
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('元数据管理页面开发中...')),
-    );
-  }
 
   /// 打开画质测试页面
   void _openQualityTest() {

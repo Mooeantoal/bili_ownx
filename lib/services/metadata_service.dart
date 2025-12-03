@@ -49,7 +49,7 @@ class MetadataService {
       coinCount: videoInfo.coinCount ?? 0,
       favoriteCount: videoInfo.favoriteCount ?? 0,
       shareCount: videoInfo.shareCount ?? 0,
-      duration: videoInfo.duration ?? '',
+      duration: videoInfo.durationStr ?? '',
       partCount: videoInfo.parts.length,
       cachedAt: DateTime.now(),
       categories: _extractCategories(videoInfo),
