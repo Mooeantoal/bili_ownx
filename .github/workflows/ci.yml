@@ -1,0 +1,206 @@
+name: Unified CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式 (Mode)'
+        required: true
+        default: 'standard'
+        type: choice
+        options:
+        - standard
+        - gradle-fix
+        - quick-fix
+        - test-matrix
+      upload_artifacts:
+        description: '上传构建产物 (Upload Artifacts)'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  # ==================================================================================================
+  # 1. 标准构建 (Standard Build) - 对应原 build.yml
+  # ==================================================================================================
+  standard-build:
+    name: Standard Build
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || inputs.mode == 'standard' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: 构建 APK (Debug)
+        run: |
+          echo "开始构建 APK..."
+          flutter clean
+          flutter pub get
+          flutter build apk --debug --verbose
+
+      - name: 上传 APK 为 Artifact
+        if: ${{ always() && (inputs.upload_artifacts == true || github.event_name != 'workflow_dispatch') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: standard-build-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: 创建 Release
+        if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          files: |
+            build/app/outputs/flutter-apk/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==================================================================================================
+  # 2. Gradle 修复构建 (Gradle Fix) - 对应原 gradle-fix.yml
+  # ==================================================================================================
+  gradle-fix:
+    name: Gradle Fix Build
+    if: ${{ inputs.mode == 'gradle-fix' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 设置 Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          cache-read-only: false
+
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: 执行修复与构建
+        run: |
+          echo "=== 执行 Gradle 修复构建 ==="
+          
+          # 1. 清理
+          flutter clean
+          cd android && ./gradlew clean && cd ..
+          
+          # 2. 依赖更新
+          flutter pub get
+          flutter pub upgrade --major-versions
+          
+          # 3. 尝试多种构建策略
+          echo "尝试标准构建..."
+          if flutter build apk --debug; then
+            echo "✅ 标准构建成功"
+            exit 0
+          fi
+          
+          echo "尝试兼容模式构建..."
+          if flutter build apk --debug --no-sound-null-safety; then
+            echo "✅ 兼容模式构建成功"
+            exit 0
+          fi
+          
+          echo "尝试最小化构建..."
+          if flutter build apk --debug --no-tree-shake-icons --no-pub; then
+            echo "✅ 最小化构建成功"
+            exit 0
+          fi
+          
+          echo "❌ 所有构建策略均失败"
+          exit 1
+
+      - name: 上传修复结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-fix-result-${{ github.run_number }}
+          path: |
+            **/*.apk
+            android/app/build/logs/
+          retention-days: 7
+
+  # ==================================================================================================
+  # 3. 快速修复 (Quick Fix) - 对应原 quick-gradle-fix.yml
+  # ==================================================================================================
+  quick-fix:
+    name: Quick Gradle Fix
+    if: ${{ inputs.mode == 'quick-fix' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+      - name: Quick Build
+        run: |
+          flutter clean
+          flutter pub get
+          flutter build apk --debug --no-tree-shake-icons
+
+  # ==================================================================================================
+  # 4. 矩阵测试 (Matrix Test) - 对应原 test-build.yml
+  # ==================================================================================================
+  test-matrix:
+    name: Test (${{ matrix.flutter-version }}, Java ${{ matrix.java-version }})
+    if: ${{ inputs.mode == 'test-matrix' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flutter-version: ['3.24.0', '3.22.0']
+        java-version: ['17', '11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java-version }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ matrix.flutter-version }}
+      - name: Build
+        run: flutter build apk --debug
