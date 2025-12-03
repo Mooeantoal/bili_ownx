@@ -6,6 +6,7 @@ import 'player_page.dart';
 import 'quality_test_page.dart';
 import 'download_list_page.dart';
 import '../utils/error_handler.dart';
+import 'metadata_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
