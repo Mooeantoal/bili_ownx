@@ -1,0 +1,23 @@
+﻿2025-12-04T01:35:01.4746244Z ##[group]Run actions/upload-artifact@v4
+2025-12-04T01:35:01.4746544Z with:
+2025-12-04T01:35:01.4746728Z   name: standard-build-9
+2025-12-04T01:35:01.4747090Z   path: build/app/outputs/flutter-apk/*.apk
+android/app/build/outputs/apk/debug/*.apk
+
+2025-12-04T01:35:01.4747624Z   retention-days: 30
+2025-12-04T01:35:01.4747829Z   if-no-files-found: warn
+2025-12-04T01:35:01.4748046Z   compression-level: 6
+2025-12-04T01:35:01.4748243Z   overwrite: false
+2025-12-04T01:35:01.4748444Z   include-hidden-files: false
+2025-12-04T01:35:01.4748659Z env:
+2025-12-04T01:35:01.4748930Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.17-10/x64
+2025-12-04T01:35:01.4749381Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.17-10/x64
+2025-12-04T01:35:01.4749745Z   ANDROID_HOME: /usr/local/lib/android/sdk
+2025-12-04T01:35:01.4750012Z   ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+2025-12-04T01:35:01.4750341Z   FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.24.0-x64
+2025-12-04T01:35:01.4750687Z   PUB_CACHE: /home/runner/.pub-cache
+2025-12-04T01:35:01.4751089Z ##[endgroup]
+2025-12-04T01:35:01.6874963Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2025-12-04T01:35:01.6876879Z The least common ancestor is /home/runner/work/bili_ownx/bili_ownx. This will be the root directory of the artifact
+2025-12-04T01:35:01.6888975Z ##[warning]No files were found with the provided path: build/app/outputs/flutter-apk/*.apk
+android/app/build/outputs/apk/debug/*.apk. No artifacts will be uploaded.

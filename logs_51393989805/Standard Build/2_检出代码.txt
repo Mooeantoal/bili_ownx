@@ -1,0 +1,82 @@
+﻿2025-12-04T01:32:18.1964386Z ##[group]Run actions/checkout@v4
+2025-12-04T01:32:18.1965668Z with:
+2025-12-04T01:32:18.1966399Z   fetch-depth: 0
+2025-12-04T01:32:18.1967217Z   repository: Mooeantoal/bili_ownx
+2025-12-04T01:32:18.1968427Z   token: ***
+2025-12-04T01:32:18.1969146Z   ssh-strict: true
+2025-12-04T01:32:18.1969920Z   ssh-user: git
+2025-12-04T01:32:18.1970697Z   persist-credentials: true
+2025-12-04T01:32:18.1971716Z   clean: true
+2025-12-04T01:32:18.1972499Z   sparse-checkout-cone-mode: true
+2025-12-04T01:32:18.1973429Z   fetch-tags: false
+2025-12-04T01:32:18.1974230Z   show-progress: true
+2025-12-04T01:32:18.1974998Z   lfs: false
+2025-12-04T01:32:18.1975705Z   submodules: false
+2025-12-04T01:32:18.1976480Z   set-safe-directory: true
+2025-12-04T01:32:18.1977566Z ##[endgroup]
+2025-12-04T01:32:18.3052319Z Syncing repository: Mooeantoal/bili_ownx
+2025-12-04T01:32:18.3054852Z ##[group]Getting Git version info
+2025-12-04T01:32:18.3056108Z Working directory is '/home/runner/work/bili_ownx/bili_ownx'
+2025-12-04T01:32:18.3057849Z [command]/usr/bin/git version
+2025-12-04T01:32:18.3117441Z git version 2.52.0
+2025-12-04T01:32:18.3144274Z ##[endgroup]
+2025-12-04T01:32:18.3166851Z Temporarily overriding HOME='/home/runner/work/_temp/b3ac93d1-ee0a-4e7e-bcbd-75ca9d549a48' before making global git config changes
+2025-12-04T01:32:18.3171830Z Adding repository directory to the temporary git global config as a safe directory
+2025-12-04T01:32:18.3175565Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/bili_ownx/bili_ownx
+2025-12-04T01:32:18.3209075Z Deleting the contents of '/home/runner/work/bili_ownx/bili_ownx'
+2025-12-04T01:32:18.3213015Z ##[group]Initializing the repository
+2025-12-04T01:32:18.3217821Z [command]/usr/bin/git init /home/runner/work/bili_ownx/bili_ownx
+2025-12-04T01:32:18.3328932Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-12-04T01:32:18.3331043Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2025-12-04T01:32:18.3333470Z hint: to use in all of your new repositories, which will suppress this warning,
+2025-12-04T01:32:18.3335352Z hint: call:
+2025-12-04T01:32:18.3336597Z hint:
+2025-12-04T01:32:18.3338325Z hint: 	git config --global init.defaultBranch <name>
+2025-12-04T01:32:18.3340344Z hint:
+2025-12-04T01:32:18.3342381Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-12-04T01:32:18.3345481Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-12-04T01:32:18.3347955Z hint:
+2025-12-04T01:32:18.3349230Z hint: 	git branch -m <name>
+2025-12-04T01:32:18.3350656Z hint:
+2025-12-04T01:32:18.3352768Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-12-04T01:32:18.3354894Z Initialized empty Git repository in /home/runner/work/bili_ownx/bili_ownx/.git/
+2025-12-04T01:32:18.3357949Z [command]/usr/bin/git remote add origin https://github.com/Mooeantoal/bili_ownx
+2025-12-04T01:32:18.3384792Z ##[endgroup]
+2025-12-04T01:32:18.3387203Z ##[group]Disabling automatic garbage collection
+2025-12-04T01:32:18.3389428Z [command]/usr/bin/git config --local gc.auto 0
+2025-12-04T01:32:18.3418724Z ##[endgroup]
+2025-12-04T01:32:18.3420949Z ##[group]Setting up auth
+2025-12-04T01:32:18.3426181Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-12-04T01:32:18.3458006Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-12-04T01:32:18.3791517Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-12-04T01:32:18.3822979Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-12-04T01:32:18.4037791Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2025-12-04T01:32:18.4069166Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2025-12-04T01:32:18.4294352Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-12-04T01:32:18.4326374Z ##[endgroup]
+2025-12-04T01:32:18.4328690Z ##[group]Fetching the repository
+2025-12-04T01:32:18.4337352Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2025-12-04T01:32:18.7708126Z From https://github.com/Mooeantoal/bili_ownx
+2025-12-04T01:32:18.7710414Z  * [new branch]      main       -> origin/main
+2025-12-04T01:32:18.7712824Z  * [new tag]         build-5    -> build-5
+2025-12-04T01:32:18.7714662Z  * [new tag]         build-6    -> build-6
+2025-12-04T01:32:18.7716811Z  * [new tag]         debug-63   -> debug-63
+2025-12-04T01:32:18.7718661Z  * [new tag]         debug-64   -> debug-64
+2025-12-04T01:32:18.7719828Z  * [new tag]         debug-67   -> debug-67
+2025-12-04T01:32:18.7721004Z  * [new tag]         debug-68   -> debug-68
+2025-12-04T01:32:18.7753154Z [command]/usr/bin/git branch --list --remote origin/main
+2025-12-04T01:32:18.7775902Z   origin/main
+2025-12-04T01:32:18.7785598Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2025-12-04T01:32:18.7804973Z 28ae40ab45a45378d91bc2d9a66312eafb1a4d48
+2025-12-04T01:32:18.7810191Z ##[endgroup]
+2025-12-04T01:32:18.7811863Z ##[group]Determining the checkout info
+2025-12-04T01:32:18.7813517Z ##[endgroup]
+2025-12-04T01:32:18.7815191Z [command]/usr/bin/git sparse-checkout disable
+2025-12-04T01:32:18.7857921Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-12-04T01:32:18.7885137Z ##[group]Checking out the ref
+2025-12-04T01:32:18.7889347Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2025-12-04T01:32:18.8178673Z Switched to a new branch 'main'
+2025-12-04T01:32:18.8180743Z branch 'main' set up to track 'origin/main'.
+2025-12-04T01:32:18.8192843Z ##[endgroup]
+2025-12-04T01:32:18.8225957Z [command]/usr/bin/git log -1 --format=%H
+2025-12-04T01:32:18.8248009Z 28ae40ab45a45378d91bc2d9a66312eafb1a4d48
