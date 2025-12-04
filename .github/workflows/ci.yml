@@ -15,9 +15,6 @@ permissions:
   statuses: write
 
 jobs:
-  # ==================================================================================================
-  # 标准构建 (Standard Build)
-  # ==================================================================================================
   standard-build:
     name: Standard Build
     runs-on: ubuntu-latest
@@ -27,11 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 设置 Java
+      - name: 设置 Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '17'  # === 关键：指定JDK 17 ===
           cache: 'gradle'
 
       - name: 设置 Android SDK
@@ -44,19 +41,22 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 配置 Gradle 以识别 Kotlin 源文件
+      - name: 配置 Gradle 属性
         run: |
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "kotlin.version=1.8.0" >> android/gradle.properties
-          echo "kotlin.compiler.version=1.8.0" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # === 删除冗余配置（已在gradle.properties中定义）===
+          # echo "android.useAndroidX=true" >> android/gradle.properties
+          # echo "kotlin.version=1.8.0" >> android/gradle.properties
+          # echo "kotlin.compiler.version=1.8.0" >> android/gradle.properties
+          # echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "Gradle 属性已通过文件直接配置"
 
-      - name: 构建 APK (Debug) - 仅特定架构
+      - name: 构建 APK (Debug)
         run: |
           echo "开始构建 APK..."
           flutter clean
           flutter pub get
-          flutter build apk --debug --verbose --split-per-abi
+          # === 添加--no-tree-shake-icons（避免构建警告）===
+          flutter build apk --debug --verbose --split-per-abi --no-tree-shake-icons
 
       - name: 上传 APK 为 Artifact
         if: ${{ always() }}
