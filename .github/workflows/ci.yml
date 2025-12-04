@@ -25,6 +25,11 @@ on:
 
 permissions:
   contents: write
+  actions: read
+  checks: write
+  packages: write
+  pull-requests: write
+  statuses: write
 
 jobs:
   # ==================================================================================================
@@ -53,7 +58,7 @@ jobs:
       - name: 设置 Flutter
         uses: subosito/flutter-action@v3
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.35.0'
           channel: 'stable'
           cache: true
 
@@ -127,7 +132,7 @@ jobs:
       - name: 设置 Flutter
         uses: subosito/flutter-action@v3
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.35.0'
           channel: 'stable'
           cache: true
 
@@ -150,15 +155,15 @@ jobs:
             exit 0
           fi
           
-          echo "尝试兼容模式构建..."
-          if flutter build apk --debug --no-sound-null-safety; then
-            echo "✅ 兼容模式构建成功"
+          echo "尝试最小化构建..."
+          if flutter build apk --debug --no-tree-shake-icons; then
+            echo "✅ 最小化构建成功"
             exit 0
           fi
           
-          echo "尝试最小化构建..."
-          if flutter build apk --debug --no-tree-shake-icons --no-pub; then
-            echo "✅ 最小化构建成功"
+          echo "尝试详细日志构建..."
+          if flutter build apk --debug --verbose; then
+            echo "✅ 详细日志构建成功"
             exit 0
           fi
           
@@ -190,7 +195,8 @@ jobs:
           java-version: '17'
       - uses: subosito/flutter-action@v3
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.35.0'
+          cache: true
       - name: Quick Build
         run: |
           flutter clean
@@ -206,8 +212,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        flutter-version: ['3.24.0', '3.22.0']
-        java-version: ['17', '11']
+        flutter-version: ['3.35.0', '3.24.0']
+        java-version: ['17', '21']
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v4
@@ -217,5 +223,6 @@ jobs:
       - uses: subosito/flutter-action@v3
         with:
           flutter-version: ${{ matrix.flutter-version }}
+          cache: true
       - name: Build
         run: flutter build apk --debug
