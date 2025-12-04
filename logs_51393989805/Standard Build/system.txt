@@ -1,5 +1,0 @@
-2025-12-04T01:32:13.8210000Z Job is waiting for a hosted runner to come online.
-2025-12-04T01:32:13.8200000Z Job is about to start running on the hosted runner: GitHub Actions 1000000881
-2025-12-04T01:32:13.8160000Z Requested labels: ubuntu-latest
-2025-12-04T01:32:13.8160000Z Job defined at: Mooeantoal/bili_ownx/.github/workflows/ci.yml@refs/heads/main
-2025-12-04T01:32:13.8160000Z Waiting for a runner to pick up this job...
