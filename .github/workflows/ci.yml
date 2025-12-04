@@ -5,23 +5,6 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: '运行模式 (Mode)'
-        required: true
-        default: 'standard'
-        type: choice
-        options:
-        - standard
-        - gradle-fix
-        - quick-fix
-        - test-matrix
-      upload_artifacts:
-        description: '上传构建产物 (Upload Artifacts)'
-        required: false
-        default: true
-        type: boolean
 
 permissions:
   contents: write
@@ -32,12 +15,8 @@ permissions:
   statuses: write
 
 jobs:
-  # ==================================================================================================
-  # 1. 标准构建 (Standard Build) - 对应原 build.yml
-  # ==================================================================================================
   standard-build:
     name: Standard Build
-    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || inputs.mode == 'standard' }}
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -45,23 +24,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 设置 Java
+      - name: 设置 Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '17'  # === 关键：指定JDK 17 ===
           cache: 'gradle'
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v3
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v3
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
           cache: true
 
+<<<<<<< HEAD
       - name: 验证环境
         run: |
           echo "验证 Java 安装..."
@@ -71,19 +51,34 @@ jobs:
           echo $ANDROID_HOME
           ls -la $ANDROID_HOME/platforms/ || true
           ls -la $ANDROID_HOME/build-tools/ || true
+=======
+      - name: 配置 Gradle 属性
+        run: |
+          # === 删除冗余配置（已在gradle.properties中定义）===
+          # echo "android.useAndroidX=true" >> android/gradle.properties
+          # echo "kotlin.version=1.8.0" >> android/gradle.properties
+          # echo "kotlin.compiler.version=1.8.0" >> android/gradle.properties
+          # echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "Gradle 属性已通过文件直接配置"
+>>>>>>> ac8a3212372db126eb57dff4757d5ed1fa96efad
 
       - name: 构建 APK (Debug)
         run: |
           echo "开始构建 APK..."
           flutter clean
           flutter pub get
+<<<<<<< HEAD
           # 使用动态 Java Home 路径
           echo "JAVA_HOME=$JAVA_HOME"
           echo "构建中..."
           flutter build apk --debug --verbose
+=======
+          # === 添加--no-tree-shake-icons（避免构建警告）===
+          flutter build apk --debug --verbose --split-per-abi --no-tree-shake-icons
+>>>>>>> ac8a3212372db126eb57dff4757d5ed1fa96efad
 
       - name: 上传 APK 为 Artifact
-        if: ${{ always() && (inputs.upload_artifacts == true || github.event_name != 'workflow_dispatch') }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: standard-build-${{ github.run_number }}
@@ -110,7 +105,6 @@ jobs:
             此构建已启用 ABI 分割，包含以下架构的 APK：
             - `app-arm64-v8a-debug.apk`: 适用于 64 位 ARM 设备（现代手机，推荐）
             - `app-armeabi-v7a-debug.apk`: 适用于 32 位 ARM 设备
-            - `app-universal-debug.apk`: 通用版本（兼容所有架构，体积较大）
             
             请根据您的设备选择对应架构的 APK 下载安装。
           files: |
@@ -118,6 +112,7 @@ jobs:
             android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+<<<<<<< HEAD
 
   # ==================================================================================================
   # 2. Gradle 修复构建 (Gradle Fix) - 对应原 gradle-fix.yml
@@ -247,3 +242,5 @@ jobs:
         run: |
           echo "使用 JAVA_HOME: $JAVA_HOME"
           flutter build apk --debug
+=======
+>>>>>>> ac8a3212372db126eb57dff4757d5ed1fa96efad
