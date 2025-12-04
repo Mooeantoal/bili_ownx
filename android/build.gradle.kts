@@ -4,11 +4,9 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        // === 新增阿里云镜像源（加速依赖下载）===
         maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
     dependencies {
-        // === 更新AGP版本至8.12.0（与Gradle 8.13兼容）===
         classpath("com.android.tools.build:gradle:8.12.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
@@ -19,12 +17,11 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        // === 新增阿里云镜像源 ===
         maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
 }
 
-// 自定义构建目录配置（原内容保留）
+// 自定义构建目录配置（保留原内容）
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -36,7 +33,7 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-// 依赖版本管理策略（原内容保留）
+// 依赖版本管理策略（保留原内容）
 subprojects {
     configurations.all {
         resolutionStrategy {
@@ -68,7 +65,6 @@ subprojects {
         }
     }
     
-    // 适配Kotlin路径配置（原内容保留）
     tasks.withType<JavaCompile> {
         source = source.filter { it.exists() }
     }
