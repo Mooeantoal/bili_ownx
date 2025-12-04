@@ -31,22 +31,23 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  dio: ^5.7.0
-  crypto: ^3.0.3
-  video_player: ^2.9.2
-  chewie: ^1.7.5
-  permission_handler: ^11.3.1
-  path_provider: ^2.1.4
-  shared_preferences: ^2.3.2
-  package_info_plus: ^8.0.2
-  device_info_plus: ^10.1.2
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  provider: ^6.1.2
-  flutter_local_notifications: ^17.2.3
+  # 核心依赖 - 保留必要功能
+  dio: ^5.7.0                           # 网络请求 (核心)
+  video_player: ^2.9.2                   # 视频播放 (核心)
+  permission_handler: ^11.3.1           # 权限管理 (必要)
+  path_provider: ^2.1.4                  # 路径管理 (必要)
+  shared_preferences: ^2.3.2             # 本地存储 (必要)
+  hive: ^2.2.3                          # 数据库 (核心)
+  hive_flutter: ^1.1.0                  # Hive Flutter集成
+  provider: ^6.1.2                      # 状态管理 (核心)
+  flutter_local_notifications: ^17.2.3  # 通知功能 (必要)
+  
+  # 可选依赖 - 考虑移除或替换
+  # cupertino_icons: ^1.0.8             # iOS图标 (如不使用iOS风格可移除)
+  # crypto: ^3.0.3                       # 加密库 (如仅简单哈希可用内置函数)
+  # chewie: ^1.7.5                      # 视频播放器UI (可替换为自定义实现)
+  # package_info_plus: ^8.0.2           # 包信息 (可硬编码或简化)
+  # device_info_plus: ^10.1.2           # 设备信息 (如非必要可移除)
 
 dev_dependencies:
   flutter_test:

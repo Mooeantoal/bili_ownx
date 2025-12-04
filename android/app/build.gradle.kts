@@ -47,11 +47,14 @@ android {
             // 启用资源压缩
             isShrinkResources = true
             
-            // 启用 R8 优化
+            // 启用 R8 完全优化
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            // 启用更激进的优化
+            consumerProguardFiles("consumer-rules.pro")
             
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -63,13 +66,13 @@ android {
         }
     }
    
-// 启用包拆分，按ABI分离以减小APK大小
+    // 启用包拆分，按ABI分离以减小APK大小
     splits {
         abi {
             isEnable = true  // 启用ABI分割以减小APK体积
             reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = true  // 生成通用APK
+            include("arm64-v8a")  // 仅保留主流架构，减少体积
+            isUniversalApk = false  // 不生成通用APK
         }
     }
     
@@ -80,7 +83,13 @@ android {
                 "META-INF/LICENSE.md",
                 "META-INF/LICENSE-notice.md",
                 "META-INF/AL2.0",
-                "META-INF/LGPL2.1"
+                "META-INF/LGPL2.1",
+                "META-INF/NOTICE.md",
+                "META-INF/DEPENDENCIES",
+                "META-INF/gradle/incremental.annotation.processors",
+                "META-INF/*.properties",
+                "META-INF/proguard/*",
+                "META-INF/com.android.tools/annotations"
             )
         }
     }
