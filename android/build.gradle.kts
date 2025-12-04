@@ -4,9 +4,12 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        // === 新增阿里云镜像源（加速依赖下载）===
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.7.3")
+        // === 更新AGP版本至8.12.0（与Gradle 8.13兼容）===
+        classpath("com.android.tools.build:gradle:8.12.0")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
@@ -16,10 +19,12 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // === 新增阿里云镜像源 ===
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
 }
 
-// 自定义构建目录配置
+// 自定义构建目录配置（原内容保留）
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -31,12 +36,10 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-// 依赖版本管理策略
+// 依赖版本管理策略（原内容保留）
 subprojects {
-    // 统一依赖版本策略
     configurations.all {
         resolutionStrategy {
-            // Media3 版本对齐
             eachDependency {
                 when (requested.group) {
                     "androidx.media3" -> useVersion("1.5.0")
@@ -57,8 +60,6 @@ subprojects {
                     }
                 }
             }
-
-            // 强制使用兼容版本
             force("androidx.core:core-ktx:1.13.1")
             force("androidx.appcompat:appcompat:1.7.0")
             force("androidx.media3:media3-exoplayer:1.5.0")
@@ -67,7 +68,7 @@ subprojects {
         }
     }
     
-    // 适配Kotlin路径配置
+    // 适配Kotlin路径配置（原内容保留）
     tasks.withType<JavaCompile> {
         source = source.filter { it.exists() }
     }
@@ -76,19 +77,16 @@ subprojects {
         source = source.filter { it.exists() }
     }
     
-    // 显式设置源代码路径
     val kotlinSrc = project.layout.projectDirectory.dir("src/main/kotlin")
     if (kotlinSrc.asFile.exists()) {
         sourceSets["main"].java.srcDirs(kotlinSrc)
     }
 }
 
-// 确保子项目依赖顺序
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// 清理任务
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
