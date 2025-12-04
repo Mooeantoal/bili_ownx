@@ -9,14 +9,17 @@ android {
     namespace = "com.example.bili_ownx"
     compileSdk = 35
     ndkVersion = "27.0.12077973"
-
+    
+    // 启用核心库脱糖以支持 Java 8+ 特性
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        isCoreLibraryDesugaringEnabled = true
     }
-
+    
+    // 为 Kotlin 编译也启用相同配置
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "1.8"
     }
     
     // 解决 AAR 元数据冲突
@@ -85,6 +88,11 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // 核心库脱糖支持 - 解决 flutter_local_notifications 兼容性问题
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 
 // 解决依赖版本冲突
