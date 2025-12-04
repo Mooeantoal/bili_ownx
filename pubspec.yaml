@@ -34,6 +34,7 @@ dependencies:
   # 核心依赖 - 保留必要功能
   dio: ^5.7.0                           # 网络请求 (核心)
   video_player: ^2.9.2                   # 视频播放 (核心)
+  chewie: ^1.7.5                        # 视频播放器UI (弹幕功能需要)
   permission_handler: ^11.3.1           # 权限管理 (必要)
   path_provider: ^2.1.4                  # 路径管理 (必要)
   shared_preferences: ^2.3.2             # 本地存储 (必要)
