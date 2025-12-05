@@ -71,11 +71,11 @@ subprojects {
     }
     
     tasks.withType<JavaCompile> {
-        source = source.filter { it.exists() }
+        // Source filtering removed - not needed for standard build
     }
     
     tasks.withType<KotlinCompile> {
-        source = source.filter { it.exists() }
+        // Source filtering removed - not needed for standard build
     }
     
     val kotlinSrc = project.layout.projectDirectory.dir("src/main/kotlin")
