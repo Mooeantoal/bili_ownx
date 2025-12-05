@@ -34,7 +34,7 @@ android {
         applicationId = "com.example.bili_ownx"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdkVersion = 21
+        minSdkVersion(21)
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName

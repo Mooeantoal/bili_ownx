@@ -58,7 +58,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v3
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -98,9 +98,15 @@ jobs:
           echo "构建中..."
           # 确保 build.gradle.kts 文件同步且语法正确
           echo "检查 build.gradle.kts 文件..."
+          # 修复 minSdkVersion 语法错误 - 使用函数调用格式
+          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
+            echo "发现语法错误，正在修复 minSdkVersion..."
+            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
+          # 检查其他可能的语法错误
           if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+            echo "发现旧语法错误，正在修复..."
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
           fi
           # === 添加--no-tree-shake-icons（避免构建警告）===
           flutter build apk --debug --verbose --split-per-abi --no-tree-shake-icons
@@ -159,13 +165,16 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: 设置 Gradle
         uses: gradle/gradle-build-action@v3
         with:
           cache-read-only: false
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v3
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -182,9 +191,18 @@ jobs:
           
           # 2. 修复 build.gradle.kts 语法错误
           echo "检查并修复 build.gradle.kts 文件..."
+          # 统一使用 minSdkVersion(21) 格式
+          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
+            echo "发现语法错误，正在修复 minSdkVersion = 21..."
+            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
           if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+            echo "发现旧语法错误，正在修复..."
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
+          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
+            echo "发现另一种语法错误，正在修复 minSdk = 21..."
+            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
           fi
           
           # 3. 清理
@@ -240,7 +258,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: subosito/flutter-action@v2
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+      - uses: subosito/flutter-action@v3
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -251,9 +271,18 @@ jobs:
           flutter pub get
           echo "使用 JAVA_HOME: $JAVA_HOME"
           # 修复可能的语法错误
+          # 统一使用 minSdkVersion(21) 格式
+          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
+            echo "发现语法错误，正在修复 minSdkVersion = 21..."
+            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
           if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+            echo "发现旧语法错误，正在修复..."
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
+          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
+            echo "发现另一种语法错误，正在修复 minSdk = 21..."
+            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
           fi
           flutter build apk --debug --no-tree-shake-icons
 
@@ -274,7 +303,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java-version }}
-      - uses: subosito/flutter-action@v2
+      - name: 设置 Android SDK
+        uses: android-actions/setup-android@v3
+      - uses: subosito/flutter-action@v3
         with:
           flutter-version: ${{ matrix.flutter-version }}
           channel: 'stable'
@@ -283,8 +314,17 @@ jobs:
         run: |
           echo "使用 JAVA_HOME: $JAVA_HOME"
           # 修复可能的语法错误
+          # 统一使用 minSdkVersion(21) 格式
+          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
+            echo "发现语法错误，正在修复 minSdkVersion = 21..."
+            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
           if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdk = 21/' android/app/build.gradle.kts
+            echo "发现旧语法错误，正在修复..."
+            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
+          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
+            echo "发现另一种语法错误，正在修复 minSdk = 21..."
+            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
           fi
           flutter build apk --debug
