@@ -55,10 +55,10 @@ jobs:
           javac -version
 
       - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v2
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v3
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -166,7 +166,7 @@ jobs:
           cache: 'gradle'
 
       - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v2
 
       - name: 设置 Gradle
         uses: gradle/gradle-build-action@v3
@@ -174,7 +174,7 @@ jobs:
           cache-read-only: false
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v3
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -259,8 +259,8 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
-      - uses: subosito/flutter-action@v3
+        uses: android-actions/setup-android@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.0'
           channel: 'stable'
@@ -304,8 +304,8 @@ jobs:
           distribution: 'temurin'
           java-version: ${{ matrix.java-version }}
       - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
-      - uses: subosito/flutter-action@v3
+        uses: android-actions/setup-android@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ matrix.flutter-version }}
           channel: 'stable'
