@@ -53,8 +53,7 @@ android {
                 "proguard-rules.pro"
             )
             
-            // 启用更激进的优化
-            consumerProguardFiles("consumer-rules.pro")
+
             
             signingConfig = signingConfigs.getByName("debug")
         }
