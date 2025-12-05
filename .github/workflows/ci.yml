@@ -61,7 +61,6 @@ jobs:
           channel: 'stable'
           cache: true
 
-<<<<<<< HEAD
       - name: 验证环境
         run: |
           echo "验证 Java 安装..."
@@ -80,21 +79,15 @@ jobs:
           # echo "kotlin.compiler.version=1.8.0" >> android/gradle.properties
           # echo "android.enableJetifier=true" >> android/gradle.properties
           echo "Gradle 属性已通过文件直接配置"
-
-=======
->>>>>>> 4bae4bd04be4e4674ef68ea1d2658663e07cde12
       - name: 构建 APK (Debug)
         run: |
           echo "开始构建 APK..."
           flutter clean
           flutter pub get
-<<<<<<< HEAD
           # 使用动态 Java Home 路径
           echo "JAVA_HOME=$JAVA_HOME"
           echo "构建中..."
           # === 添加--no-tree-shake-icons（避免构建警告）===
-=======
->>>>>>> 4bae4bd04be4e4674ef68ea1d2658663e07cde12
           flutter build apk --debug --verbose --split-per-abi --no-tree-shake-icons
 
       - name: 上传 APK 为 Artifact
@@ -132,7 +125,6 @@ jobs:
             android/app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-<<<<<<< HEAD
 
   # ==================================================================================================
   # 2. Gradle 修复构建 (Gradle Fix) - 对应原 gradle-fix.yml
@@ -262,5 +254,3 @@ jobs:
         run: |
           echo "使用 JAVA_HOME: $JAVA_HOME"
           flutter build apk --debug
-=======
->>>>>>> 4bae4bd04be4e4674ef68ea1d2658663e07cde12
