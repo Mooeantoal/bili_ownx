@@ -1,3 +1,8 @@
+// === Gradle插件导入 ===
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.plugins.JavaPluginExtension
+
 // 构建脚本依赖配置
 buildscript {
     val kotlinVersion = "1.8.0"
@@ -79,7 +84,11 @@ subprojects {
     
     val kotlinSrc = project.layout.projectDirectory.dir("src/main/kotlin")
     if (kotlinSrc.asFile.exists()) {
-        sourceSets["main"].java.srcDirs(kotlinSrc)
+        project.pluginManager.withPlugin("java") {
+            extensions.getByType<JavaPluginExtension>().apply {
+                sourceSets.getByName("main").java.srcDir(kotlinSrc)
+            }
+        }
     }
 }
 
