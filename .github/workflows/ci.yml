@@ -56,6 +56,16 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
+        with:
+          # 自动接受所有许可证，避免交互式输入
+          accept-licenses: true
+
+      - name: 验证 Android SDK 许可证
+        run: |
+          echo "=== 确保所有 Android SDK 许可证已接受 ==="
+          # 使用非交互方式接受所有许可证
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          echo "Android SDK 许可证处理完成"
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
@@ -167,6 +177,16 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
+        with:
+          # 自动接受所有许可证，避免交互式输入
+          accept-licenses: true
+
+      - name: 验证 Android SDK 许可证
+        run: |
+          echo "=== 确保所有 Android SDK 许可证已接受 ==="
+          chmod +x scripts/accept_android_licenses.sh
+          scripts/accept_android_licenses.sh || echo "备用方案: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses"
+          echo "Android SDK 许可证处理完成"
 
       - name: 设置 Gradle
         uses: gradle/gradle-build-action@v3
@@ -260,6 +280,17 @@ jobs:
           java-version: '17'
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
+        with:
+          # 自动接受所有许可证，避免交互式输入
+          accept-licenses: true
+
+      - name: 验证 Android SDK 许可证
+        run: |
+          echo "=== 确保所有 Android SDK 许可证已接受 ==="
+          chmod +x scripts/accept_android_licenses.sh
+          scripts/accept_android_licenses.sh || echo "备用方案: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses"
+          echo "Android SDK 许可证处理完成"
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.0'
@@ -305,6 +336,17 @@ jobs:
           java-version: ${{ matrix.java-version }}
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
+        with:
+          # 自动接受所有许可证，避免交互式输入
+          accept-licenses: true
+
+      - name: 验证 Android SDK 许可证
+        run: |
+          echo "=== 确保所有 Android SDK 许可证已接受 ==="
+          chmod +x scripts/accept_android_licenses.sh
+          scripts/accept_android_licenses.sh || echo "备用方案: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses"
+          echo "Android SDK 许可证处理完成"
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ matrix.flutter-version }}
