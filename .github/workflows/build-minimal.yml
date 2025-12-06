@@ -74,7 +74,7 @@ jobs:
       run: |
         echo "=== 构建 APK ==="
         export ANDROID_SDK_ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true"
         
         flutter clean
         flutter build apk --debug

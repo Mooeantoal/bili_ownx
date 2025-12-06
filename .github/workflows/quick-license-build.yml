@@ -43,7 +43,7 @@ jobs:
         export ANDROID_SDK_ACCEPT_LICENSES=true
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         export ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true -Dandroid.licensesAccepted=true"
         
         # Create user license directory (avoid permission issues)
         mkdir -p $HOME/.android/licenses
@@ -126,7 +126,7 @@ jobs:
     - name: Build APK
       run: |
         export ANDROID_SDK_ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true"
         
         if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
           echo "Building Release APK..."

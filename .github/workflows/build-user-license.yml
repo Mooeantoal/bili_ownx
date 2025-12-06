@@ -59,7 +59,7 @@ jobs:
         export ANDROID_SDK_ACCEPT_LICENSES=true
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         export ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true -Dandroid.licensesAccepted=true"
         
         # 创建用户可写的许可证目录
         USER_LICENSE_DIR="$HOME/.android/licenses"
@@ -117,7 +117,7 @@ jobs:
         export ANDROID_SDK_ACCEPT_LICENSES=true
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         export ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true -Dandroid.licensesAccepted=true"
         
         flutter pub get
         
@@ -127,7 +127,7 @@ jobs:
         export ANDROID_SDK_ACCEPT_LICENSES=true
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         export ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true -Dandroid.licensesAccepted=true"
         
         if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
           echo "构建 Release APK"

@@ -39,7 +39,7 @@ jobs:
         export ANDROID_SDK_ACCEPT_LICENSES=true
         export ANDROID_SDK_ROOT=$ANDROID_HOME
         export ACCEPT_LICENSES=true
-        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        export GRADLE_OPTS="-Dandroid.acceptLicenses=true -Dandroid.licensesAccepted=true"
         
         # 完全避免系统目录，只使用用户目录
         USER_LICENSE_DIR="$HOME/.android/licenses"

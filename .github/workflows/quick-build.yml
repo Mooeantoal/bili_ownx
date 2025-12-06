@@ -78,7 +78,7 @@ jobs:
           fi
           
           # 构建时使用环境变量
-          export GRADLE_OPTS="-Dandroid.accept licenses=true"
+          export GRADLE_OPTS="-Dandroid.acceptLicenses=true"
           flutter build apk --debug --no-tree-shake-icons
           
       - name: 上传APK

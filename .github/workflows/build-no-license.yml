@@ -86,7 +86,7 @@ jobs:
           fi
           
           # 构建时禁用许可证检查
-          export GRADLE_OPTS="-Dandroid.accept licenses=true"
+          export GRADLE_OPTS="-Dandroid.acceptLicenses=true"
           flutter build apk --debug --no-tree-shake-icons
           
       - name: 上传APK
