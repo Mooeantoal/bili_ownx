@@ -10,6 +10,7 @@ echo "=== 完全清理 ==="
 flutter clean
 rm -rf build/
 cd android
+chmod +x gradlew
 ./gradlew clean
 rm -rf .gradle/
 rm -rf build/

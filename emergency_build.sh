@@ -33,6 +33,7 @@ fi
 # 方法3: 使用不同的构建命令
 echo "尝试方法3: 使用gradle直接构建..."
 cd android
+chmod +x gradlew
 ./gradlew app:assembleDebug -x lint -x test
 cd ..
 if [ $? -eq 0 ]; then
