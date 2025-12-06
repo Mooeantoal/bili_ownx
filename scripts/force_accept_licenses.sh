@@ -31,46 +31,75 @@ export ACCEPT_LICENSES=true
 
 # 方法1: 预创建所有许可证文件（最重要）
 echo "=== 方法1: 预创建许可证文件 ==="
-mkdir -p "$ANDROID_HOME/licenses"
-
-# 创建所有可能的许可证文件
-cat > "$ANDROID_HOME/licenses/android-sdk-license" << 'EOF'
+if mkdir -p "$ANDROID_HOME/licenses" 2>/dev/null; then
+    echo "成功创建许可证目录"
+    
+    # 创建所有可能的许可证文件
+    cat > "$ANDROID_HOME/licenses/android-sdk-license" 2>/dev/null << 'EOF'
 8933bad161af4178b1185d1a37fbf41ea5269c55d
 EOF
-
-cat > "$ANDROID_HOME/licenses/android-sdk-preview-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/android-sdk-preview-license" 2>/dev/null << 'EOF'
 d56f5187479451eabf01fb78af6dfcb131a6481e
 EOF
-
-cat > "$ANDROID_HOME/licenses/google-gdk" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/google-gdk" 2>/dev/null << 'EOF'
 84831b9409646a918e30573bab4c9c91346b8b90
 EOF
-
-cat > "$ANDROID_HOME/licenses/android-sdk-google-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/android-sdk-google-license" 2>/dev/null << 'EOF'
 598de3781d13c8c5df5a678110464d3863734768
 EOF
-
-cat > "$ANDROID_HOME/licenses/android-sdk-arm-dbt-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/android-sdk-arm-dbt-license" 2>/dev/null << 'EOF'
 24333f8a63b6825ea9c5514e83c0e9a993a0a6f
 EOF
-
-cat > "$ANDROID_HOME/licenses/intel-android-extra-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/intel-android-extra-license" 2>/dev/null << 'EOF'
 33b6a2b64607111b2893360c6b44c7a64512267
 EOF
-
-cat > "$ANDROID_HOME/licenses/mips-android-extra-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/mips-android-extra-license" 2>/dev/null << 'EOF'
 84831b9409646a918e30573bab4c9c91346b8b90
 EOF
-
-cat > "$ANDROID_HOME/licenses/android-googletv-license" << 'EOF'
+    
+    cat > "$ANDROID_HOME/licenses/android-googletv-license" 2>/dev/null << 'EOF'
 601085b53c84555a2897545eb1f38b296baeb1b5
 EOF
-
-# 设置权限
-chmod 644 "$ANDROID_HOME/licenses"/*
-
-echo "已创建许可证文件："
-ls -la "$ANDROID_HOME/licenses/"
+    
+    # 尝试设置权限（忽略权限错误）
+    chmod 644 "$ANDROID_HOME/licenses"/* 2>/dev/null || true
+    
+    echo "已创建许可证文件："
+    ls -la "$ANDROID_HOME/licenses/" 2>/dev/null || echo "无法列出许可证文件"
+else
+    echo "❌ 无法创建许可证目录，使用用户目录备用方案"
+    
+    # 备用方案：创建用户级别的许可证
+    USER_LICENSE_DIR="$HOME/.android/licenses"
+    mkdir -p "$USER_LICENSE_DIR"
+    
+    cat > "$USER_LICENSE_DIR/android-sdk-license" << 'EOF'
+8933bad161af4178b1185d1a37fbf41ea5269c55d
+EOF
+    
+    cat > "$USER_LICENSE_DIR/android-googletv-license" << 'EOF'
+601085b53c84555a2897545eb1f38b296baeb1b5
+EOF
+    
+    cat > "$USER_LICENSE_DIR/android-sdk-preview-license" << 'EOF'
+d56f5187479451eabf01fb78af6dfcb131a6481e
+EOF
+    
+    cat > "$USER_LICENSE_DIR/google-gdk" << 'EOF'
+84831b9409646a918e30573bab4c9c91346b8b90
+EOF
+    
+    chmod 644 "$USER_LICENSE_DIR"/* 2>/dev/null || true
+    
+    echo "用户许可证文件创建完成："
+    ls -la "$USER_LICENSE_DIR/" 2>/dev/null || echo "无法列出用户许可证文件"
+fi
 
 # 方法2: 使用 expect（如果许可证文件无效）
 echo "=== 方法2: 使用 expect ==="
