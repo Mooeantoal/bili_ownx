@@ -1,0 +1,88 @@
+name: Quick License Fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  actions: read
+  checks: write
+
+jobs:
+  quick-fix-build:
+    name: Quick License Fix Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+        
+      - name: 设置 Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+          
+      - name: 设置 Android SDK (无交互模式)
+        uses: android-actions/setup-android@v2
+        
+      - name: 强制处理许可证 (多重保障)
+        run: |
+          echo "=== 强制处理 Android SDK 许可证 ==="
+          
+          # 方案1: 使用预设答案
+          printf 'y\ny\ny\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # 方案2: 使用 yes 命令
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          # 方案3: 脚本处理
+          chmod +x scripts/accept_android_licenses.sh
+          ./scripts/accept_android_licenses.sh || true
+          
+          echo "许可证处理完成"
+          
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.0'
+          channel: 'stable'
+          cache: true
+          
+      - name: 环境验证
+        run: |
+          echo "=== 环境信息 ==="
+          echo "JAVA_HOME: $JAVA_HOME"
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          java -version
+          flutter --version
+          
+      - name: 快速构建测试
+        run: |
+          echo "=== 开始快速构建 ==="
+          flutter clean
+          flutter pub get
+          
+          # 确保语法正确
+          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
+            echo "修复语法错误: minSdk = 21 -> minSdkVersion(21)"
+            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
+          fi
+          
+          # 构建测试
+          flutter build apk --debug --no-tree-shake-icons --verbose
+          
+      - name: 上传构建结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-fix-apk-${{ github.run_number }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7

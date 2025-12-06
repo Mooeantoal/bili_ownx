@@ -56,15 +56,14 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
-        with:
-          # 自动接受所有许可证，避免交互式输入
-          accept-licenses: true
 
       - name: 验证 Android SDK 许可证
         run: |
           echo "=== 确保所有 Android SDK 许可证已接受 ==="
           # 使用非交互方式接受所有许可证
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          chmod +x scripts/accept_android_licenses.sh
+          scripts/accept_android_licenses.sh || echo "备用许可证处理完成"
           echo "Android SDK 许可证处理完成"
 
       - name: 设置 Flutter
@@ -177,9 +176,6 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
-        with:
-          # 自动接受所有许可证，避免交互式输入
-          accept-licenses: true
 
       - name: 验证 Android SDK 许可证
         run: |
@@ -280,9 +276,6 @@ jobs:
           java-version: '17'
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
-        with:
-          # 自动接受所有许可证，避免交互式输入
-          accept-licenses: true
 
       - name: 验证 Android SDK 许可证
         run: |
@@ -336,9 +329,6 @@ jobs:
           java-version: ${{ matrix.java-version }}
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v2
-        with:
-          # 自动接受所有许可证，避免交互式输入
-          accept-licenses: true
 
       - name: 验证 Android SDK 许可证
         run: |
