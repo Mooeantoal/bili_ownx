@@ -1,0 +1,145 @@
+name: Build with User License Directory
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: 设置 Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: 设置 Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+        channel: 'stable'
+        
+    - name: 显示环境信息
+      run: |
+        echo "Flutter 版本:"
+        flutter --version
+        echo "Java 版本:"
+        java -version
+        echo "环境变量:"
+        env | grep -E "(ANDROID|FLUTTER|JAVA)" || true
+        
+    - name: 设置 Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: 显示 Android SDK 信息
+      run: |
+        echo "Android SDK 路径: $ANDROID_HOME"
+        echo "Android SDK 内容:"
+        ls -la $ANDROID_HOME || true
+        echo "许可证目录状态:"
+        ls -la $ANDROID_HOME/licenses 2>/dev/null || echo "系统许可证目录不存在"
+        
+    - name: 使用用户许可证目录 (完全避免权限问题)
+      run: |
+        echo "=== 使用用户许可证目录避免权限问题 ==="
+        
+        # 设置关键环境变量
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        
+        # 创建用户可写的许可证目录
+        USER_LICENSE_DIR="$HOME/.android/licenses"
+        mkdir -p "$USER_LICENSE_DIR"
+        
+        # 创建用户许可证文件
+        cat > "$USER_LICENSE_DIR/android-sdk-license" << 'EOF'
+        8933bad161af4178b1185d1a37fbf41ea5269c55d
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-preview-license" << 'EOF'
+        d56f5187479451eabf01fb78af6dfcb131a6481e
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/google-gdk" << 'EOF'
+        84831b9409646a918e30573bab4c9c91346b8b90
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-google-license" << 'EOF'
+        598de3781d13c8c5df5a678110464d3863734768
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-googletv-license" << 'EOF'
+        601085b53c84555a2897545eb1f38b296baeb1b5
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-arm-dbt-license" << 'EOF'
+        24333f8a63b6825ea9c5514e83c0e9a993a0a6f
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/intel-android-extra-license" << 'EOF'
+        33b6a2b64607111b2893360c6b44c7a64512267
+        EOF
+        
+        # 设置用户许可证为 Android SDK 许可证
+        export ANDROID_SDK_LICENSE_PATH="$USER_LICENSE_DIR"
+        
+        echo "用户许可证目录创建完成："
+        ls -la "$USER_LICENSE_DIR/"
+        
+        echo "环境变量设置完成"
+        
+    - name: 验证许可证设置
+      run: |
+        echo "=== 验证许可证设置 ==="
+        echo "用户许可证目录："
+        ls -la $HOME/.android/licenses/ || echo "用户许可证目录不存在"
+        
+        echo "尝试验证许可证（不会交互）:"
+        timeout 30 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || echo "许可证验证超时（预期行为）"
+        
+    - name: 获取依赖
+      run: |
+        echo "=== 获取 Flutter 依赖 ==="
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        
+        flutter pub get
+        
+    - name: 构建应用
+      run: |
+        echo "=== 构建应用 ==="
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        
+        if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+          echo "构建 Release APK"
+          flutter build apk --release
+        else
+          echo "构建 Debug APK"
+          flutter build apk --debug
+        fi
+        
+    - name: 上传构建结果
+      uses: actions/upload-artifact@v4
+      with:
+        name: bili-ownx-${{ github.event.inputs.build_type }}-apk
+        path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.build_type }}.apk
+        retention-days: 7

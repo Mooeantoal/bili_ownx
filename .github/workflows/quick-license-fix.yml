@@ -31,52 +31,80 @@ jobs:
       - name: 设置 Android SDK (无交互模式)
         uses: android-actions/setup-android@v2
         
-      - name: 强制处理许可证 (多重保障)
-        run: |
-          echo "=== 强制处理 Android SDK 许可证 ==="
-          
-          # 设置环境变量（最优先）
-          export ANDROID_SDK_ACCEPT_LICENSES=true
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
-          export ACCEPT_LICENSES=true
-          
-          # 创建许可证目录
-          mkdir -p $ANDROID_HOME/licenses
-          
-          # 预创建所有许可证文件（避免交互）
-          cat > $ANDROID_HOME/licenses/android-sdk-license << 'EOF'
-          8933bad161af4178b1185d1a37fbf41ea5269c55d
-          EOF
-          
-          cat > $ANDROID_HOME/licenses/android-googletv-license << 'EOF'
-          601085b53c84555a2897545eb1f38b296baeb1b5
-          EOF
-          
-          cat > $ANDROID_HOME/licenses/android-sdk-preview-license << 'EOF'
-          d56f5187479451eabf01fb78af6dfcb131a6481e
-          EOF
-          
-          cat > $ANDROID_HOME/licenses/google-gdk << 'EOF'
-          84831b9409646a918e30573bab4c9c91346b8b90
-          EOF
-          
-          # 设置权限
-          chmod 644 $ANDROID_HOME/licenses/*
-          
-          echo "许可证文件创建完成："
-          ls -la $ANDROID_HOME/licenses/
-          
-          # 方案1: 脚本处理
-          chmod +x scripts/force_accept_licenses.sh
-          ./scripts/force_accept_licenses.sh || true
-          
-          # 方案2: 使用预设答案（备用）
-          timeout 120 printf 'y\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 方案3: 使用 yes 命令（备用）
-          timeout 120 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          echo "许可证处理完成"
+    - name: 处理许可证 (避免权限问题)
+      run: |
+        echo "=== 使用用户目录处理许可证 ==="
+        
+        # 设置环境变量
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        
+        # 完全避免系统目录，只使用用户目录
+        USER_LICENSE_DIR="$HOME/.android/licenses"
+        mkdir -p "$USER_LICENSE_DIR"
+        
+        # 创建用户许可证文件
+        cat > "$USER_LICENSE_DIR/android-sdk-license" << 'EOF'
+        8933bad161af4178b1185d1a37fbf41ea5269c55d
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-googletv-license" << 'EOF'
+        601085b53c84555a2897545eb1f38b296baeb1b5
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-preview-license" << 'EOF'
+        d56f5187479451eabf01fb78af6dfcb131a6481e
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/google-gdk" << 'EOF'
+        84831b9409646a918e30573bab4c9c91346b8b90
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-google-license" << 'EOF'
+        598de3781d13c8c5df5a678110464d3863734768
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/android-sdk-arm-dbt-license" << 'EOF'
+        24333f8a63b6825ea9c5514e83c0e9a993a0a6f
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/intel-android-extra-license" << 'EOF'
+        33b6a2b64607111b2893360c6b44c7a64512267
+        EOF
+        
+        cat > "$USER_LICENSE_DIR/mips-android-extra-license" << 'EOF'
+        84831b9409646a918e30573bab4c9c91346b8b90
+        EOF
+        
+        # 设置权限
+        chmod 644 "$USER_LICENSE_DIR"/* 2>/dev/null || true
+        
+        # 设置许可证路径
+        export ANDROID_SDK_LICENSE_PATH="$USER_LICENSE_DIR"
+        
+        echo "用户许可证文件创建完成："
+        ls -la "$USER_LICENSE_DIR/"
+        
+        # 长时间 expect 处理（作为备用）
+        if command -v expect &> /dev/null; then
+          echo "使用 expect 备用处理..."
+          timeout 300 expect -c "
+          set timeout 300
+          spawn $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          expect {
+            \"y/N?\" { send \"y\r\"; exp_continue }
+            \"(y/N)\" { send \"y\r\"; exp_continue }
+            \"Accept? (y/N)\" { send \"y\r\"; exp_continue }
+            \"License android-googletv-license\" { send \"y\r\"; exp_continue }
+            timeout { exit 0 }
+            eof { exit 0 }
+          }
+          " 2>/dev/null || echo "expect 备用处理完成"
+        fi
+        
+        echo "许可证处理完成"
           
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
