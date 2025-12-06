@@ -29,7 +29,7 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.0'
+        flutter-version: '3.38.4'
         channel: 'stable'
         
     - name: Setup Android SDK
@@ -104,6 +104,19 @@ jobs:
           }
           " || echo "Expect process completed"
         fi
+        
+    - name: Fix Dependencies Version Conflict
+      run: |
+        echo "=== 修复依赖版本冲突 ==="
+        # 确保shared_preferences版本与当前SDK兼容
+        if grep -q "shared_preferences: ^2.3.2" pubspec.yaml; then
+          echo "降级shared_preferences以兼容Dart 3.3.0..."
+          sed -i 's/shared_preferences: ^2.3.2/shared_preferences: ^2.2.3/' pubspec.yaml
+        fi
+        
+        # 清理并重新获取依赖
+        flutter clean
+        flutter pub get
         
     - name: Get Dependencies
       run: |
