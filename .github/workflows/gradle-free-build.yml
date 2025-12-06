@@ -1,4 +1,4 @@
-name: Direct Gradle Build
+name: Gradle-Free Build
 
 on:
   workflow_dispatch:
@@ -52,34 +52,36 @@ jobs:
       run: |
         flutter pub get
         
-    - name: Fix ABI Conflict and Build
+    - name: Install Gradle and Build
       run: |
         cd android
         
-        # 如果 gradlew 不存在，使用 gradle 命令
-        if [ ! -f "gradlew" ]; then
-          echo "gradlew 不存在，使用系统 gradle..."
-          BUILD_CMD="gradle"
-        else
-          chmod +x gradlew
-          BUILD_CMD="./gradlew"
-        fi
+        # 安装 Gradle
+        wget https://services.gradle.org/distributions/gradle-8.7-bin.zip
+        unzip gradle-8.7-bin.zip
+        export PATH=$PWD/gradle-8.7/bin:$PATH
         
-        # 修复 ABI 冲突 - 直接修改 gradle 配置
+        # 生成 Gradle Wrapper
+        gradle wrapper --gradle-version 8.7
+        
+        # 设置执行权限
+        chmod +x gradlew
+        
+        # 修复 ABI 冲突
         echo "android { defaultConfig { ndk { abiFilters.clear(); abiFilters.add('arm64-v8a') } } splits { abi { isEnable = false } } }" >> app/build.gradle.kts
         
-        # 使用 gradle 构建
+        # 构建
         if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
           echo "Building Release APK with Gradle..."
-          $BUILD_CMD assembleRelease
+          ./gradlew assembleRelease
         else
           echo "Building Debug APK with Gradle..."
-          $BUILD_CMD assembleDebug
+          ./gradlew assembleDebug
         fi
         
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: bili-ownx-${{ github.event.inputs.build_type }}-gradle-apk
+        name: bili-ownx-${{ github.event.inputs.build_type }}-gradle-free-apk
         path: android/app/build/outputs/apk/${{ github.event.inputs.build_type }}/app-${{ github.event.inputs.build_type }}.apk
         retention-days: 7
