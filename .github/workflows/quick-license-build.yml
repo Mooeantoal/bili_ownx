@@ -1,0 +1,95 @@
+name: Quick License Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0'
+        channel: 'stable'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Quick License Fix
+      run: |
+        echo "=== Quick License Fix ==="
+        
+        # Set environment variables
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        export ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true -Dandroid.licenses.accepted=true"
+        
+        # Create user license directory
+        mkdir -p $HOME/.android/licenses
+        
+        # Create all license files in one command
+        cat > $HOME/.android/licenses/license_list.txt << 'EOF'
+        android-sdk-license|8933bad161af4178b1185d1a37fbf41ea5269c55d
+        android-googletv-license|601085b53c84555a2897545eb1f38b296baeb1b5
+        android-sdk-preview-license|d56f5187479451eabf01fb78af6dfcb131a6481e
+        google-gdk|84831b9409646a918e30573bab4c9c91346b8b90
+        android-sdk-google-license|598de3781d13c8c5df5a678110464d3863734768
+        android-sdk-arm-dbt-license|24333f8a63b6825ea9c5514e83c0e9a993a0a6f
+        intel-android-extra-license|33b6a2b64607111b2893360c6b44c7a64512267
+        mips-android-extra-license|84831b9409646a918e30573bab4c9c91346b8b90
+        EOF
+        
+        # Create license files from the list
+        while IFS='|' read -r filename content; do
+            echo "$content" > "$HOME/.android/licenses/$filename"
+            echo "Created: $filename"
+        done < $HOME/.android/licenses/license_list.txt
+        
+        echo "License files created:"
+        ls -la $HOME/.android/licenses/
+        
+    - name: Get Dependencies
+      run: |
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        flutter pub get
+        
+    - name: Build APK
+      run: |
+        export ANDROID_SDK_ACCEPT_LICENSES=true
+        export GRADLE_OPTS="-Dandroid.accept licenses=true"
+        
+        if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
+          echo "Building Release APK..."
+          flutter build apk --release
+        else
+          echo "Building Debug APK..."
+          flutter build apk --debug
+        fi
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: bili-ownx-${{ github.event.inputs.build_type }}-apk
+        path: build/app/outputs/flutter-apk/app-${{ github.event.inputs.build_type }}.apk
+        retention-days: 7
