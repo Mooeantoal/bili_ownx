@@ -90,21 +90,6 @@ subprojects {
 
 subprojects {
     project.evaluationDependsOn(":app")
-    
-    // 解决 NDK ABI 配置冲突
-    if (project.name == "app") {
-        project.afterEvaluate {
-            if (project.hasProperty("android")) {
-                val android = project.extensions.getByName("android") as com.android.build.gradle.AppExtension
-                android.defaultConfig {
-                    ndk {
-                        abiFilters.clear()
-                        abiFilters.add("arm64-v8a")
-                    }
-                }
-            }
-        }
-    }
 }
 
 tasks.register<Delete>("clean") {

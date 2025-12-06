@@ -10,6 +10,9 @@ android {
     compileSdk = 35
     // ndkVersion = "27.0.12077973"  // 让 Flutter 自动管理 NDK 版本
     
+    // 完全禁用 NDK 配置以避免冲突
+    ndkVersion = "26.1.10909125"
+    
     // 启用核心库脱糖以支持 Java 8+ 特性
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -39,11 +42,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
-        // 暂时移除ABI过滤器以解决冲突
-        // ndk {
-        //     abiFilters.clear()
-        //     abiFilters.add("arm64-v8a")
-        // }
+        // 明确的 NDK 配置 - 解决 ABI 冲突
+        ndk {
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -81,11 +84,7 @@ android {
     //     }
     // }
     
-    // 强制解决 ABI 冲突
-    packagingOptions {
-        pickFirst("**/libc++_shared.so")
-        pickFirst("**/libjsc.so")
-    }
+    // 移除packagingOptions以避免冲突
     
     packaging {
         resources {

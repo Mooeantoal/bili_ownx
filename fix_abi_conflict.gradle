@@ -1,0 +1,19 @@
+// 修复 ABI 配置冲突的 Gradle 脚本片段
+
+android {
+    defaultConfig {
+        // 清除所有现有的 ABI 过滤器
+        ndk {
+            abiFilters.clear()
+            // 只保留 arm64-v8a
+            abiFilters.add("arm64-v8a")
+        }
+    }
+    
+    // 禁用 splits 以避免冲突
+    splits {
+        abi {
+            isEnable = false
+        }
+    }
+}
