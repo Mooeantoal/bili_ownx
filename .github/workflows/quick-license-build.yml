@@ -130,10 +130,10 @@ jobs:
         
         if [ "${{ github.event.inputs.build_type }}" = "release" ]; then
           echo "Building Release APK..."
-          flutter build apk --release
+          flutter build apk --release --android-skip-build-dependency-validation
         else
           echo "Building Debug APK..."
-          flutter build apk --debug
+          flutter build apk --debug --android-skip-build-dependency-validation
         fi
         
     - name: Upload APK

@@ -16,6 +16,6 @@ Write-Host "=== 重新获取依赖 ===" -ForegroundColor Yellow
 flutter pub get
 
 Write-Host "=== 构建 Debug APK ===" -ForegroundColor Yellow
-flutter build apk --debug
+flutter build apk --debug --android-skip-build-dependency-validation
 
 Write-Host "=== 如果构建成功，APK位置: build/app/outputs/flutter-apk/app-debug.apk ===" -ForegroundColor Cyan

@@ -5,7 +5,7 @@ import org.gradle.api.plugins.JavaPluginExtension
 
 // 构建脚本依赖配置
 buildscript {
-    val kotlinVersion = "1.8.0"
+    val kotlinVersion = "2.0.21"
     repositories {
         google()
         mavenCentral()

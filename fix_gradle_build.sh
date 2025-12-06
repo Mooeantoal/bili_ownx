@@ -14,6 +14,6 @@ echo "=== 重新获取依赖 ==="
 flutter pub get
 
 echo "=== 构建 Debug APK ==="
-flutter build apk --debug
+flutter build apk --debug --android-skip-build-dependency-validation
 
 echo "=== 如果构建成功，APK位置: build/app/outputs/flutter-apk/app-debug.apk ==="

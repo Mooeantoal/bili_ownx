@@ -38,6 +38,11 @@ android {
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // NDK ABI 过滤器配置，与 splits 配置保持一致
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     buildTypes {
