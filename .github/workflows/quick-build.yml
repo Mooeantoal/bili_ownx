@@ -1,20 +1,14 @@
-name: Quick License Fix
+name: Quick Build
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 permissions:
   contents: write
-  actions: read
-  checks: write
 
 jobs:
-  quick-fix-build:
-    name: Quick License Fix Build
+  quick-build:
+    name: Quick Build
     runs-on: ubuntu-latest
     
     steps:
@@ -28,22 +22,21 @@ jobs:
           java-version: '17'
           cache: 'gradle'
           
-      - name: 设置 Android SDK (无交互模式)
+      - name: 设置 Android SDK (最小化)
         uses: android-actions/setup-android@v2
         
-      - name: 强制处理许可证 (多重保障)
+      - name: 绕过许可证检查
         run: |
-          echo "=== 强制处理 Android SDK 许可证 ==="
-          
-          # 设置环境变量（最优先）
+          echo "=== 绕过许可证检查 ==="
+          # 设置环境变量
           export ANDROID_SDK_ACCEPT_LICENSES=true
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           export ACCEPT_LICENSES=true
           
-          # 创建许可证目录
+          # 创建许可证文件
           mkdir -p $ANDROID_HOME/licenses
           
-          # 预创建所有许可证文件（避免交互）
+          # 关键许可证文件（针对 Google TV）
           cat > $ANDROID_HOME/licenses/android-sdk-license << 'EOF'
           8933bad161af4178b1185d1a37fbf41ea5269c55d
           EOF
@@ -60,23 +53,10 @@ jobs:
           84831b9409646a918e30573bab4c9c91346b8b90
           EOF
           
-          # 设置权限
           chmod 644 $ANDROID_HOME/licenses/*
           
           echo "许可证文件创建完成："
-          ls -la $ANDROID_HOME/licenses/
-          
-          # 方案1: 脚本处理
-          chmod +x scripts/force_accept_licenses.sh
-          ./scripts/force_accept_licenses.sh || true
-          
-          # 方案2: 使用预设答案（备用）
-          timeout 120 printf 'y\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\n' | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 方案3: 使用 yes 命令（备用）
-          timeout 120 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          echo "许可证处理完成"
+          ls -la $ANDROID_HOME/licenses/ || true
           
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
@@ -85,17 +65,9 @@ jobs:
           channel: 'stable'
           cache: true
           
-      - name: 环境验证
+      - name: 快速构建
         run: |
-          echo "=== 环境信息 ==="
-          echo "JAVA_HOME: $JAVA_HOME"
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          java -version
-          flutter --version
-          
-      - name: 快速构建测试
-        run: |
-          echo "=== 开始快速构建 ==="
+          echo "=== 快速构建 ==="
           flutter clean
           flutter pub get
           
@@ -105,15 +77,13 @@ jobs:
             sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
           fi
           
-          # 构建测试
-          flutter build apk --debug --no-tree-shake-icons --verbose
+          # 构建时使用环境变量
+          export GRADLE_OPTS="-Dandroid.accept licenses=true"
+          flutter build apk --debug --no-tree-shake-icons
           
-      - name: 上传构建结果
-        if: always()
+      - name: 上传APK
         uses: actions/upload-artifact@v4
         with:
-          name: quick-fix-apk-${{ github.run_number }}
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+          name: quick-build-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/*.apk
           retention-days: 7
