@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.bili_ownx"
     compileSdk = 35
-    ndkVersion = "27.0.12077973"
+    // ndkVersion = "27.0.12077973"  // 让 Flutter 自动管理 NDK 版本
     
     // 启用核心库脱糖以支持 Java 8+ 特性
     compileOptions {
@@ -39,10 +39,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         
-        // NDK ABI 过滤器配置，与 splits 配置保持一致
-        ndk {
-            abiFilters.add("arm64-v8a")
-        }
+        // 暂时移除ABI过滤器以解决冲突
+        // ndk {
+        //     abiFilters.clear()
+        //     abiFilters.add("arm64-v8a")
+        // }
     }
 
     buildTypes {
@@ -70,14 +71,20 @@ android {
         }
     }
    
-    // 启用包拆分，按ABI分离以减小APK大小
-    splits {
-        abi {
-            isEnable = true  // 启用ABI分割以减小APK体积
-            reset()
-            include("arm64-v8a")  // 仅保留主流架构，减少体积
-            isUniversalApk = false  // 不生成通用APK
-        }
+    // 禁用包拆分，直接使用NDK过滤器
+    // splits {
+    //     abi {
+    //         isEnable = false  // 禁用ABI分割，使用NDK过滤器
+    //         reset()
+    //         include("arm64-v8a")
+    //         isUniversalApk = false
+    //     }
+    // }
+    
+    // 强制解决 ABI 冲突
+    packagingOptions {
+        pickFirst("**/libc++_shared.so")
+        pickFirst("**/libjsc.so")
     }
     
     packaging {
