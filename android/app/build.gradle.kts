@@ -8,10 +8,7 @@ plugins {
 android {
     namespace = "com.example.bili_ownx"
     compileSdk = 35
-    // ndkVersion = "27.0.12077973"  // 让 Flutter 自动管理 NDK 版本
-    
-    // 完全禁用 NDK 配置以避免冲突
-    ndkVersion = "26.1.10909125"
+    ndkVersion = "27.0.12077973"
     
     // 启用核心库脱糖以支持 Java 8+ 特性
     compileOptions {
@@ -37,16 +34,10 @@ android {
         applicationId = "com.example.bili_ownx"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdkVersion(23)
+        minSdk = 21
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // 明确的 NDK 配置 - 解决 ABI 冲突
-        ndk {
-            abiFilters.clear()
-            abiFilters.add("arm64-v8a")
-        }
     }
 
     buildTypes {
@@ -62,7 +53,8 @@ android {
                 "proguard-rules.pro"
             )
             
-
+            // 启用更激进的优化
+            consumerProguardFiles("consumer-rules.pro")
             
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -74,17 +66,15 @@ android {
         }
     }
    
-    // 禁用包拆分，直接使用NDK过滤器
-    // splits {
-    //     abi {
-    //         isEnable = false  // 禁用ABI分割，使用NDK过滤器
-    //         reset()
-    //         include("arm64-v8a")
-    //         isUniversalApk = false
-    //     }
-    // }
-    
-    // 移除packagingOptions以避免冲突
+    // 启用包拆分，按ABI分离以减小APK大小
+    splits {
+        abi {
+            isEnable = true  // 启用ABI分割以减小APK体积
+            reset()
+            include("arm64-v8a")  // 仅保留主流架构，减少体积
+            isUniversalApk = false  // 不生成通用APK
+        }
+    }
     
     packaging {
         resources {

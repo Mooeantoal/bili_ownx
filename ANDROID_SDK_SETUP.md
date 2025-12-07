@@ -1,135 +1,94 @@
-# Android SDK 安装指南
+# Android SDK 安装和配置指南
 
-## 问题诊断
-
-当前项目遇到的主要问题是：
-1. ❌ Android SDK 未安装或未正确配置
-2. ❌ Flutter 无法找到 Android SDK 路径
+## 问题描述
+构建失败是因为系统找不到Android SDK。错误信息：
+```
+Unable to locate an Android SDK.
+```
 
 ## 解决方案
 
-### 方案一：安装 Android Studio（推荐）
+### 方案1：安装Android Studio（推荐）
+1. 下载并安装 Android Studio：https://developer.android.com/studio
+2. 安装完成后，启动Android Studio
+3. 在Android Studio中安装Android SDK：
+   - Tools → SDK Manager
+   - 选择SDK Platforms标签
+   - 勾选Android 13 (API level 33)或更高版本
+   - 点击Apply安装
 
-1. **下载 Android Studio**
-   - 访问：https://developer.android.com/studio
-   - 下载 Windows 版本（推荐.exe安装包）
-
-2. **安装 Android Studio**
-   ```bash
-   # 运行下载的安装包
-   # 选择 "Standard" 安装模式
-   # 确保勾选 "Android Virtual Device" 选项
-   ```
-
-3. **配置 Android SDK**
-   - 启动 Android Studio
-   - 进入 Settings → Appearance & Behavior → System Settings → Android SDK
-   - 确保安装了以下组件：
-     - Android SDK Platform-Tools
-     - Android SDK Build-Tools 34.0.0
-     - Android 14 (API level 34)
-     - Android 13 (API level 33)
-
-4. **设置环境变量**
+### 方案2：仅安装Android SDK命令行工具
+1. 下载Command Line Tools：https://developer.android.com/studio#command-tools
+2. 解压到 `C:\Android\Sdk` 目录
+3. 设置环境变量：
    ```powershell
-   # 添加到系统环境变量
-   [System.Environment]::SetEnvironmentVariable('ANDROID_HOME', 'C:\Users\$env:USERNAME\AppData\Local\Android\Sdk', 'User')
-   [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Users\$env:USERNAME\AppData\Local\Android\Sdk\platform-tools', 'User')
+   $env:ANDROID_HOME = "C:\Android\Sdk"
+   $env:ANDROID_SDK_ROOT = "C:\Android\Sdk"
+   $env:Path += ";C:\Android\Sdk\cmdline-tools\latest\bin"
+   $env:Path += ";C:\Android\Sdk\platform-tools"
    ```
 
-### 方案二：仅安装 Android SDK
+### 方案3：使用Flutter内置SDK（临时方案）
+Flutter自带了基本的Android构建工具，可以尝试：
 
-1. **下载 Command Line Tools**
-   - 访问：https://developer.android.com/studio#command-tools
-   - 下载 "Command line tools only" for Windows
+```powershell
+# 清理项目
+flutter clean
 
-2. **安装步骤**
-   ```powershell
-   # 创建安装目录
-   mkdir C:\Android\Sdk
-   cd C:\Android\Sdk
-   
-   # 解压下载的文件到 cmdline-tools 目录
-   # 创建目录结构
-   mkdir cmdline-tools\latest
-   move cmdline-tools\* cmdline-tools\latest\
-   ```
+# 重新获取依赖
+flutter pub get
 
-3. **设置环境变量**
-   ```powershell
-   # 设置 ANDROID_HOME
-   [System.Environment]::SetEnvironmentVariable('ANDROID_HOME', 'C:\Android\Sdk', 'User')
-   [System.Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Android\Sdk\cmdline-tools\latest\bin;C:\Android\Sdk\platform-tools;C:\Android\Sdk\tools', 'User')
-   ```
-
-4. **安装必要组件**
-   ```bash
-   # 重新打开 PowerShell，然后运行：
-   sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-   ```
-
-## 验证安装
-
-### 1. 检查 Android SDK
-```bash
-adb version
+# 尝试构建
+flutter build apk --debug
 ```
 
-### 2. 检查 Flutter
-```bash
+## 环境变量设置
+安装Android SDK后，需要设置以下环境变量：
+
+**PowerShell:**
+```powershell
+$env:ANDROID_HOME = "C:\Users\mj102\AppData\Local\Android\Sdk"
+$env:ANDROID_SDK_ROOT = "C:\Users\mj102\AppData\Local\Android\Sdk"
+$env:Path += ";$env:ANDROID_HOME\platform-tools"
+$env:Path += ";$env:ANDROID_HOME\cmdline-tools\latest\bin"
+```
+
+**系统环境变量（永久设置）：**
+1. 右键"此电脑" → 属性
+2. 高级系统设置 → 环境变量
+3. 新建系统变量：
+   - `ANDROID_HOME`: `C:\Users\mj102\AppData\Local\Android\Sdk`
+   - `ANDROID_SDK_ROOT`: `C:\Users\mj102\AppData\Local\Android\Sdk`
+4. 编辑Path变量，添加：
+   - `%ANDROID_HOME%\platform-tools`
+   - `%ANDROID_HOME%\cmdline-tools\latest\bin`
+
+## 验证安装
+安装完成后，运行以下命令验证：
+
+```powershell
 flutter doctor -v
 ```
 
-### 3. 更新 local.properties
-确保 `android/local.properties` 文件包含正确的路径：
-```properties
-flutter.sdk=D:\Downloads\Flutter
-sdk.dir=C:\Users\YOUR_USERNAME\AppData\Local\Android\Sdk
+应该看到：
+```
+[✓] Android toolchain - develop for Android devices
+    Android SDK at C:\Users\mj102\AppData\Local\Android\Sdk
+    Platform android-33, build-tools 33.0.0
+    Java binary at: C:\Program Files\Android\Android Studio\jbr\bin\java
 ```
 
-## 常见问题解决
+## 重新构建
+设置完成后，重新运行构建：
 
-### 问题1：许可证未接受
-```bash
-flutter doctor --android-licenses
-```
-
-### 问题2：构建失败
-```bash
-# 清理并重新构建
-flutter clean
-flutter pub get
+```powershell
 flutter build apk --debug
 ```
 
-### 问题3：Gradle 错误
-```bash
-# 进入 Android 目录清理
-cd android
-./gradlew clean
-cd ..
-flutter build apk --debug
-```
+## 已修复的配置
+当前项目中已经修复的配置：
+- ✅ NDK版本已更新为 27.0.12077973
+- ✅ R8/ProGuard优化已启用
+- ✅ 代码压缩和资源压缩已配置
 
-## 推荐配置
-
-为了确保最佳兼容性，建议使用以下配置：
-
-- **Android Studio**: 最新稳定版
-- **Android SDK**: API Level 34 (Android 14)
-- **Build Tools**: 34.0.0
-- **Java**: JDK 17 (通过 Android Studio 管理)
-- **Flutter**: 3.24.0 或更高版本
-
-## 下一步
-
-安装完成后：
-
-1. 重启 IDE 和终端
-2. 运行 `flutter doctor -v` 验证配置
-3. 尝试构建项目：`flutter build apk --debug`
-4. 如果仍有问题，检查 `android/local.properties` 文件路径是否正确
-
----
-
-*如果按照此指南操作后仍有问题，请提供具体的错误信息以便进一步诊断。*
+只需要安装Android SDK即可完成构建。

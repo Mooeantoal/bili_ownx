@@ -2,18 +2,28 @@
 
 echo "=== 修复 Gradle 构建问题 ==="
 
-# 设置正确的环境变量
-export ANDROID_SDK_ACCEPT_LICENSES=true
-export GRADLE_OPTS="-Dandroid.acceptLicenses=true"
+# 清理构建缓存
+echo "清理构建缓存..."
+cd android
+./gradlew clean
 
-echo "=== 清理构建缓存 ==="
+# 回到项目根目录
+cd ..
+
+# 清理 Flutter 缓存
+echo "清理 Flutter 缓存..."
 flutter clean
-cd android && ./gradlew clean && cd ..
 
-echo "=== 重新获取依赖 ==="
+# 重新获取依赖
+echo "重新获取依赖..."
 flutter pub get
 
-echo "=== 构建 Debug APK ==="
-flutter build apk --debug --android-skip-build-dependency-validation
+# 升级依赖
+echo "升级依赖到最新兼容版本..."
+flutter pub upgrade --major-versions
 
-echo "=== 如果构建成功，APK位置: build/app/outputs/flutter-apk/app-debug.apk ==="
+# 重新构建
+echo "重新构建项目..."
+flutter build apk --debug
+
+echo "=== 构建修复完成 ==="

@@ -8,126 +8,64 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: '构建模式选择 (standard/gradle-fix/quick-fix/test-matrix)'
-        required: false
+        description: '运行模式 (Mode)'
+        required: true
         default: 'standard'
         type: choice
         options:
-          - standard
-          - gradle-fix
-          - quick-fix
-          - test-matrix
+        - standard
+        - gradle-fix
+        - quick-fix
+        - test-matrix
+      upload_artifacts:
+        description: '上传构建产物 (Upload Artifacts)'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
-  actions: read
-  checks: write
-  packages: write
-  pull-requests: write
-  statuses: write
 
 jobs:
+  # ==================================================================================================
+  # 1. 标准构建 (Standard Build) - 对应原 build.yml
+  # ==================================================================================================
   standard-build:
     name: Standard Build
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || inputs.mode == 'standard' }}
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 设置 Java 17
+      - name: 设置 Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
 
-      # === 验证 Java 环境（合并版本验证）===
-      - name: 验证 Java 环境
-        run: |
-          echo "=== Java 环境验证 ==="
-          echo "JAVA_HOME: $JAVA_HOME"
-          echo "JAVA_HOME_17_X64: $JAVA_HOME_17_X64"
-          echo "Java 版本:"
-          java -version
-          echo "Java 编译器版本:"
-          javac -version
-
       - name: 设置 Android SDK
-        uses: android-actions/setup-android@v2
-
-      - name: 验证 Android SDK 许可证
-        run: |
-          echo "=== 确保所有 Android SDK 许可证已接受 ==="
-          # 使用多种方法强制处理许可证
-          chmod +x scripts/accept_android_licenses.sh
-          chmod +x scripts/force_accept_licenses.sh
-          
-          # 首先尝试强制许可证处理
-          scripts/force_accept_licenses.sh || echo "强制许可证处理失败，尝试备用方案"
-          
-          # 备用方案：传统方法
-          timeout 60 yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-          scripts/accept_android_licenses.sh || echo "备用许可证处理完成"
-          echo "Android SDK 许可证处理完成"
+        uses: android-actions/setup-android@v3
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.4'
+          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
-      - name: 验证环境
-        run: |
-          echo "=== 环境验证 ==="
-          echo "Java Home: $JAVA_HOME"
-          echo "=== Android SDK 验证 ==="
-          echo $ANDROID_HOME
-          # 使用 sdkmanager 验证（更可靠）
-          if command -v sdkmanager &> /dev/null; then
-            echo "可用的 Android SDK 平台:"
-            sdkmanager --list_installed | grep "build-tools;android-" | head -5
-          else
-            echo "SDK Manager 不可用，回退到目录检查:"
-            ls -la $ANDROID_HOME/platforms/ || true
-            ls -la $ANDROID_HOME/build-tools/ || true
-          fi
-
-      - name: 配置 Gradle 属性
-        run: |
-          # === 删除冗余配置（已在gradle.properties中定义）===
-          # echo "android.useAndroidX=true" >> android/gradle.properties
-          # echo "kotlin.version=1.8.0" >> android/gradle.properties
-          # echo "kotlin.compiler.version=1.8.0" >> android/gradle.properties
-          # echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "Gradle 属性已通过文件直接配置"
       - name: 构建 APK (Debug)
         run: |
           echo "开始构建 APK..."
           flutter clean
           flutter pub get
-          # 使用动态 Java Home 路径
-          echo "JAVA_HOME=$JAVA_HOME"
-          echo "构建中..."
-          # 确保 build.gradle.kts 文件同步且语法正确
-          echo "检查 build.gradle.kts 文件..."
-          # 修复 minSdkVersion 语法错误 - 使用函数调用格式
-          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复 minSdkVersion..."
-            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          # 检查其他可能的语法错误
-          if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现旧语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          # === 添加--no-tree-shake-icons（避免构建警告）===
-          flutter build apk --debug --verbose --split-per-abi --no-tree-shake-icons
+          flutter build apk --debug --verbose
 
       - name: 上传 APK 为 Artifact
-        if: ${{ always() }}
+        if: ${{ always() && (inputs.upload_artifacts == true || github.event_name != 'workflow_dispatch') }}
         uses: actions/upload-artifact@v4
         with:
           name: standard-build-${{ github.run_number }}
@@ -138,7 +76,7 @@ jobs:
 
       - name: 创建 Release
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
@@ -154,6 +92,7 @@ jobs:
             此构建已启用 ABI 分割，包含以下架构的 APK：
             - `app-arm64-v8a-debug.apk`: 适用于 64 位 ARM 设备（现代手机，推荐）
             - `app-armeabi-v7a-debug.apk`: 适用于 32 位 ARM 设备
+            - `app-universal-debug.apk`: 通用版本（兼容所有架构，体积较大）
             
             请根据您的设备选择对应架构的 APK 下载安装。
           files: |
@@ -171,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: 设置 Java
         uses: actions/setup-java@v4
@@ -179,19 +118,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v2
-
-      - name: 验证 Android SDK 许可证
-        run: |
-          echo "=== 确保所有 Android SDK 许可证已接受 ==="
-          chmod +x scripts/accept_android_licenses.sh
-          chmod +x scripts/force_accept_licenses.sh
-          # 使用强制许可证处理
-          scripts/force_accept_licenses.sh || echo "强制处理失败，使用备用方案"
-          scripts/accept_android_licenses.sh || echo "备用许可证处理完成"
-          echo "Android SDK 许可证处理完成"
 
       - name: 设置 Gradle
         uses: gradle/gradle-build-action@v3
@@ -201,7 +127,7 @@ jobs:
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.4'
+          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
@@ -209,51 +135,30 @@ jobs:
         run: |
           echo "=== 执行 Gradle 修复构建 ==="
           
-          # 1. 验证环境
-          echo "验证 Java 安装..."
-          java -version
-          echo "JAVA_HOME: $JAVA_HOME"
-          
-          # 2. 修复 build.gradle.kts 语法错误
-          echo "检查并修复 build.gradle.kts 文件..."
-          # 统一使用 minSdkVersion(21) 格式
-          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复 minSdkVersion = 21..."
-            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现旧语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
-            echo "发现另一种语法错误，正在修复 minSdk = 21..."
-            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          
-          # 3. 清理
+          # 1. 清理
           flutter clean
           cd android && ./gradlew clean && cd ..
           
-          # 4. 依赖更新
+          # 2. 依赖更新
           flutter pub get
           flutter pub upgrade --major-versions
           
-          # 5. 尝试多种构建策略
+          # 3. 尝试多种构建策略
           echo "尝试标准构建..."
           if flutter build apk --debug; then
             echo "✅ 标准构建成功"
             exit 0
           fi
           
-          echo "尝试最小化构建..."
-          if flutter build apk --debug --no-tree-shake-icons; then
-            echo "✅ 最小化构建成功"
+          echo "尝试兼容模式构建..."
+          if flutter build apk --debug --no-sound-null-safety; then
+            echo "✅ 兼容模式构建成功"
             exit 0
           fi
           
-          echo "尝试详细日志构建..."
-          if flutter build apk --debug --verbose; then
-            echo "✅ 详细日志构建成功"
+          echo "尝试最小化构建..."
+          if flutter build apk --debug --no-tree-shake-icons --no-pub; then
+            echo "✅ 最小化构建成功"
             exit 0
           fi
           
@@ -278,48 +183,18 @@ jobs:
     if: ${{ inputs.mode == 'quick-fix' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v2
-
-      - name: 验证 Android SDK 许可证
-        run: |
-          echo "=== 确保所有 Android SDK 许可证已接受 ==="
-          chmod +x scripts/accept_android_licenses.sh
-          chmod +x scripts/force_accept_licenses.sh
-          # 使用强制许可证处理
-          scripts/force_accept_licenses.sh || echo "强制处理失败，使用备用方案"
-          scripts/accept_android_licenses.sh || echo "备用许可证处理完成"
-          echo "Android SDK 许可证处理完成"
-
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.0'
-          channel: 'stable'
-          cache: true
+          flutter-version: '3.24.0'
       - name: Quick Build
         run: |
           flutter clean
           flutter pub get
-          echo "使用 JAVA_HOME: $JAVA_HOME"
-          # 修复可能的语法错误
-          # 统一使用 minSdkVersion(21) 格式
-          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复 minSdkVersion = 21..."
-            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现旧语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
-            echo "发现另一种语法错误，正在修复 minSdk = 21..."
-            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
           flutter build apk --debug --no-tree-shake-icons
 
   # ==================================================================================================
@@ -331,47 +206,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        flutter-version: ['3.35.0', '3.24.0']
-        java-version: ['17', '21']
+        flutter-version: ['3.24.0', '3.22.0']
+        java-version: ['17', '11']
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java-version }}
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v2
-
-      - name: 验证 Android SDK 许可证
-        run: |
-          echo "=== 确保所有 Android SDK 许可证已接受 ==="
-          chmod +x scripts/accept_android_licenses.sh
-          chmod +x scripts/force_accept_licenses.sh
-          # 使用强制许可证处理
-          scripts/force_accept_licenses.sh || echo "强制处理失败，使用备用方案"
-          scripts/accept_android_licenses.sh || echo "备用许可证处理完成"
-          echo "Android SDK 许可证处理完成"
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ matrix.flutter-version }}
-          channel: 'stable'
-          cache: true
       - name: Build
-        run: |
-          echo "使用 JAVA_HOME: $JAVA_HOME"
-          # 修复可能的语法错误
-          # 统一使用 minSdkVersion(21) 格式
-          if grep -q "minSdkVersion = 21" android/app/build.gradle.kts; then
-            echo "发现语法错误，正在修复 minSdkVersion = 21..."
-            sed -i 's/minSdkVersion = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdkVersion flutter.minSdkVersion" android/app/build.gradle.kts; then
-            echo "发现旧语法错误，正在修复..."
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          if grep -q "minSdk = 21" android/app/build.gradle.kts; then
-            echo "发现另一种语法错误，正在修复 minSdk = 21..."
-            sed -i 's/minSdk = 21/minSdkVersion(21)/' android/app/build.gradle.kts
-          fi
-          flutter build apk --debug
+        run: flutter build apk --debug
