@@ -4,6 +4,7 @@ import 'pages/search_page.dart';
 import 'pages/metadata_page.dart';
 import 'services/download_manager.dart';
 import 'services/metadata_service.dart';
+import 'services/theme_service.dart';
 import 'models/download_task.dart';
 
 void main() async {
@@ -23,6 +24,9 @@ void main() async {
   // 初始化元数据服务
   await MetadataService().initialize();
   
+  // 初始化主题服务
+  await ThemeService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -31,13 +35,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Bilibili Flutter',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.pink),
-        useMaterial3: true,
-      ),
-      home: const SearchPage(),
+    return ListenableBuilder(
+      listenable: ThemeService(),
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'Bilibili Flutter',
+          theme: ThemeService().lightTheme,
+          darkTheme: ThemeService().darkTheme,
+          themeMode: ThemeService().themeMode,
+          home: const SearchPage(),
+        );
+      },
     );
   }
 }

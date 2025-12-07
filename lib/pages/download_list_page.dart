@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/download_task.dart';
 import '../services/download_manager.dart';
 import '../services/download_manager.dart' as dm;
+import '../widgets/theme_switch_button.dart';
 
 /// 下载列表页面
 class DownloadListPage extends StatefulWidget {
@@ -63,6 +64,7 @@ class _DownloadListPageState extends State<DownloadListPage> {
         title: const Text('下载管理'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          const ThemeSwitchButton(),
           // 清理已完成
           IconButton(
             icon: const Icon(Icons.cleaning_services),

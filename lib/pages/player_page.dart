@@ -7,6 +7,7 @@ import '../services/play_history_service.dart';
 import '../services/download_service.dart';
 import '../services/download_manager.dart';
 import '../utils/error_handler.dart';
+import '../widgets/theme_switch_button.dart';
 import 'download_list_page.dart';
 
 /// 视频播放器页面
@@ -486,6 +487,7 @@ ${ErrorHandler.formatApiResponseError(response)}
         title: Text(_videoInfo?.title ?? '加载中...'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          const ThemeSwitchButton(),
           // 下载按钮
           IconButton(
             icon: const Icon(Icons.download),

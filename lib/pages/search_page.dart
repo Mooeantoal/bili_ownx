@@ -7,6 +7,8 @@ import 'quality_test_page.dart';
 import 'download_list_page.dart';
 import '../utils/error_handler.dart';
 import 'metadata_page.dart';
+import '../widgets/theme_switch_button.dart';
+import 'settings_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -239,6 +241,12 @@ class _SearchPageState extends State<SearchPage> {
         title: const Text('Bilibili 搜索'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          const ThemeSwitchButton(),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => _navigateToSettings(),
+            tooltip: '设置',
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => _navigateToPlayHistory(),
@@ -394,6 +402,16 @@ class _SearchPageState extends State<SearchPage> {
       return '${(count / 10000.0).toStringAsFixed(1)}万';
     }
     return count.toString();
+  }
+
+  /// 导航到设置页面
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SettingsPage(),
+      ),
+    );
   }
 
   /// 导航到播放历史页面
