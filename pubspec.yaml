@@ -43,11 +43,11 @@ dependencies:
   flutter_local_notifications: ^17.2.3  # 通知功能 (必要)
   
   # 可选依赖 - 考虑移除或替换
-  # cupertino_icons: ^1.0.8             # iOS图标 (如不使用iOS风格可移除)
-  # crypto: ^3.0.3                       # 加密库 (如仅简单哈希可用内置函数)
-  # chewie: ^1.7.5                      # 视频播放器UI (可替换为自定义实现)
-  # package_info_plus: ^8.0.2           # 包信息 (可硬编码或简化)
-  # device_info_plus: ^10.1.2           # 设备信息 (如非必要可移除)
+  cupertino_icons: ^1.0.8             # iOS图标
+  crypto: ^3.0.3                       # 加密库
+  chewie: ^1.7.5                      # 视频播放器UI
+  package_info_plus: ^8.0.2           # 包信息
+  device_info_plus: ^10.1.2           # 设备信息
 
 dev_dependencies:
   flutter_test:
