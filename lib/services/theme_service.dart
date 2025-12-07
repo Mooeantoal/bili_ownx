@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// 主题模式枚举
+enum ThemeMode {
+  light,
+  dark,
+  system,
+}
+
 /// 主题管理服务
 class ThemeService extends ChangeNotifier {
   static final ThemeService _instance = ThemeService._internal();
@@ -9,7 +16,7 @@ class ThemeService extends ChangeNotifier {
   ThemeService._internal();
 
   static const String _themeKey = 'theme_mode';
-  
+
   ThemeMode _themeMode = ThemeMode.system;
   SharedPreferences? _prefs;
 
@@ -32,11 +39,11 @@ class ThemeService extends ChangeNotifier {
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
     final savedTheme = _prefs?.getString(_themeKey);
-    
+
     if (savedTheme != null) {
       _themeMode = _parseThemeMode(savedTheme);
     }
-    
+
     // 监听系统主题变化
     SchedulerBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
       if (_themeMode == ThemeMode.system) {
@@ -125,7 +132,8 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      cardTheme: const CardThemeData(
+      // 修正：移除 const 关键字
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -169,7 +177,8 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Color(0xFFFB7299),
         elevation: 0,
       ),
-      cardTheme: const CardThemeData(
+      // 修正：移除 const 关键字
+      cardTheme: CardThemeData(
         elevation: 2,
         color: Color(0xFF2D2D2D),
         shape: RoundedRectangleBorder(
