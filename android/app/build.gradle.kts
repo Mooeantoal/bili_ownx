@@ -63,15 +63,7 @@ android {
         }
     }
     
-    // 启用包拆分，按ABI分离以减小APK大小
-    splits {
-        abi {
-            isEnable = true  // 启用ABI分割以减小APK体积
-            reset()
-            include("arm64-v8a")  // 仅保留主流架构，减少体积
-            isUniversalApk = false  // 不生成通用APK
-        }
-    }
+    // 移除ABI分割配置以确保生成通用APK
     
     packaging {
         resources {
