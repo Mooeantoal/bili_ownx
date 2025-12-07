@@ -2,13 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 主题模式枚举
-enum ThemeMode {
-  light,
-  dark,
-  system,
-}
-
 /// 主题管理服务
 class ThemeService extends ChangeNotifier {
   static final ThemeService _instance = ThemeService._internal();
@@ -132,8 +125,7 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      // 修正：移除 const 关键字
-      cardTheme: CardThemeData(
+      cardTheme: CardThemeData(  // 移除 const
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -177,8 +169,7 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Color(0xFFFB7299),
         elevation: 0,
       ),
-      // 修正：移除 const 关键字
-      cardTheme: CardThemeData(
+      cardTheme: CardThemeData(  // 移除 const
         elevation: 2,
         color: Color(0xFF2D2D2D),
         shape: RoundedRectangleBorder(
