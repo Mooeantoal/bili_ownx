@@ -53,9 +53,6 @@ android {
                 "proguard-rules.pro"
             )
             
-            // 启用更激进的优化
-            consumerProguardFiles("consumer-rules.pro")
-            
             signingConfig = signingConfigs.getByName("debug")
         }
         
@@ -65,7 +62,7 @@ android {
             isShrinkResources = false
         }
     }
-   
+    
     // 启用包拆分，按ABI分离以减小APK大小
     splits {
         abi {
