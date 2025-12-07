@@ -743,6 +743,99 @@ ${ErrorHandler.formatApiResponseError(response)}
       return const Center(child: Text('视频信息加载失败'));
     }
 
+    // 正常内容显示
+    return Column(
+      children: [
+        // 视频播放器
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: _buildVideoPlayer(),
+        ),
+        
+        // 视频信息
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // 标题
+              Text(
+                _videoInfo!.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              
+              // UP主和播放信息
+              Row(
+                children: [
+                  const Icon(Icons.person, size: 16),
+                  const SizedBox(width: 4),
+                  Text(_videoInfo!.author),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.access_time, size: 16),
+                  const SizedBox(width: 4),
+                  Text(_formatDuration(_videoInfo!.duration)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // 简介
+              if (_videoInfo!.desc.isNotEmpty) ...[
+                Text(
+                  '简介',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(_videoInfo!.desc),
+                const SizedBox(height: 16),
+              ],
+              
+              // 分P列表
+              if (_videoInfo!.parts.length > 1) ...[
+                Text(
+                  '选集 (${_videoInfo!.parts.length}P)',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ..._videoInfo!.parts.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final part = entry.value;
+                  return ListTile(
+                    selected: index == _currentPartIndex,
+                    title: Text('P${part.page} ${part.title}'),
+                    trailing: Text(_formatDuration(part.duration)),
+                    onTap: () => _switchPart(index),
+                  );
+                }),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 格式化时长
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    final secs = seconds % 60;
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    } else {
+      return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
+  }
+
+  /// 获取画质名称
+  String _getQualityName(int qn) {
+    final quality = _allQualityOptions.firstWhere(
+      (q) => q['qn'] == qn,
+      orElse: () => {'name': '未知'},
+    );
+    return quality['name'] ?? '未知';
+  }
+
   /// 构建视频播放器（优化版本，切换画质时只刷新播放器）
   Widget _buildVideoPlayer() {
     // 如果正在切换画质，显示加载指示器但保持布局
@@ -849,116 +942,6 @@ ${ErrorHandler.formatApiResponseError(response)}
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(_errorMessage, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadVideoInfo,
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_videoInfo == null) {
-      return const Center(child: Text('视频信息加载失败'));
-    }
-
-    return Column(
-      children: [
-        // 视频播放器
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: _buildVideoPlayer(),
-        ),
-        
-        // 视频信息
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // 标题
-              Text(
-                _videoInfo!.title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              
-              // UP主和播放信息
-              Row(
-                children: [
-                  const Icon(Icons.person, size: 16),
-                  const SizedBox(width: 4),
-                  Text(_videoInfo!.author),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.access_time, size: 16),
-                  const SizedBox(width: 4),
-                  Text(_formatDuration(_videoInfo!.duration)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // 简介
-              if (_videoInfo!.desc.isNotEmpty) ...[
-                Text(
-                  '简介',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(_videoInfo!.desc),
-                const SizedBox(height: 16),
-              ],
-              
-              // 分P列表
-              if (_videoInfo!.parts.length > 1) ...[
-                Text(
-                  '选集 (${_videoInfo!.parts.length}P)',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                ..._videoInfo!.parts.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final part = entry.value;
-                  return ListTile(
-                    selected: index == _currentPartIndex,
-                    title: Text('P${part.page} ${part.title}'),
-                    trailing: Text(_formatDuration(part.duration)),
-                    onTap: () => _switchPart(index),
-                  );
-                }),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 格式化时长
-  String _formatDuration(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    final secs = seconds % 60;
-
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-    } else {
-      return '$minutes:${secs.toString().padLeft(2, '0')}';
-    }
-  }
-
   /// 下载视频
   Future<void> _downloadVideo() async {
     if (_videoInfo == null) {
@@ -1044,12 +1027,4 @@ ${ErrorHandler.formatApiResponseError(response)}
     }
   }
 
-  /// 获取画质名称
-  String _getQualityName(int qn) {
-    final quality = _allQualityOptions.firstWhere(
-      (q) => q['qn'] == qn,
-      orElse: () => {'name': '未知'},
-    );
-    return quality['name'] ?? '未知';
-  }
 }
