@@ -54,7 +54,6 @@ class ApiHelper {
       'mobi_app': mobiApp,
       'build': buildVersion,
       'c_locale': locale,
-      's_locale': locale,
       'ts': getTimeSpan(),
       // 添加一些必要的默认参数
       'device': 'android',
