@@ -4,11 +4,8 @@ import '../models/search_result.dart';
 import '../services/search_history_service.dart';
 import 'player_page.dart';
 import 'quality_test_page.dart';
-import 'download_list_page.dart';
 import '../utils/error_handler.dart';
-import 'metadata_page.dart';
 import '../widgets/theme_switch_button.dart';
-import 'settings_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -157,7 +154,7 @@ class _SearchPageState extends State<SearchPage> {
           await _loadSearchHistory();
           
           // 解析搜索结果
-          final results = videoList!
+          final results = videoList
               .map((item) => VideoSearchResult.fromJson(item))
               .where((result) => result.hasValidId) // 只保留有有效ID的结果
               .toList();
@@ -243,24 +240,9 @@ class _SearchPageState extends State<SearchPage> {
         actions: [
           const ThemeSwitchButton(),
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _navigateToSettings(),
-            tooltip: '设置',
-          ),
-          IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => _navigateToPlayHistory(),
             tooltip: '播放历史',
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () => _navigateToDownloads(),
-            tooltip: '下载管理',
-          ),
-          IconButton(
-            icon: const Icon(Icons.folder),
-            onPressed: () => _navigateToMetadata(),
-            tooltip: '元数据管理',
           ),
           IconButton(
             icon: const Icon(Icons.high_quality),
@@ -404,41 +386,11 @@ class _SearchPageState extends State<SearchPage> {
     return count.toString();
   }
 
-  /// 导航到设置页面
-  void _navigateToSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SettingsPage(),
-      ),
-    );
-  }
-
   /// 导航到播放历史页面
   void _navigateToPlayHistory() {
     // TODO: 实现播放历史页面
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('播放历史页面开发中...')),
-    );
-  }
-
-  /// 导航到下载管理页面
-  void _navigateToDownloads() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DownloadListPage(),
-      ),
-    );
-  }
-
-  /// 导航到元数据管理页面
-  void _navigateToMetadata() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MetadataPage(),
-      ),
     );
   }
 

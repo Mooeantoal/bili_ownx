@@ -876,19 +876,3 @@ class DownloadManager {
     return downloadDir;
   }
 }
-
-/// Hive适配器
-class DownloadTaskAdapter extends TypeAdapter<DownloadTask> {
-  @override
-  final typeId = 0;
-
-  @override
-  DownloadTask read(BinaryReader reader) {
-    return DownloadTask.fromJson(Map<String, dynamic>.from(reader.read()));
-  }
-
-  @override
-  void write(BinaryWriter writer, DownloadTask obj) {
-    writer.write(obj.toJson());
-  }
-}

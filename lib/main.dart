@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'pages/search_page.dart';
-import 'pages/metadata_page.dart';
+import 'pages/main_page.dart';
 import 'services/download_manager.dart';
 import 'services/metadata_service.dart';
 import 'services/theme_service.dart';
@@ -43,7 +42,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeService().lightTheme,
           darkTheme: ThemeService().darkTheme,
           themeMode: ThemeService().themeMode,
-          home: const SearchPage(),
+          home: const MainPage(),
         );
       },
     );

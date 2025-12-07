@@ -60,7 +60,7 @@ class _DownloadOptionPageState extends State<DownloadOptionPage> {
                         color: Colors.grey[600],
                       ),
                     ),
-                    if (part.duration.isNotEmpty) ...[
+                    if (part.duration > 0) ...[
                       const SizedBox(height: 4),
                       Text(
                         '时长: ${part.duration}',

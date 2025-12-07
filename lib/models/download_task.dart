@@ -245,3 +245,63 @@ class DownloadTask {
     );
   }
 }
+
+/// DownloadTask的Hive适配器
+class DownloadTaskAdapter extends TypeAdapter<DownloadTask> {
+  @override
+  final typeId = 0;
+
+  @override
+  DownloadTask read(BinaryReader reader) {
+    return DownloadTask(
+      id: reader.readString(),
+      bvid: reader.readString(),
+      cid: reader.readInt(),
+      title: reader.readString(),
+      cover: reader.readString(),
+      author: reader.readString(),
+      quality: reader.readInt(),
+      qualityName: reader.readString(),
+      partIndex: reader.readInt(),
+      partTitle: reader.readString(),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(reader.readInt()),
+      status: DownloadStatus.values[reader.readInt()],
+      progress: reader.readInt(),
+      totalSize: reader.readInt(),
+      speed: reader.readDouble(),
+      downloadType: DownloadType.values[reader.readInt()],
+      errorMessage: reader.readString(),
+      errorLog: reader.readString(),
+      savePath: reader.readString(),
+      videoUrl: reader.readString(),
+      audioUrl: reader.readString(),
+      danmakuUrl: reader.readString(),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, DownloadTask obj) {
+    writer.writeString(obj.id);
+    writer.writeString(obj.bvid);
+    writer.writeInt(obj.cid);
+    writer.writeString(obj.title);
+    writer.writeString(obj.cover);
+    writer.writeString(obj.author ?? '');
+    writer.writeInt(obj.quality);
+    writer.writeString(obj.qualityName);
+    writer.writeInt(obj.partIndex);
+    writer.writeString(obj.partTitle);
+    writer.writeInt(obj.createdAt.millisecondsSinceEpoch);
+    writer.writeInt(obj.status.index);
+    writer.writeInt(obj.progress);
+    writer.writeInt(obj.totalSize);
+    writer.writeDouble(obj.speed);
+    writer.writeInt(obj.downloadType.index);
+    writer.writeString(obj.errorMessage ?? '');
+    writer.writeString(obj.errorLog ?? '');
+    writer.writeString(obj.savePath ?? '');
+    writer.writeString(obj.videoUrl ?? '');
+    writer.writeString(obj.audioUrl ?? '');
+    writer.writeString(obj.danmakuUrl ?? '');
+  }
+}
