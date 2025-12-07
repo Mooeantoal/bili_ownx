@@ -47,6 +47,7 @@ class _PlayerPageState extends State<PlayerPage> {
   
   VideoInfo? _videoInfo;
   bool _isLoading = true;
+  bool _isChangingQuality = false; // 是否正在切换画质
   String _errorMessage = '';
   int _currentPartIndex = 0;
   int _selectedQuality = 80; // 默认超清画质
@@ -247,6 +248,115 @@ ${ErrorHandler.formatApiResponseError(response)}
       setState(() {
         _availableQualities = List.from(_allQualityOptions);
       });
+    }
+  }
+
+  /// 切换画质（优化版本，只刷新播放器）
+  Future<void> _switchQuality(int cid, int savedPosition, bool wasPlaying) async {
+    // 释放旧控制器
+    _chewieController?.dispose();
+    _videoPlayerController?.dispose();
+    _chewieController = null;
+    _videoPlayerController = null;
+
+    try {
+      // 确定要使用的 bvid
+      String bvidToUse = widget.bvid;
+      
+      if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
+        bvidToUse = _videoInfo!.bvid;
+      }
+      
+      if (bvidToUse.isEmpty) {
+        throw Exception('无法获取有效的 BVID');
+      }
+      
+      print('切换画质: $_selectedQuality (${_getQualityName(_selectedQuality)})');
+      
+      final response = await VideoApi.getPlayUrl(
+        bvid: bvidToUse,
+        cid: cid,
+        qn: _selectedQuality,
+      );
+
+      if (response['code'] == 0 && response['data'] != null) {
+        final data = response['data'];
+        String? videoUrl;
+        int actualQuality = _selectedQuality;
+
+        // 检查实际返回的画质
+        if (data['quality'] != null) {
+          actualQuality = data['quality'];
+          if (actualQuality != _selectedQuality) {
+            _selectedQuality = actualQuality;
+          }
+        }
+
+        // 获取播放地址
+        if (data['durl'] != null) {
+          final durl = data['durl'];
+          if (durl is List && durl.isNotEmpty) {
+            videoUrl = durl[0]['url'];
+          }
+        } else if (data['dash'] != null) {
+          final video = data['dash']['video'];
+          if (video != null && video is List && video.isNotEmpty) {
+            videoUrl = video[0]['baseUrl'] ?? video[0]['base_url'];
+          }
+        }
+
+        if (videoUrl != null) {
+          // 初始化新播放器
+          _videoPlayerController = VideoPlayerController.networkUrl(
+            Uri.parse(videoUrl),
+            httpHeaders: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Referer': 'https://www.bilibili.com',
+            },
+          );
+
+          await _videoPlayerController!.initialize();
+
+          // 恢复播放位置
+          if (savedPosition > 0) {
+            await _videoPlayerController!.seekTo(Duration(seconds: savedPosition));
+          }
+
+          // 创建新的 Chewie 控制器
+          _chewieController = ChewieController(
+            videoPlayerController: _videoPlayerController!,
+            autoPlay: wasPlaying,
+            looping: false,
+            aspectRatio: _videoPlayerController!.value.aspectRatio,
+            errorBuilder: (context, errorMessage) {
+              return Center(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            },
+          );
+
+          // 设置播放监听器
+          _setupPlaybackListener();
+
+          setState(() {
+            _isChangingQuality = false;
+          });
+
+          print('画质切换成功，恢复到位置: ${savedPosition}秒');
+        } else {
+          throw Exception('无法获取播放地址');
+        }
+      } else {
+        throw Exception('API返回错误: ${response['message']}');
+      }
+    } catch (e) {
+      setState(() {
+        _isChangingQuality = false;
+      });
+      rethrow;
     }
   }
 
@@ -519,15 +629,21 @@ ${ErrorHandler.formatApiResponseError(response)}
                 ),
               );
               
+              // 保存当前播放位置
+              final currentPosition = _videoPlayerController?.value.position.inSeconds ?? 0;
+              final wasPlaying = _videoPlayerController?.value.isPlaying ?? false;
+              
+              // 设置新的画质
+              final previousQuality = _selectedQuality;
               setState(() {
                 _selectedQuality = qn;
-                _isLoading = true;
+                _isChangingQuality = true; // 新增状态，表示正在切换画质
               });
               
-              // 重新加载视频
+              // 重新加载播放器（只刷新播放器，不重新加载页面）
               if (_videoInfo != null) {
                 try {
-                  await _loadPlayUrl(_videoInfo!.parts[_currentPartIndex].cid);
+                  await _switchQuality(_videoInfo!.parts[_currentPartIndex].cid, currentPosition, wasPlaying);
                   
                   // 显示切换成功提示
                   if (mounted) {
@@ -541,8 +657,8 @@ ${ErrorHandler.formatApiResponseError(response)}
                 } catch (e) {
                   // 切换失败，恢复原画质
                   setState(() {
-                    _selectedQuality = _allQualityOptions.first['qn']; // 恢复默认画质
-                    _isLoading = false;
+                    _selectedQuality = previousQuality;
+                    _isChangingQuality = false;
                   });
                   
                   if (mounted) {
@@ -627,14 +743,145 @@ ${ErrorHandler.formatApiResponseError(response)}
       return const Center(child: Text('视频信息加载失败'));
     }
 
+  /// 构建视频播放器（优化版本，切换画质时只刷新播放器）
+  Widget _buildVideoPlayer() {
+    // 如果正在切换画质，显示加载指示器但保持布局
+    if (_isChangingQuality) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Stack(
+          children: [
+            // 保持旧的播放器画面作为背景（如果存在）
+            if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _chewieController!.videoPlayerController.value.size.width,
+                      height: _chewieController!.videoPlayerController.value.size.height,
+                      child: Image.network(
+                        _videoInfo?.cover ?? '',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(color: Colors.black);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            
+            // 切换画质的加载指示器
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: Colors.white,
+                    backgroundColor: Colors.white.withOpacity(0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '正在切换画质...',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${_getQualityName(_selectedQuality)}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // 正常播放器显示
+    if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {
+      return Chewie(controller: _chewieController!);
+    }
+    
+    // 初始加载状态
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Stack(
+        children: [
+          // 视频封面作为背景
+          if (_videoInfo?.cover != null)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _videoInfo!.cover,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(color: Colors.black);
+                  },
+                ),
+              ),
+            ),
+            
+          // 加载指示器
+          const Center(
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              backgroundColor: Colors.white30,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_errorMessage, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadVideoInfo,
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_videoInfo == null) {
+      return const Center(child: Text('视频信息加载失败'));
+    }
+
     return Column(
       children: [
         // 视频播放器
         AspectRatio(
           aspectRatio: 16 / 9,
-          child: _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
-              ? Chewie(controller: _chewieController!)
-              : const Center(child: CircularProgressIndicator()),
+          child: _buildVideoPlayer(),
         ),
         
         // 视频信息
