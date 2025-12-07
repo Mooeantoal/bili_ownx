@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/download_task.dart';
 import '../services/download_manager.dart';
-import '../services/download_manager.dart' as dm;
 import '../widgets/theme_switch_button.dart';
 
 /// 下载列表页面

@@ -151,12 +151,13 @@ Future<void> _checkAndroidGradleConfig(Map<String, dynamic> status) async {
   };
   
   for (final entry in criticalConfigs.entries) {
-    if (content.contains(RegExp(entry.value['pattern']))) {
+    final pattern = entry.value['pattern'];
+    if (pattern != null && content.contains(RegExp(pattern))) {
       configChecks[entry.key] = {
         'status': '✅ 已配置',
-        'description': entry.value['description']
+        'description': entry.value['description'] ?? '未知配置'
       };
-      print('  ✅ ${entry.value['description']}');
+      print('  ✅ ${entry.value['description'] ?? '未知配置'}');
     } else {
       configChecks[entry.key] = {
         'status': '❌ 缺失',
