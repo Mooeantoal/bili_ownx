@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
+import '../services/network_service.dart';
 import 'player_page.dart';
 import 'quality_test_page.dart';
 import '../utils/error_handler.dart';
 import '../widgets/theme_switch_button.dart';
+import '../widgets/network_status_widget.dart';
 import 'comment_page.dart';
 
 /// 搜索页面
@@ -18,10 +20,13 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
+  final NetworkService _networkService = NetworkService();
+  
   List<VideoSearchResult> _searchResults = [];
   List<String> _searchHistory = [];
   bool _isLoading = false;
   String _errorMessage = '';
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -43,10 +48,18 @@ class _SearchPageState extends State<SearchPage> {
 
     setState(() {
       _isLoading = true;
+      _isSearching = true;
       _errorMessage = '';
     });
 
     try {
+      await SearchHistoryService.addToHistory(keyword);
+      
+      final response = await _networkService.executeWithNetworkCheck(
+        () => SearchApi.searchArchive(keyword: keyword),
+        timeout: const Duration(seconds: 15),
+        retryConfig: RetryConfig.networkConfig,
+      );
       final response = await SearchApi.searchArchive(keyword: keyword);
       
       // 调试：打印完整响应
@@ -162,10 +175,13 @@ class _SearchPageState extends State<SearchPage> {
           
           print('成功解析 ${results.length} 个有效视频项');
           
-          setState(() {
-            _searchResults = results;
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _searchResults = results;
+              _isLoading = false;
+              _isSearching = false;
+            });
+          }
           
           // 如果没有有效结果，显示提示
           if (results.isEmpty) {
@@ -181,10 +197,13 @@ class _SearchPageState extends State<SearchPage> {
           }
         } else {
           print('videoList 为空或 null');
-          setState(() {
-            _errorMessage = '未找到相关视频';
-            _isLoading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _errorMessage = '未找到相关视频';
+              _isLoading = false;
+              _isSearching = false;
+            });
+          }
           
           // 显示详细错误信息对话框 - 即使是"未找到相关视频"也显示详细信息
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -197,10 +216,13 @@ class _SearchPageState extends State<SearchPage> {
           });
         }
       } else {
-        setState(() {
-          _errorMessage = '搜索失败: ${response['message'] ?? '未知错误'}';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = '搜索失败: ${response['message'] ?? '未知错误'}';
+            _isLoading = false;
+            _isSearching = false;
+          });
+        }
         
         // 显示详细错误信息对话框
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -214,10 +236,13 @@ class _SearchPageState extends State<SearchPage> {
       }
     } catch (e, s) {
       print('搜索异常: $e');
-      setState(() {
-        _errorMessage = '网络错误: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = _networkService.isOffline ? '网络连接已断开' : '网络错误: $e';
+          _isLoading = false;
+          _isSearching = false;
+        });
+      }
       
       // 显示详细错误信息对话框
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -236,7 +261,18 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilibili 搜索'),
+        title: Row(
+          children: [
+            const Text('Bilibili 搜索'),
+            const SizedBox(width: 8),
+            // 网络状态指示器
+            NetworkStatusWidget(
+              showLabel: false,
+              onlineColor: Colors.green,
+              offlineColor: Colors.red,
+            ),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           const ThemeSwitchButton(),
@@ -254,25 +290,58 @@ class _SearchPageState extends State<SearchPage> {
       ),
       body: Column(
         children: [
+          // 网络状态栏
+          NetworkStatusBar(
+            height: 24,
+            animationDuration: const Duration(milliseconds: 300),
+          ),
           // 搜索框
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索视频...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                ),
-              ),
-              onSubmitted: _performSearch,
+            child: Consumer<NetworkService>(
+              builder: (context, networkService, child) {
+                return TextField(
+                  controller: _searchController,
+                  enabled: networkService.isOnline,
+                  decoration: InputDecoration(
+                    hintText: networkService.isOnline ? '搜索视频...' : '网络连接已断开',
+                    prefixIcon: networkService.isOnline 
+                        ? const Icon(Icons.search) 
+                        : const Icon(Icons.wifi_off, color: Colors.red),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: !networkService.isOnline,
+                    fillColor: Colors.grey.shade100,
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isSearching)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchResults.clear();
+                                _errorMessage = '';
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                  onSubmitted: networkService.isOnline ? _performSearch : null,
+                );
+              },
             ),
           ),
           
@@ -287,37 +356,84 @@ class _SearchPageState extends State<SearchPage> {
 
   /// 构建结果视图
   Widget _buildResultsView() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(_errorMessage, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _performSearch(_searchController.text),
-              child: const Text('重试'),
+    return Consumer<NetworkService>(
+      builder: (context, networkService, child) {
+        if (_isLoading) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('正在搜索...'),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    if (_searchResults.isEmpty) {
-      return _buildSearchHistory();
-    }
+        if (_errorMessage.isNotEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    networkService.isOffline ? Icons.wifi_off : Icons.error_outline,
+                    size: 64,
+                    color: networkService.isOffline ? Colors.grey : Colors.red,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _errorMessage,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: networkService.isOffline ? Colors.grey[600] : Colors.red[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (networkService.isOffline)
+                    Text(
+                      '请检查网络连接后重试',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: networkService.isOnline 
+                        ? () => _performSearch(_searchController.text)
+                        : () {
+                            networkService.checkConnectivity();
+                            if (networkService.isOnline) {
+                              _performSearch(_searchController.text);
+                            }
+                          },
+                    icon: const Icon(Icons.refresh),
+                    label: Text(networkService.isOffline ? '检查网络' : '重试'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
 
-    return ListView.builder(
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final video = _searchResults[index];
-        return Card(
+        if (_searchResults.isEmpty) {
+          return _buildSearchHistory();
+        }
+
+        return NetworkListView(
+          children: _searchResults.map((video) => _buildVideoCard(video)).toList(),
+        );
+      },
+    );
+  }
+
+  /// 构建视频卡片
+  Widget _buildVideoCard(VideoSearchResult video) {
+    return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: ListTile(
             leading: ClipRRect(
@@ -375,6 +491,8 @@ class _SearchPageState extends State<SearchPage> {
               ],
             ),
             onTap: () {
+            // 验证视频ID          ),
+          onTap: () {
             // 验证视频ID是否有效
             if (!video.hasValidId) {
               // 显示错误提示
@@ -412,10 +530,10 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             );
-            },
+          },
+        ),
         );
-      },
-    );
+  }
   }
 
   /// 格式化播放量

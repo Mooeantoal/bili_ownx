@@ -7,6 +7,8 @@ import '../api/comment_api.dart';
 import '../models/comment_info.dart';
 import '../models/video_info.dart';
 import '../services/theme_service.dart';
+import '../services/network_service.dart';
+import '../widgets/network_status_widget.dart';
 
 /// 评论页面
 class CommentPage extends StatefulWidget {
@@ -27,8 +29,11 @@ class _CommentPageState extends State<CommentPage>
     with TickerProviderStateMixin {
   final CommentApi _commentApi = CommentApi();
   final TextEditingController _commentController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final NetworkService _networkService = NetworkService();
   
   late TabController _tabController;
+  late NetworkStatusListener _networkListener;
   
   CommentResponse? _commentResponse;
   List<CommentInfo> _comments = [];
@@ -37,59 +42,105 @@ class _CommentPageState extends State<CommentPage>
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _isRefreshing = false;
+  String? _errorMessage;
   
   Map<String, List<CommentInfo>> _replyCache = {};
   Map<String, bool> _replyLoading = {};
+  Map<String, bool> _replyError = {};
   
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initializeNetworkListener();
     _loadComments();
     timeago.setLocaleMessages('zh', timeago.ZhMessages());
+    
+    // 添加滚动监听
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _commentController.dispose();
+    _scrollController.dispose();
+    _networkListener.dispose();
     super.dispose();
   }
 
+  /// 初始化网络监听
+  void _initializeNetworkListener() {
+    _networkListener = NetworkStatusListener(
+      _networkService,
+      onStatusChanged: (status) {
+        if (mounted) {
+          if (status == NetworkStatus.online && _comments.isEmpty) {
+            // 网络恢复且没有评论时重新加载
+            _loadComments(refresh: true);
+          }
+        }
+      },
+    );
+  }
+
+  /// 滚动监听
+  void _onScroll() {
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 200) {
+      if (_hasMore && !_isLoadingMore && !_isLoading) {
+        _loadComments();
+      }
+    }
+  }
+
+  /// 加载评论
   Future<void> _loadComments({bool refresh = false}) async {
     if (refresh) {
       _currentPage = 1;
       _hasMore = true;
+      _errorMessage = null;
     }
 
     if (!_hasMore && !refresh) return;
 
     setState(() {
-      _isLoading = refresh ? true : _isLoadingMore;
+      if (refresh) {
+        _isRefreshing = true;
+        _isLoading = true;
+      } else {
+        _isLoadingMore = true;
+      }
+      _errorMessage = null;
     });
 
     try {
-      final response = await _commentApi.getVideoComments(
-        oid: widget.aid?.toString() ?? widget.bvid,
-        sort: _currentSort,
-        pageNum: _currentPage,
-        pageSize: 20,
+      final response = await _networkService.executeWithNetworkCheck(
+        () => _commentApi.getVideoComments(
+          oid: widget.aid?.toString() ?? widget.bvid,
+          sort: _currentSort,
+          pageNum: _currentPage,
+          pageSize: 20,
+        ),
+        timeout: const Duration(seconds: 15),
+        retryCount: 2,
       );
-
-      if (refresh) {
-        _comments = response.comments;
-      } else {
-        _comments.addAll(response.comments);
-      }
-
-      _commentResponse = response;
-      _hasMore = response.comments.length >= 20;
-      _currentPage++;
 
       if (mounted) {
         setState(() {
+          if (refresh) {
+            _comments = response.comments;
+          } else {
+            _comments.addAll(response.comments);
+          }
+
+          _commentResponse = response;
+          _hasMore = response.comments.length >= 20;
+          _currentPage++;
           _isLoading = false;
           _isLoadingMore = false;
+          _isRefreshing = false;
         });
       }
     } catch (e) {
@@ -97,80 +148,133 @@ class _CommentPageState extends State<CommentPage>
         setState(() {
           _isLoading = false;
           _isLoadingMore = false;
+          _isRefreshing = false;
+          _errorMessage = e.toString();
         });
-        _showErrorSnackBar('加载评论失败: $e');
+        
+        // 根据网络状态显示不同的错误信息
+        if (_networkService.isOffline) {
+          _showNetworkErrorSnackBar();
+        } else {
+          _showErrorSnackBar('加载评论失败: $e');
+        }
       }
     }
   }
 
+  /// 加载回复
   Future<void> _loadReplies(CommentInfo comment) async {
     if (_replyCache.containsKey(comment.rpid)) return;
 
     setState(() {
       _replyLoading[comment.rpid] = true;
+      _replyError.remove(comment.rpid);
     });
 
     try {
-      final response = await _commentApi.getCommentReplies(
-        oid: widget.aid?.toString() ?? widget.bvid,
-        rpid: comment.rpid,
+      final response = await _networkService.executeWithNetworkCheck(
+        () => _commentApi.getCommentReplies(
+          oid: widget.aid?.toString() ?? widget.bvid,
+          rpid: comment.rpid,
+        ),
+        timeout: const Duration(seconds: 10),
       );
 
-      setState(() {
-        _replyCache[comment.rpid] = response.replies;
-        _replyLoading[comment.rpid] = false;
-      });
+      if (mounted) {
+        setState(() {
+          _replyCache[comment.rpid] = response.replies;
+          _replyLoading[comment.rpid] = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _replyLoading[comment.rpid] = false;
-      });
-      _showErrorSnackBar('加载回复失败: $e');
+      if (mounted) {
+        setState(() {
+          _replyLoading[comment.rpid] = false;
+          _replyError[comment.rpid] = true;
+        });
+        
+        if (_networkService.isOffline) {
+          _showNetworkErrorSnackBar();
+        } else {
+          _showErrorSnackBar('加载回复失败: $e');
+        }
+      }
     }
   }
 
+  /// 发送评论
   Future<void> _sendComment({String? parentRpid}) async {
     final message = _commentController.text.trim();
     if (message.isEmpty) return;
 
+    // 显示发送中状态
+    _showSendingSnackBar();
+
     try {
-      await _commentApi.sendComment(
-        message: message,
-        oid: widget.aid?.toString() ?? widget.bvid,
-        parent: parentRpid,
+      await _networkService.executeWithNetworkCheck(
+        () => _commentApi.sendComment(
+          message: message,
+          oid: widget.aid?.toString() ?? widget.bvid,
+          parent: parentRpid,
+        ),
+        timeout: const Duration(seconds: 10),
       );
 
       _commentController.clear();
       _loadComments(refresh: true);
       _showSuccessSnackBar('评论发送成功');
     } catch (e) {
-      _showErrorSnackBar('发送评论失败: $e');
+      if (_networkService.isOffline) {
+        _showNetworkErrorSnackBar();
+      } else {
+        _showErrorSnackBar('发送评论失败: $e');
+      }
     }
   }
 
+  /// 点赞评论
   Future<void> _likeComment(CommentInfo comment) async {
     try {
-      final success = await _commentApi.likeComment(
-        oid: widget.aid?.toString() ?? widget.bvid,
-        rpid: comment.rpid,
-        action: comment.isLiked ? 0 : 1,
+      final success = await _networkService.executeWithNetworkCheck(
+        () => _commentApi.likeComment(
+          oid: widget.aid?.toString() ?? widget.bvid,
+          rpid: comment.rpid,
+          action: comment.isLiked ? 0 : 1,
+        ),
+        timeout: const Duration(seconds: 5),
       );
 
-      if (success) {
+      if (success && mounted) {
         setState(() {
           comment.isLiked = !comment.isLiked;
           comment.like += comment.isLiked ? 1 : -1;
         });
       }
     } catch (e) {
-      _showErrorSnackBar('操作失败: $e');
+      if (_networkService.isOffline) {
+        _showNetworkErrorSnackBar();
+      } else {
+        _showErrorSnackBar('操作失败: $e');
+      }
     }
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: '重试',
+          textColor: Colors.white,
+          onPressed: () => _loadComments(refresh: true),
+        ),
       ),
     );
   }
@@ -178,8 +282,63 @@ class _CommentPageState extends State<CommentPage>
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(message),
+          ],
+        ),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showSendingSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: 8),
+            Text('发送中...'),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showNetworkErrorSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.white),
+            SizedBox(width: 8),
+            Text('网络连接已断开，请检查网络设置'),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        action: SnackBarAction(
+          label: '重试',
+          textColor: Colors.white,
+          onPressed: () {
+            _networkService.checkConnectivity();
+            if (_networkService.isOnline) {
+              _loadComments(refresh: true);
+            }
+          },
+        ),
       ),
     );
   }
@@ -206,18 +365,41 @@ class _CommentPageState extends State<CommentPage>
           ],
         ),
         actions: [
+          // 网络状态指示器
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: NetworkStatusWidget(
+              showLabel: false,
+              onlineColor: Colors.green,
+              offlineColor: Colors.red,
+            ),
+          ),
+          // 刷新按钮
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _loadComments(refresh: true),
+            icon: _isRefreshing 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.refresh),
+            onPressed: _isRefreshing ? null : () => _loadComments(refresh: true),
           ),
         ],
       ),
       body: Column(
         children: [
+          // 网络状态栏
+          NetworkStatusBar(
+            height: 24,
+            animationDuration: const Duration(milliseconds: 300),
+          ),
+          // 主内容区域
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildCommentList(),
+            child: _buildBody(),
           ),
           _buildCommentInput(),
         ],
@@ -225,42 +407,106 @@ class _CommentPageState extends State<CommentPage>
     );
   }
 
-  Widget _buildCommentList() {
-    if (_comments.isEmpty) {
-      return const Center(
+  Widget _buildBody() {
+    if (_isLoading && _comments.isEmpty) {
+      return _buildLoadingWidget();
+    }
+
+    if (_errorMessage != null && _comments.isEmpty) {
+      return _buildErrorWidget();
+    }
+
+    if (_comments.isEmpty && !_isLoading) {
+      return _buildEmptyWidget();
+    }
+
+    return _buildCommentList();
+  }
+
+  Widget _buildLoadingWidget() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('正在加载评论...'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.comment_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('暂无评论', style: TextStyle(color: Colors.grey)),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '加载失败',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage ?? '未知错误',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _loadComments(refresh: true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('重试'),
+            ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
+  Widget _buildEmptyWidget() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.comment_outlined, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('暂无评论', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentList() {
     return RefreshIndicator(
       onRefresh: () => _loadComments(refresh: true),
-      child: ListView.builder(
-        itemCount: _comments.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _comments.length) {
-            if (_isLoadingMore) {
-              return const Center(
+      child: NetworkListView(
+        controller: _scrollController,
+        children: _comments.map((comment) => _buildCommentItem(comment)).toList(),
+        hasMore: _hasMore,
+        loadingWidget: _isLoadingMore 
+            ? const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16),
                   child: CircularProgressIndicator(),
                 ),
-              );
-            } else {
-              _loadComments();
-              return const SizedBox.shrink();
-            }
-          }
-
-          final comment = _comments[index];
-          return _buildCommentItem(comment);
-        },
+              )
+            : null,
+        onLoadMore: _hasMore ? () => _loadComments() : null,
       ),
     );
   }
@@ -432,20 +678,56 @@ class _CommentPageState extends State<CommentPage>
   }
 
   Widget _buildRepliesSection(CommentInfo comment) {
-    if (_replyLoading[comment.rpid] == true) {
+    final isLoading = _replyLoading[comment.rpid] == true;
+    final hasError = _replyError[comment.rpid] == true;
+    final replies = _replyCache[comment.rpid];
+
+    if (isLoading) {
       return const Padding(
         padding: EdgeInsets.only(left: 52),
-        child: LinearProgressIndicator(),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Text('加载回复中...', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
       );
     }
 
-    final replies = _replyCache[comment.rpid];
+    if (hasError) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 52),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, size: 16, color: Colors.red),
+            const SizedBox(width: 4),
+            const Text('加载失败', style: TextStyle(color: Colors.red, fontSize: 12)),
+            TextButton(
+              onPressed: () => _loadReplies(comment),
+              child: const Text('重试', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (replies == null) {
       return Padding(
         padding: const EdgeInsets.only(left: 52),
-        child: TextButton(
+        child: TextButton.icon(
           onPressed: () => _loadReplies(comment),
-          child: Text('查看${comment.replyCount}条回复'),
+          icon: const Icon(Icons.expand_more, size: 16),
+          label: Text('查看${comment.replyCount}条回复'),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       );
     }
@@ -456,10 +738,15 @@ class _CommentPageState extends State<CommentPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...replies.take(3).map((reply) => _buildReplyItem(reply)),
-          if (replies.length > 3)
+          if (comment.replyCount > 3)
             TextButton(
               onPressed: () => _showRepliesDialog(comment),
-              child: Text('查看更多回复'),
+              child: Text('查看全部${comment.replyCount}条回复'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 0),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
         ],
       ),
@@ -505,38 +792,50 @@ class _CommentPageState extends State<CommentPage>
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Colors.grey.shade300,
+            color: Theme.of(context).dividerColor,
           ),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _commentController,
-              decoration: InputDecoration(
-                hintText: '写下你的评论...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+      child: Consumer<NetworkService>(
+        builder: (context, networkService, child) {
+          final canSend = networkService.isOnline && _commentController.text.trim().isNotEmpty;
+          
+          return Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  enabled: networkService.isOnline,
+                  decoration: InputDecoration(
+                    hintText: networkService.isOnline ? '写下你的评论...' : '网络连接已断开',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    filled: !networkService.isOnline,
+                    fillColor: Colors.grey.shade100,
+                  ),
+                  maxLines: null,
+                  onChanged: (value) => setState(() {}),
                 ),
               ),
-              maxLines: null,
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => _sendComment(),
-            icon: const Icon(Icons.send),
-            style: IconButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: canSend ? () => _sendComment() : null,
+                icon: const Icon(Icons.send),
+                style: IconButton.styleFrom(
+                  backgroundColor: canSend 
+                      ? Theme.of(context).primaryColor 
+                      : Colors.grey.shade400,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

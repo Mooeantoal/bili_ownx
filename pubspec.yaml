@@ -53,6 +53,9 @@ dependencies:
   url_launcher: ^6.3.0                  # 链接打开
   cached_network_image: ^3.4.1          # 网络图片缓存
   
+  # 网络状态监控
+  connectivity_plus: ^6.1.0             # 网络连接状态
+  
   # 可选依赖 - 考虑移除或替换
   cupertino_icons: ^1.0.8             # iOS图标
   crypto: ^3.0.3                       # 加密库

@@ -1,210 +1,242 @@
-import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 
-/// 错误处理工具类
+/// 错误处理器
 class ErrorHandler {
-  /// 显示错误对话框，包含详细错误信息和复制功能
-  static Future<void> showErrorDialog({
-    required BuildContext context,
-    required String title,
-    required Object error,
-    StackTrace? stackTrace,
-    String? additionalInfo,
-  }) async {
-    final StringBuffer errorBuffer = StringBuffer();
-    
-    // 添加时间戳
-    errorBuffer.writeln('错误时间: ${DateTime.now().toIso8601String()}');
-    errorBuffer.writeln('');
-    
-    errorBuffer.writeln('错误类型: ${error.runtimeType}');
-    errorBuffer.writeln('错误信息: $error');
-    
-    if (additionalInfo != null) {
-      errorBuffer.writeln('\n附加信息:');
-      errorBuffer.writeln(additionalInfo);
+  /// 获取错误消息
+  static String getMessage(dynamic error) {
+    if (error is DioException) {
+      return _getDioErrorMessage(error);
+    } else if (error is Exception) {
+      return error.toString();
+    } else {
+      return '未知错误: $error';
     }
-    
-    if (stackTrace != null) {
-      errorBuffer.writeln('\n堆栈跟踪:');
-      errorBuffer.writeln(stackTrace.toString());
+  }
+
+  /// 获取Dio错误消息
+  static String _getDioErrorMessage(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+        return '连接超时，请检查网络设置';
+      case DioExceptionType.sendTimeout:
+        return '发送请求超时';
+      case DioExceptionType.receiveTimeout:
+        return '接收数据超时';
+      case DioExceptionType.badResponse:
+        return _getResponseErrorMessage(error.response);
+      case DioExceptionType.cancel:
+        return '请求已取消';
+      case DioExceptionType.connectionError:
+        return '网络连接失败，请检查网络设置';
+      case DioExceptionType.badCertificate:
+        return '证书验证失败';
+      case DioExceptionType.unknown:
+        if (error.error?.toString().contains('SocketException') == true) {
+          return '网络连接失败，请检查网络设置';
+        }
+        return error.error?.toString() ?? '网络请求失败';
     }
-    
-    // 添加系统信息
-    errorBuffer.writeln('\n系统信息:');
-    errorBuffer.writeln('- 平台: ${Theme.of(context).platform.name}');
-    errorBuffer.writeln('- Flutter版本: ${_getFlutterVersion()}');
-    
-    final String errorDetails = errorBuffer.toString();
-    
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.9,
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 标题栏
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onErrorContainer,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // 内容区域
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text(
-                              '错误日志 (可选择文本复制)',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton.icon(
-                              onPressed: () {
-                                Clipboard.setData(ClipboardData(text: errorDetails));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('✓ 错误信息已复制到剪贴板'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.copy, size: 16),
-                              label: const Text('复制全部'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surfaceVariant,
-                              border: Border.all(color: Theme.of(context).colorScheme.outline),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: SingleChildScrollView(
-                              child: SelectableText(
-                                errorDetails,
-                                style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  fontSize: 11,
-                                  height: 1.4,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // 底部按钮
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('关闭'),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: errorDetails));
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('✓ 错误信息已复制到剪贴板'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('复制并关闭'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  }
+
+  /// 获取响应错误消息
+  static String _getResponseErrorMessage(Response? response) {
+    if (response == null) {
+      return '服务器响应异常';
+    }
+
+    final statusCode = response.statusCode;
+    final data = response.data;
+
+    // 尝试从响应中提取错误消息
+    if (data is Map<String, dynamic>) {
+      if (data['message'] != null) {
+        return data['message'].toString();
+      }
+      if (data['msg'] != null) {
+        return data['msg'].toString();
+      }
+      if (data['error'] != null) {
+        return data['error'].toString();
+      }
+    }
+
+    // 根据状态码返回通用错误消息
+    switch (statusCode) {
+      case 400:
+        return '请求参数错误';
+      case 401:
+        return '未授权访问，请登录';
+      case 403:
+        return '访问被拒绝';
+      case 404:
+        return '请求的资源不存在';
+      case 429:
+        return '请求过于频繁，请稍后再试';
+      case 500:
+        return '服务器内部错误';
+      case 502:
+        return '网关错误';
+      case 503:
+        return '服务暂时不可用';
+      case 504:
+        return '网关超时';
+      default:
+        return '服务器错误 ($statusCode)';
+    }
+  }
+
+  /// 判断是否为网络错误
+  static bool isNetworkError(dynamic error) {
+    if (error is DioException) {
+      return [
+        DioExceptionType.connectionTimeout,
+        DioExceptionType.sendTimeout,
+        DioExceptionType.receiveTimeout,
+        DioExceptionType.connectionError,
+      ].contains(error.type);
+    }
+    return false;
+  }
+
+  /// 判断是否为认证错误
+  static bool isAuthError(dynamic error) {
+    if (error is DioException && error.response != null) {
+      return error.response!.statusCode == 401;
+    }
+    return false;
+  }
+
+  /// 判断是否为服务器错误
+  static bool isServerError(dynamic error) {
+    if (error is DioException && error.response != null) {
+      final statusCode = error.response!.statusCode!;
+      return statusCode >= 500;
+    }
+    return false;
+  }
+
+  /// 判断是否为客户端错误
+  static bool isClientError(dynamic error) {
+    if (error is DioException && error.response != null) {
+      final statusCode = error.response!.statusCode!;
+      return statusCode >= 400 && statusCode < 500;
+    }
+    return false;
+  }
+
+  /// 获取错误类型
+  static ErrorType getErrorType(dynamic error) {
+    if (isNetworkError(error)) {
+      return ErrorType.network;
+    } else if (isAuthError(error)) {
+      return ErrorType.auth;
+    } else if (isServerError(error)) {
+      return ErrorType.server;
+    } else if (isClientError(error)) {
+      return ErrorType.client;
+    } else {
+      return ErrorType.unknown;
+    }
+  }
+}
+
+/// 错误类型枚举
+enum ErrorType {
+  network,  // 网络错误
+  auth,     // 认证错误
+  server,   // 服务器错误
+  client,   // 客户端错误
+  unknown,  // 未知错误
+}
+
+/// 错误类型扩展
+extension ErrorTypeExtension on ErrorType {
+  String get displayName {
+    switch (this) {
+      case ErrorType.network:
+        return '网络错误';
+      case ErrorType.auth:
+        return '认证错误';
+      case ErrorType.server:
+        return '服务器错误';
+      case ErrorType.client:
+        return '请求错误';
+      case ErrorType.unknown:
+        return '未知错误';
+    }
+  }
+
+  String get icon {
+    switch (this) {
+      case ErrorType.network:
+        return '🌐';
+      case ErrorType.auth:
+        return '🔒';
+      case ErrorType.server:
+        return '🖥️';
+      case ErrorType.client:
+        return '❌';
+      case ErrorType.unknown:
+        return '⚠️';
+    }
+  }
+}
+
+/// 重试配置
+class RetryConfig {
+  final int maxRetries;
+  final Duration delay;
+  final Duration backoffMultiplier;
+
+  const RetryConfig({
+    this.maxRetries = 3,
+    this.delay = const Duration(seconds: 1),
+    this.backoffMultiplier = const Duration(seconds: 2),
+  });
+
+  /// 默认重试配置
+  static const RetryConfig defaultConfig = RetryConfig();
+
+  /// 网络错误重试配置
+  static const RetryConfig networkConfig = RetryConfig(
+    maxRetries: 5,
+    delay: Duration(seconds: 2),
+    backoffMultiplier: Duration(seconds: 2),
+  );
+
+  /// 服务器错误重试配置
+  static const RetryConfig serverConfig = RetryConfig(
+    maxRetries: 2,
+    delay: Duration(seconds: 3),
+  );
+
+  /// 获取下一次重试延迟
+  Duration getRetryDelay(int attempt) {
+    return Duration(
+      milliseconds: (delay.inMilliseconds * (attempt + 1) * 
+          (backoffMultiplier.inMilliseconds ~/ 1000)).toInt(),
     );
   }
-  
-  /// 获取Flutter版本信息
-  static String _getFlutterVersion() {
-    try {
-      return 'Flutter ${const String.fromEnvironment('FLUTTER_VERSION', defaultValue: 'Unknown')}';
-    } catch (e) {
-      return 'Unknown';
+
+  /// 判断是否应该重试
+  bool shouldRetry(dynamic error, int currentAttempt) {
+    if (currentAttempt >= maxRetries) {
+      return false;
     }
-  }
-  
-  /// 格式化API响应错误
-  static String formatApiResponseError(dynamic response) {
-    try {
-      if (response is Map<String, dynamic>) {
-        return JsonEncoder.withIndent('  ').convert(response);
-      } else {
-        return response.toString();
-      }
-    } catch (e) {
-      return response.toString();
+
+    final errorType = ErrorHandler.getErrorType(error);
+    
+    switch (errorType) {
+      case ErrorType.network:
+        return true; // 网络错误总是重试
+      case ErrorType.server:
+        return true; // 服务器错误重试
+      case ErrorType.client:
+        return false; // 客户端错误不重试
+      case ErrorType.auth:
+        return false; // 认证错误不重试
+      case ErrorType.unknown:
+        return currentAttempt < 2; // 未知错误最多重试2次
     }
   }
 }

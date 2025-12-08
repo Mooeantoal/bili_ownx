@@ -4,6 +4,7 @@ import 'pages/main_page.dart';
 import 'services/download_manager.dart';
 import 'services/metadata_service.dart';
 import 'services/theme_service.dart';
+import 'services/network_service.dart';
 import 'models/download_task.dart';
 
 void main() async {
@@ -25,6 +26,9 @@ void main() async {
   
   // 初始化主题服务
   await ThemeService().initialize();
+  
+  // 初始化网络服务
+  await NetworkService().initialize();
   
   runApp(const MyApp());
 }
