@@ -45,7 +45,7 @@ dependencies:
   # 画中画和功能增强
   # piped_client: ^0.2.0               # 画中画支持 (暂时移除)
   # flutter_pip: ^0.1.1                # 画中画插件 (版本冲突，已移除)
-  super_easy_permissions: ^0.0.5        # 权限简化
+  # super_easy_permissions: ^0.0.5      # 权限简化 (已移除，使用permission_handler)
   
   # 画中画将使用原生平台实现
   # Android: 通过 AndroidManifest.xml 和 Activity 配置
