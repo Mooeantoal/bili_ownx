@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:super_easy_permissions/super_easy_permissions.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// 画中画服务
 class PiPService {
@@ -50,10 +50,8 @@ class PiPService {
       }
       
       // 尝试请求画中画权限
-      final result = await SuperEasyPermissions.requestPermission(
-        Permission.pictureInPicture,
-      );
-      return result;
+      final result = await Permission.systemAlertWindow.request();
+      return result.isGranted;
     } catch (e) {
       print('检查画中画权限失败: $e');
       return false;

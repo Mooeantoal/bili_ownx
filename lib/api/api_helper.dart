@@ -63,7 +63,9 @@ class ApiHelper {
     };
     
     // 合并自定义参数
-    params.addAll(customParams);
+    if (customParams.isNotEmpty) {
+      params.addAll(customParams);
+    }
     
     // 生成签名
     params['sign'] = generateSign(params);

@@ -70,6 +70,7 @@ class NetworkService extends ChangeNotifier {
       case ConnectivityResult.mobile:
       case ConnectivityResult.ethernet:
       case ConnectivityResult.bluetooth:
+      case ConnectivityResult.vpn:
       case ConnectivityResult.other:
         _status = NetworkStatus.online;
         break;

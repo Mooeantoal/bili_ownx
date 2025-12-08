@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 
 /// 错误处理器
 class ErrorHandler {
@@ -137,6 +138,68 @@ class ErrorHandler {
     } else {
       return ErrorType.unknown;
     }
+  }
+
+  /// 显示错误对话框
+  static Future<void> showErrorDialog(
+    BuildContext context,
+    String message, {
+    String title = '错误',
+    VoidCallback? onRetry,
+  }) async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('确定'),
+          ),
+          if (onRetry != null)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onRetry();
+              },
+              child: const Text('重试'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 格式化API响应错误
+  static String formatApiResponseError(dynamic response) {
+    if (response == null) {
+      return '无响应数据';
+    }
+
+    if (response is Response) {
+      final statusCode = response.statusCode ?? 0;
+      final data = response.data;
+      
+      String result = '状态码: $statusCode';
+      
+      if (data != null) {
+        if (data is Map<String, dynamic>) {
+          final message = data['message'] ?? data['msg'] ?? data['error'];
+          if (message != null) {
+            result += '\n错误信息: $message';
+          }
+          if (data['code'] != null) {
+            result += '\n错误代码: ${data['code']}';
+          }
+        } else {
+          result += '\n响应数据: ${data.toString()}';
+        }
+      }
+      
+      return result;
+    }
+    
+    return response.toString();
   }
 }
 

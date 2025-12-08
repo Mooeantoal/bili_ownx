@@ -491,8 +491,6 @@ class _SearchPageState extends State<SearchPage> {
               ],
             ),
             onTap: () {
-            // 验证视频ID          ),
-          onTap: () {
             // 验证视频ID是否有效
             if (!video.hasValidId) {
               // 显示错误提示
