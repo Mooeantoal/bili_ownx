@@ -20,7 +20,7 @@ class SearchHistoryService {
 
     // 移除重复项
     history.remove(keyword);
-    
+
     // 添加到开头
     history.insert(0, keyword);
 
