@@ -6,9 +6,12 @@ import '../models/video_info.dart';
 import '../services/play_history_service.dart';
 import '../services/download_service.dart';
 import '../services/download_manager.dart';
+import '../services/pip_service.dart';
+import '../services/lifecycle_service.dart';
 import '../utils/error_handler.dart';
 import '../widgets/theme_switch_button.dart';
 import 'download_list_page.dart';
+import 'comment_page.dart';
 
 /// 视频播放器页面
 class PlayerPage extends StatefulWidget {
@@ -41,7 +44,7 @@ class PlayerPage extends StatefulWidget {
   State<PlayerPage> createState() => _PlayerPageState();
 }
 
-class _PlayerPageState extends State<PlayerPage> {
+class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   
@@ -68,11 +71,13 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadVideoInfo();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     super.dispose();
@@ -597,7 +602,32 @@ ${ErrorHandler.formatApiResponseError(response)}
         title: Text(_videoInfo?.title ?? '加载中...'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // 评论按钮
+          IconButton(
+            icon: const Icon(Icons.comment),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CommentPage(
+                    bvid: widget.bvid,
+                    aid: widget.aid,
+                  ),
+                ),
+              );
+            },
+            tooltip: '查看评论',
+          ),
+          
+          // 画中画按钮
+          IconButton(
+            icon: Icon(isInPiPMode ? Icons.picture_in_picture : Icons.picture_in_picture_alt),
+            onPressed: _togglePiP,
+            tooltip: isInPiPMode ? '退出画中画' : '进入画中画',
+          ),
+          
           const ThemeSwitchButton(),
+          
           // 下载按钮
           IconButton(
             icon: const Icon(Icons.download),
@@ -1023,6 +1053,76 @@ ${ErrorHandler.formatApiResponseError(response)}
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('添加下载失败: $e')),
+      );
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // 应用进入后台时，如果正在播放视频且不在画中画模式，自动进入画中画
+        if (_chewieController?.videoPlayerController.value.isPlaying == true &&
+            !isInPiPMode) {
+          _autoEnterPiP();
+        }
+        break;
+      case AppLifecycleState.resumed:
+        // 应用恢复前台时，可以选择退出画中画模式
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  /// 自动进入画中画模式
+  Future<void> _autoEnterPiP() async {
+    try {
+      final success = await enterPiPMode(
+        aspectRatio: _chewieController?.videoPlayerController.value.aspectRatio ?? 16.0 / 9.0,
+        title: _videoInfo?.title ?? 'Bilimiao',
+      );
+      
+      if (success) {
+        print('自动进入画中画模式成功');
+      }
+    } catch (e) {
+      print('自动进入画中画模式失败: $e');
+    }
+  }
+
+  /// 切换画中画模式
+  Future<void> _togglePiP() async {
+    try {
+      final success = await togglePiPMode(
+        aspectRatio: _chewieController?.videoPlayerController.value.aspectRatio ?? 16.0 / 9.0,
+        title: _videoInfo?.title ?? 'Bilimiao',
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isInPiPMode ? '已进入画中画模式' : '已退出画中画模式'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('画中画模式切换失败'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('画中画模式切换失败: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }

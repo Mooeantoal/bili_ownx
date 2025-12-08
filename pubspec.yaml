@@ -42,6 +42,17 @@ dependencies:
   provider: ^6.1.2                      # 状态管理 (核心)
   flutter_local_notifications: ^17.2.3  # 通知功能 (必要)
   
+  # 画中画和功能增强
+  piped_client: ^0.2.0                  # 画中画支持
+  flutter_pip: ^0.1.1                   # 画中画插件
+  super_easy_permissions: ^0.0.5        # 权限简化
+  
+  # 评论系统依赖
+  flutter_markdown: ^0.7.4              # Markdown渲染
+  timeago: ^3.6.1                       # 时间格式化
+  url_launcher: ^6.3.0                  # 链接打开
+  cached_network_image: ^3.4.1          # 网络图片缓存
+  
   # 可选依赖 - 考虑移除或替换
   cupertino_icons: ^1.0.8             # iOS图标
   crypto: ^3.0.3                       # 加密库

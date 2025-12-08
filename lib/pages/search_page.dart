@@ -6,6 +6,7 @@ import 'player_page.dart';
 import 'quality_test_page.dart';
 import '../utils/error_handler.dart';
 import '../widgets/theme_switch_button.dart';
+import 'comment_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -316,25 +317,64 @@ class _SearchPageState extends State<SearchPage> {
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final video = _searchResults[index];
-        return ListTile(
-          leading: Image.network(
-            video.cover,
-            width: 120,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => 
-                const Icon(Icons.broken_image, size: 60),
-          ),
-          title: Text(
-            video.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            'UP: ${video.author} | 播放: ${_formatPlayCount(video.play)}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          trailing: Text(video.duration),
-          onTap: () {
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.network(
+                video.cover,
+                width: 120,
+                height: 68,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => 
+                    const Icon(Icons.broken_image, size: 60),
+              ),
+            ),
+            title: Text(
+              video.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              'UP: ${video.author} | 播放: ${_formatPlayCount(video.play)}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 评论按钮
+                IconButton(
+                  icon: const Icon(Icons.comment_outlined, size: 20),
+                  onPressed: () {
+                    final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
+                    final int? validAid = video.aid != 0 ? video.aid : null;
+                    
+                    if (validBvid == null && validAid == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('无法查看评论：缺少有效的视频ID信息'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => CommentPage(
+                          bvid: validBvid ?? '',
+                          aid: validAid,
+                        ),
+                      ),
+                    );
+                  },
+                  tooltip: '查看评论',
+                ),
+                Text(video.duration),
+              ],
+            ),
+            onTap: () {
             // 验证视频ID是否有效
             if (!video.hasValidId) {
               // 显示错误提示
@@ -372,7 +412,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
               ),
             );
-          },
+            },
         );
       },
     );
