@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_pip/flutter_pip.dart';
+import 'package:flutter/services.dart';
 import 'package:super_easy_permissions/super_easy_permissions.dart';
 
 /// 画中画服务
@@ -11,7 +11,11 @@ class PiPService {
 
   bool _isInPiPMode = false;
   bool _isPiPAvailable = false;
-  StreamSubscription<bool>? _pipModeSubscription;
+  StreamSubscription? _pipModeSubscription;
+  
+  // 原生方法通道
+  static const MethodChannel _methodChannel = MethodChannel('bili_ownx/pip');
+  static const EventChannel _eventChannel = EventChannel('bili_ownx/pip_events');
 
   /// 是否在画中画模式
   bool get isInPiPMode => _isInPiPMode;
@@ -24,10 +28,17 @@ class PiPService {
     // 检查画中画权限
     _isPiPAvailable = await _checkPiPPermission();
     
-    // 监听画中画模式变化
-    _pipModeSubscription = FlutterPiP.pipModeStream.listen((isInPiP) {
-      _isInPiPMode = isInPiP;
-    });
+    // 使用原生方法通道监听画中画状态
+    _pipModeSubscription = _eventChannel.receiveBroadcastStream().listen(
+      (dynamic event) {
+        if (event is Map && event.containsKey('isInPiP')) {
+          _isInPiPMode = event['isInPiP'] as bool;
+        }
+      },
+      onError: (dynamic error) {
+        debugPrint('PiP mode listener error: $error');
+      },
+    );
   }
 
   /// 检查画中画权限
@@ -52,20 +63,18 @@ class PiPService {
   /// 进入画中画模式
   Future<bool> enterPiPMode({
     double aspectRatio = 16.0 / 9.0,
-    String title = 'Bilimiao',
+    String title = 'Bili Flutter',
   }) async {
     try {
       if (!_isPiPAvailable) {
         throw Exception('画中画功能不可用');
       }
 
-      final pipConfig = PiPConfig(
-        aspectRatio: aspectRatio,
-        sourceRectHint: Rect.zero,
-        title: title,
-      );
-
-      final success = await FlutterPiP.enterPiPMode(pipConfig);
+      final success = await _methodChannel.invokeMethod('enterPiP', {
+        'aspectRatio': aspectRatio,
+        'title': title,
+      });
+      
       if (success) {
         _isInPiPMode = true;
       }
@@ -79,7 +88,7 @@ class PiPService {
   /// 退出画中画模式
   Future<bool> exitPiPMode() async {
     try {
-      final success = await FlutterPiP.exitPiPMode();
+      final success = await _methodChannel.invokeMethod('exitPiP');
       if (success) {
         _isInPiPMode = false;
       }
@@ -93,7 +102,7 @@ class PiPService {
   /// 画中画模式开关
   Future<bool> togglePiPMode({
     double aspectRatio = 16.0 / 9.0,
-    String title = 'Bilimiao',
+    String title = 'Bili Flutter',
   }) async {
     if (_isInPiPMode) {
       return await exitPiPMode();
@@ -110,13 +119,11 @@ class PiPService {
     try {
       if (!_isInPiPMode) return false;
 
-      final pipConfig = PiPConfig(
-        aspectRatio: aspectRatio ?? 16.0 / 9.0,
-        sourceRectHint: Rect.zero,
-        title: title ?? 'Bilimiao',
-      );
-
-      return await FlutterPiP.updatePiPConfig(pipConfig);
+      final success = await _methodChannel.invokeMethod('updatePiPConfig', {
+        'aspectRatio': aspectRatio,
+        'title': title,
+      });
+      return success;
     } catch (e) {
       print('更新画中画配置失败: $e');
       return false;
