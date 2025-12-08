@@ -125,7 +125,7 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      cardTheme: CardThemeData(  // 移除 const 关键字
+      cardTheme: const CardTheme(  // 修复：使用 CardTheme 而不是 CardThemeData
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -169,7 +169,7 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Color(0xFFFB7299),
         elevation: 0,
       ),
-      cardTheme: CardThemeData(  // 移除 const 关键字
+      cardTheme: const CardTheme(  // 修复：使用 CardTheme 而不是 CardThemeData
         elevation: 2,
         color: Color(0xFF2D2D2D),
         shape: RoundedRectangleBorder(
