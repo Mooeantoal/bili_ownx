@@ -47,18 +47,26 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: 预接受所有 Android SDK 许可证 (前置)
+        run: |
+          # 使用专用脚本预配置许可证
+          chmod +x .github/scripts/setup-android-licenses.sh
+          .github/scripts/setup-android-licenses.sh
+
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
+        continue-on-error: true
 
-      - name: 预接受所有 Android SDK 许可证
+      - name: 强制接受许可证 (后置)
         run: |
-          # 确保许可证文件目录存在
-          mkdir -p $ANDROID_HOME/licenses
+          # 确保 ANDROID_HOME 环境变量可用
+          export ANDROID_HOME=/usr/local/lib/android/sdk
           
-          # 直接创建所有许可证文件以跳过交互式提示
+          # 再次创建许可证文件，覆盖任何可能的变更
+          mkdir -p $ANDROID_HOME/licenses
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
           echo "84831b9409646a918e30573bab4c9d966a64d" > $ANDROID_HOME/licenses/android-sdk-preview
           echo "84831b9409646a918e30573bab4c9d966a64d" > $ANDROID_HOME/licenses/google-gdk
@@ -67,8 +75,10 @@ jobs:
           echo "601085b94cd77d045dc5891f2b9bffa8a385" > $ANDROID_HOME/licenses/android-googletv-license
           echo "d975f751698a77b6691ed5e903457d56aeac7c" > $ANDROID_HOME/licenses/android-sdk-androidxr-license
           
-          # 验证许可证已接受
-          echo "✅ 所有 Android SDK 许可证已预先接受"
+          # 使用 yes 命令自动回答所有许可证询问
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          
+          echo "✅ 强制许可证接受完成"
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
@@ -131,6 +141,12 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+
+      - name: 预接受所有 Android SDK 许可证 (前置)
+        run: |
+          # 使用专用脚本预配置许可证
+          chmod +x .github/scripts/setup-android-licenses.sh
+          .github/scripts/setup-android-licenses.sh
 
       - name: 设置 Java
         uses: actions/setup-java@v4
@@ -204,6 +220,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      - name: 预接受所有 Android SDK 许可证 (前置)
+        run: |
+          # 使用专用脚本预配置许可证
+          chmod +x .github/scripts/setup-android-licenses.sh
+          .github/scripts/setup-android-licenses.sh
+      
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -230,6 +253,13 @@ jobs:
         java-version: ['17', '11']
     steps:
       - uses: actions/checkout@v4
+      
+      - name: 预接受所有 Android SDK 许可证 (前置)
+        run: |
+          # 使用专用脚本预配置许可证
+          chmod +x .github/scripts/setup-android-licenses.sh
+          .github/scripts/setup-android-licenses.sh
+      
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
