@@ -36,7 +36,17 @@ class CommentApi {
       );
 
       if (response.statusCode == 200 && response.data['code'] == 0) {
-        return CommentResponse.fromJson(response.data['data']);
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) {
+          return CommentResponse.fromJson(data);
+        } else {
+          // 如果 data 不是 Map，可能是 null 或其他类型
+          // 有些情况下 API 可能返回 code=0 但 data 为 null 或空字符串
+          return CommentResponse(
+            comments: [],
+            totalCount: 0,
+          );
+        }
       } else {
         throw Exception(response.data['message'] ?? '获取评论失败');
       }
@@ -72,7 +82,15 @@ class CommentApi {
       );
 
       if (response.statusCode == 200 && response.data['code'] == 0) {
-        return CommentReplyResponse.fromJson(response.data['data']);
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) {
+          return CommentReplyResponse.fromJson(data);
+        } else {
+          return CommentReplyResponse(
+            replies: [],
+            totalCount: 0,
+          );
+        }
       } else {
         throw Exception(response.data['message'] ?? '获取回复失败');
       }
