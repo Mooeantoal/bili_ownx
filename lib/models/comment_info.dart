@@ -36,25 +36,59 @@ class CommentInfo {
     this.isFloorTop = false,
   });
 
+  /// 获取格式化的时间显示
+  String get formattedTime => CommentTimeFormatter.format(createTime);
+  
+  /// 获取完整的日期时间显示
+  String get fullTime => CommentTimeFormatter.formatFull(createTime);
+  
+  /// 获取点赞数的格式化显示
+  String get formattedLike {
+    if (like >= 10000) {
+      return '${(like / 10000).toStringAsFixed(1)}万';
+    } else if (like >= 1000) {
+      return '${(like / 1000).toStringAsFixed(1)}k';
+    }
+    return like.toString();
+  }
+  
+  /// 获取回复数的格式化显示
+  String get formattedReplyCount {
+    if (replyCount >= 10000) {
+      return '${(replyCount / 10000).toStringAsFixed(1)}万';
+    } else if (replyCount >= 1000) {
+      return '${(replyCount / 1000).toStringAsFixed(1)}k';
+    }
+    return replyCount.toString();
+  }
+
   factory CommentInfo.fromJson(Map<String, dynamic> json) {
+    // 根据proto定义，使用正确的字段名
     return CommentInfo(
-      rpid: json['rpid']?.toString() ?? '',
+      rpid: json['rpid']?.toString() ?? json['id']?.toString() ?? '',
       oid: json['oid']?.toString() ?? '',
       type: json['type'] ?? 1,
       mid: json['mid']?.toString() ?? '',
-      message: json['content']?['message'] ?? json['message'] ?? '',
+      message: json['content'] is Map 
+          ? json['content']['message'] ?? '' 
+          : json['message'] ?? '',
       like: json['like'] ?? 0,
       dislike: json['dislike'] ?? 0,
-      replyCount: json['rcount'] ?? json['reply_count'] ?? 0,
+      replyCount: json['rcount'] ?? json['reply_count'] ?? json['count'] ?? 0,
       createTime: json['ctime'] ?? 0,
-      user: json['member'] != null ? UserInfo.fromJson(json['member']) : null,
-      content: json['content'] != null ? ContentInfo.fromJson(json['content']) : null,
-      replyControl: json['reply_control'] != null 
+      user: json['member'] is Map 
+          ? UserInfo.fromJson(json['member']) 
+          : null,
+      content: json['content'] is Map 
+          ? ContentInfo.fromJson(json['content']) 
+          : null,
+      replyControl: json['reply_control'] is Map 
           ? ReplyControl.fromJson(json['reply_control']) 
           : null,
-      replies: json['replies'] != null
+      replies: json['replies'] is List
           ? (json['replies'] as List)
-              .map((item) => CommentInfo.fromJson(item))
+              .whereType<Map<String, dynamic>>()
+              .map(CommentInfo.fromJson)
               .toList()
           : null,
       isLiked: json['action'] == 1,
@@ -113,9 +147,9 @@ class UserInfo {
       uname: json['uname'] ?? '',
       face: json['face'] ?? '',
       level: json['level'] ?? 0,
-      official: json['official']?['title'],
-      vipStatus: json['vip']?['status']?.toString(),
-      sign: json['sign'] != null ? Sign.fromJson(json['sign']) : null,
+      official: json['official'] is Map ? json['official']['title'] : null,
+      vipStatus: json['vip'] is Map ? json['vip']['status']?.toString() : null,
+      sign: json['sign'] is Map ? Sign.fromJson(json['sign']) : null,
     );
   }
 
@@ -176,33 +210,36 @@ class ContentInfo {
     return ContentInfo(
       message: json['message'] ?? '',
       plat: json['plat'],
-      emotes: json['emote'] != null
+      emotes: json['emote'] is Map
           ? (json['emote'] as Map)
               .entries
+              .where((e) => e.value is Map<String, dynamic>)
               .map((e) => EmoteInfo.fromJson({
                 'id': e.key,
                 ...(e.value as Map<String, dynamic>),
               }))
               .toList()
           : null,
-      ats: json['at_name_to_mid'] != null
+      ats: json['at_name_to_mid'] is Map
           ? (json['at_name_to_mid'] as Map)
               .entries
               .map((e) => AtInfo(name: e.key, mid: e.value.toString()))
               .toList()
           : null,
-      jumpUrls: json['jump_url'] != null
+      jumpUrls: json['jump_url'] is Map
           ? (json['jump_url'] as Map)
               .entries
+              .where((e) => e.value is Map<String, dynamic>)
               .map((e) => JumpUrl.fromJson({
                 'id': e.key,
                 ...(e.value as Map<String, dynamic>),
               }))
               .toList()
           : null,
-      topics: json['topics'] != null
+      topics: json['topics'] is Map
           ? (json['topics'] as Map)
               .entries
+              .where((e) => e.value is Map<String, dynamic>)
               .map((e) => TopicInfo.fromJson({
                 'id': e.key,
                 ...(e.value as Map<String, dynamic>),
@@ -357,10 +394,10 @@ class ReplyControl {
 
   factory ReplyControl.fromJson(Map<String, dynamic> json) {
     return ReplyControl(
-      isUpSelect: json['is_up_select'] ?? false,
-      isGlobalTop: json['is_global_top'] ?? false,
-      maxLine: json['max_line'] ?? 0,
-      timeDesc: json['time_desc'] ?? 0,
+      isUpSelect: json['is_up_select'] is bool ? json['is_up_select'] : false,
+      isGlobalTop: json['is_global_top'] is bool ? json['is_global_top'] : false,
+      maxLine: json['max_line'] is int ? json['max_line'] : 0,
+      timeDesc: json['time_desc'] is int ? json['time_desc'] : 0,
     );
   }
 
@@ -389,13 +426,19 @@ class CommentResponse {
   });
 
   factory CommentResponse.fromJson(Map<String, dynamic> json) {
+    // 根据proto定义，主要字段可能有不同的命名
+    final replies = json['replies'] as List? ?? [];
+    
+    final comments = replies
+        .whereType<Map<String, dynamic>>()
+        .map(CommentInfo.fromJson)
+        .toList();
+    
     return CommentResponse(
-      comments: (json['replies'] as List? ?? [])
-          .map((item) => CommentInfo.fromJson(item))
-          .toList(),
-      totalCount: json['total'] ?? 0,
-      page: json['page'] != null ? PageConfig.fromJson(json['page']) : null,
-      upper: json['upper'] != null ? UpperConfig.fromJson(json['upper']) : null,
+      comments: comments,
+      totalCount: json['total'] is int ? json['total'] : json['count'] ?? 0,
+      page: json['page'] is Map ? PageConfig.fromJson(json['page']) : null,
+      upper: json['upper'] is Map ? UpperConfig.fromJson(json['upper']) : null,
     );
   }
 }
@@ -414,9 +457,9 @@ class PageConfig {
 
   factory PageConfig.fromJson(Map<String, dynamic> json) {
     return PageConfig(
-      count: json['count'] ?? 0,
-      num: json['num'] ?? 0,
-      size: json['size'] ?? 0,
+      count: json['count'] is int ? json['count'] : 0,
+      num: json['num'] is int ? json['num'] : 0,
+      size: json['size'] is int ? json['size'] : 0,
     );
   }
 }
@@ -436,8 +479,8 @@ class UpperConfig {
   factory UpperConfig.fromJson(Map<String, dynamic> json) {
     return UpperConfig(
       mid: json['mid']?.toString() ?? '',
-      name: json['name'] ?? '',
-      allowReply: json['allow_reply'] ?? false,
+      name: json['name'] is String ? json['name'] : '',
+      allowReply: json['allow_reply'] is bool ? json['allow_reply'] : false,
     );
   }
 }
@@ -458,12 +501,13 @@ class CommentReplyResponse {
 
   factory CommentReplyResponse.fromJson(Map<String, dynamic> json) {
     return CommentReplyResponse(
-      replies: (json['replies'] as List? ?? [])
-          .map((item) => CommentInfo.fromJson(item))
+      replies: (json['replies'] is List ? json['replies'] as List : [])
+          .whereType<Map<String, dynamic>>()
+          .map(CommentInfo.fromJson)
           .toList(),
-      totalCount: json['count'] ?? 0,
-      page: json['page'] != null ? PageConfig.fromJson(json['page']) : null,
-      cursor: json['cursor'] != null ? Cursor.fromJson(json['cursor']) : null,
+      totalCount: json['count'] is int ? json['count'] : 0,
+      page: json['page'] is Map ? PageConfig.fromJson(json['page']) : null,
+      cursor: json['cursor'] is Map ? Cursor.fromJson(json['cursor']) : null,
     );
   }
 }
@@ -480,8 +524,8 @@ class Cursor {
 
   factory Cursor.fromJson(Map<String, dynamic> json) {
     return Cursor(
-      allCount: json['all_count'] ?? 0,
-      isEnd: json['is_end'] ?? 0,
+      allCount: json['all_count'] is int ? json['all_count'] : 0,
+      isEnd: json['is_end'] is int ? json['is_end'] : 0,
     );
   }
 }

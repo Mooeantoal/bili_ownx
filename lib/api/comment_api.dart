@@ -2,27 +2,51 @@ import 'package:dio/dio.dart';
 import '../api/video_api.dart';
 import '../models/comment_info.dart';
 import '../utils/error_handler.dart';
+import '../utils/json_parser.dart';
+import '../utils/comment_utils.dart';
 
 /// 评论系统 API
 class CommentApi {
   final Dio _dio;
+  static const bool _enableDebug = false; // 生产环境设为false
 
   CommentApi({Dio? dio}) : _dio = dio ?? VideoApi.createDio();
 
+  void _debugLog(String message) {
+    if (_enableDebug) {
+      print('CommentApi: $message');
+    }
+  }
+
   /// 获取视频评论列表
   /// [oid] 视频 avid
-  /// [sort] 排序方式 0:热门 1:最新 2:最热
+  /// [sort] 排序方式 0:热门 1:最新 2:最热 (改为2:时间 3:热度)
   /// [pageNum] 页码
   /// [pageSize] 每页数量
+  /// [useCache] 是否使用缓存
+  /// [retryConfig] 重试配置
   Future<CommentResponse> getVideoComments({
     required String oid,
-    int sort = 0,
+    int sort = 3, // 默认按热度排序
     int pageNum = 1,
     int pageSize = 20,
+    bool useCache = true,
+    RetryConfig? retryConfig,
   }) async {
     try {
+      // 检查缓存
+      if (useCache && pageNum == 1) {
+        final cacheKey = CommentCache.generateKey(oid, sort, pageNum);
+        final cachedResponse = CommentCache.get(cacheKey);
+        if (cachedResponse != null) {
+          _debugLog('使用缓存数据');
+          return cachedResponse;
+        }
+      }
+
+      // 根据参考项目调整参数
       final params = {
-        'type': '1', // 1表示视频
+        'type': CommentConfig.videoType.toString(),
         'oid': oid,
         'sort': sort.toString(),
         'pn': pageNum.toString(),
@@ -30,29 +54,101 @@ class CommentApi {
         'plat': '2', // 2表示移动端
       };
 
-      final response = await _dio.get(
-        'https://api.bilibili.com/x/v2/reply/main',
-        queryParameters: params,
+      _debugLog('发送评论请求参数: $params');
+
+      final response = await _executeWithRetry(
+        () => _dio.get(
+          'https://api.bilibili.com/x/v2/reply/main',
+          queryParameters: params,
+        ),
+        retryConfig ?? RetryConfig.defaultConfig,
       );
 
-      if (response.statusCode == 200 && response.data['code'] == 0) {
-        final data = response.data['data'];
-        if (data is Map<String, dynamic>) {
-          return CommentResponse.fromJson(data);
-        } else {
-          // 如果 data 不是 Map，可能是 null 或其他类型
-          // 有些情况下 API 可能返回 code=0 但 data 为 null 或空字符串
-          return CommentResponse(
-            comments: [],
-            totalCount: 0,
-          );
+      _debugLog('API响应状态码: ${response.statusCode}');
+      _debugLog('API响应数据类型: ${response.data.runtimeType}');
+      _debugLog('API响应内容: ${response.data}');
+
+      // 使用JsonParser进行安全验证
+      if (!JsonParser.isValidApiResponse(response.data)) {
+        _debugLog('API响应格式验证失败');
+        throw Exception('API响应格式无效');
+      }
+      
+      if (JsonParser.getInt(response.data['code']) != 0) {
+        _debugLog('API返回错误代码: ${response.data['code']}');
+        throw Exception(JsonParser.getApiMessage(response.data, '获取评论失败'));
+      }
+      
+      final data = JsonParser.getMap(response.data['data']);
+      if (data != null) {
+        _debugLog('数据解析成功，开始转换模型');
+        final commentResponse = CommentResponse.fromJson(data);
+        
+        // 缓存结果
+        if (useCache && pageNum == 1) {
+          final cacheKey = CommentCache.generateKey(oid, sort, pageNum);
+          CommentCache.put(cacheKey, commentResponse);
         }
+        
+        return commentResponse;
       } else {
-        throw Exception(response.data['message'] ?? '获取评论失败');
+        _debugLog('data字段为空或格式错误');
+        // 处理无效数据的情况
+        final emptyResponse = CommentResponse(
+          comments: [],
+          totalCount: 0,
+        );
+        
+        // 缓存空结果（避免重复请求）
+        if (useCache && pageNum == 1) {
+          final cacheKey = CommentCache.generateKey(oid, sort, pageNum);
+          CommentCache.put(cacheKey, emptyResponse);
+        }
+        
+        return emptyResponse;
       }
     } catch (e) {
+      _debugLog('获取评论时发生错误: $e');
       throw Exception('获取评论失败: ${ErrorHandler.getMessage(e)}');
     }
+  }
+
+  /// 执行带重试机制的请求
+  Future<T> _executeWithRetry<T>(
+    Future<T> Function() requestFunction,
+    RetryConfig config,
+  ) async {
+    dynamic lastError;
+    
+    for (int attempt = 0; attempt <= config.maxRetries; attempt++) {
+      try {
+        return await requestFunction();
+      } catch (e) {
+        lastError = e;
+        
+        if (!config.shouldRetry(e, attempt)) {
+          rethrow;
+        }
+        
+        if (attempt < config.maxRetries) {
+          final delay = config.getRetryDelay(attempt);
+          _debugLog('请求失败，${delay.inSeconds}秒后重试 (${attempt + 1}/${config.maxRetries})');
+          await Future.delayed(delay);
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /// 清除评论缓存
+  void clearCache() {
+    CommentCache.clear();
+  }
+
+  /// 清除过期缓存
+  void clearExpiredCache() {
+    CommentCache.clearExpired();
   }
 
   /// 获取评论回复列表
@@ -76,23 +172,32 @@ class CommentApi {
         'ps': pageSize.toString(),
       };
 
-      final response = await _dio.get(
-        'https://api.bilibili.com/x/v2/reply/main',
-        queryParameters: params,
+      final response = await _executeWithRetry(
+        () => _dio.get(
+          'https://api.bilibili.com/x/v2/reply/main',
+          queryParameters: params,
+        ),
+        retryConfig ?? RetryConfig.defaultConfig,
       );
 
-      if (response.statusCode == 200 && response.data['code'] == 0) {
-        final data = response.data['data'];
-        if (data is Map<String, dynamic>) {
-          return CommentReplyResponse.fromJson(data);
-        } else {
-          return CommentReplyResponse(
-            replies: [],
-            totalCount: 0,
-          );
-        }
+      // 使用JsonParser进行安全验证
+      if (!JsonParser.isValidApiResponse(response.data)) {
+        throw Exception('API响应格式无效');
+      }
+      
+      if (JsonParser.getInt(response.data['code']) != 0) {
+        throw Exception(JsonParser.getApiMessage(response.data, '获取回复失败'));
+      }
+      
+      final data = JsonParser.getMap(response.data['data']);
+      if (data != null) {
+        return CommentReplyResponse.fromJson(data);
       } else {
-        throw Exception(response.data['message'] ?? '获取回复失败');
+        // 处理无效数据的情况
+        return CommentReplyResponse(
+          replies: [],
+          totalCount: 0,
+        );
       }
     } catch (e) {
       throw Exception('获取回复失败: ${ErrorHandler.getMessage(e)}');
@@ -126,11 +231,16 @@ class CommentApi {
         data: params,
       );
 
-      if (response.statusCode == 200 && response.data['code'] == 0) {
-        return response.data['data'];
-      } else {
-        throw Exception(response.data['message'] ?? '发送评论失败');
+      // 使用JsonParser进行安全验证
+      if (!JsonParser.isValidApiResponse(response.data)) {
+        throw Exception('API响应格式无效');
       }
+      
+      if (JsonParser.getInt(response.data['code']) != 0) {
+        throw Exception(JsonParser.getApiMessage(response.data, '发送评论失败'));
+      }
+      
+      return JsonParser.getMap(response.data['data']) ?? {};
     } catch (e) {
       throw Exception('发送评论失败: ${ErrorHandler.getMessage(e)}');
     }
@@ -158,7 +268,9 @@ class CommentApi {
         data: params,
       );
 
-      return response.statusCode == 200 && response.data['code'] == 0;
+      // 使用JsonParser进行安全验证
+      return JsonParser.isValidApiResponse(response.data) && 
+             JsonParser.getInt(response.data['code']) == 0;
     } catch (e) {
       throw Exception('点赞失败: ${ErrorHandler.getMessage(e)}');
     }
@@ -183,7 +295,9 @@ class CommentApi {
         data: params,
       );
 
-      return response.statusCode == 200 && response.data['code'] == 0;
+      // 使用JsonParser进行安全验证
+      return JsonParser.isValidApiResponse(response.data) && 
+             JsonParser.getInt(response.data['code']) == 0;
     } catch (e) {
       throw Exception('删除评论失败: ${ErrorHandler.getMessage(e)}');
     }
@@ -199,11 +313,16 @@ class CommentApi {
         },
       );
 
-      if (response.statusCode == 200 && response.data['code'] == 0) {
-        return response.data['data'];
-      } else {
-        throw Exception(response.data['message'] ?? '获取表情包失败');
+      // 使用JsonParser进行安全验证
+      if (!JsonParser.isValidApiResponse(response.data)) {
+        throw Exception('API响应格式无效');
       }
+      
+      if (JsonParser.getInt(response.data['code']) != 0) {
+        throw Exception(JsonParser.getApiMessage(response.data, '获取表情包失败'));
+      }
+      
+      return JsonParser.getMap(response.data['data']) ?? {};
     } catch (e) {
       throw Exception('获取表情包失败: ${ErrorHandler.getMessage(e)}');
     }
