@@ -1,4 +1,6 @@
+import 'dart:io';
 import '../models/comment_info.dart';
+import 'package:dio/dio.dart';
 
 /// 评论缓存管理器
 class CommentCache {
@@ -127,6 +129,46 @@ class CommentOperationResult {
       success: false,
       message: message,
     );
+  }
+}
+
+/// 重试配置
+class RetryConfig {
+  final int maxRetries;
+  final Duration initialDelay;
+  final double backoffMultiplier;
+  final Set<Type> retryableExceptions;
+
+  const RetryConfig({
+    this.maxRetries = 3,
+    this.initialDelay = const Duration(seconds: 1),
+    this.backoffMultiplier = 2.0,
+    this.retryableExceptions = const {
+      TimeoutException,
+      SocketException,
+      DioException,
+    },
+  });
+
+  static const RetryConfig defaultConfig = RetryConfig();
+
+  /// 判断是否应该重试
+  bool shouldRetry(dynamic error, int attempt) {
+    if (attempt >= maxRetries) return false;
+    
+    for (final type in retryableExceptions) {
+      if (error.runtimeType == type || error is type) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /// 获取重试延迟时间
+  Duration getRetryDelay(int attempt) {
+    final delay = initialDelay * (backoffMultiplier ^ attempt);
+    return delay > const Duration(seconds: 30) ? const Duration(seconds: 30) : delay;
   }
 }
 
