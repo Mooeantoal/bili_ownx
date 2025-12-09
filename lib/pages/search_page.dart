@@ -353,14 +353,14 @@ class _SearchPageState extends State<SearchPage> {
       ),
       body: Column(
         children: [
-          // 网络状态栏 - 减小高度
+          // 网络状态栏 - 适当高度
           NetworkStatusBar(
-            height: 20,
+            height: 24,
             animationDuration: const Duration(milliseconds: 300),
           ),
-          // 搜索框 - 减小内边距
+          // 搜索框 - 适当内边距
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Consumer<NetworkService>(
               builder: (context, networkService, child) {
                 return TextField(
