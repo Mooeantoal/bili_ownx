@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../api/search_api.dart';
 import '../models/search_result.dart';
 import '../services/search_history_service.dart';
@@ -249,9 +250,7 @@ class _SearchPageState extends State<SearchPage> {
         ErrorHandler.showErrorDialog(
           context: context,
           title: '搜索出错',
-          error: e,
-          stackTrace: s,
-          additionalInfo: '搜索关键词: $keyword',
+          message: ErrorHandler.getErrorMessage(e),
         );
       });
     }

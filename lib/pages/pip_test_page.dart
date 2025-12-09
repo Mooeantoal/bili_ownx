@@ -163,7 +163,7 @@ class _PiPTestPageState extends State<PiPTestPage>
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 8),
-                          _buildStatusRow('可用性', isPiPAvailable),
+                          _buildStatusRow('可用性', isPiPAvailable.toString()),
                           _buildStatusRow('当前模式', isInPiPMode ? '画中画' : '正常'),
                           _buildStatusRow('视频状态', _isVideoInitialized ? '已加载' : '未加载'),
                           if (_isVideoInitialized) ...[

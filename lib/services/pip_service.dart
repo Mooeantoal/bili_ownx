@@ -44,12 +44,14 @@ class PiPService {
   /// 检查画中画权限
   Future<bool> _checkPiPPermission() async {
     try {
-      // 检查是否有画中画权限
-      if (await SuperEasyPermissions.isGranted(Permission.pictureInPicture)) {
+      // 画中画在Android 8.0+上通常不需要特殊运行时权限
+      // 只需要在AndroidManifest.xml中声明supportsPictureInPicture即可
+      // 检查系统弹窗权限（某些情况下可能需要）
+      if (await Permission.systemAlertWindow.isGranted) {
         return true;
       }
       
-      // 尝试请求画中画权限
+      // 尝试请求系统弹窗权限
       final result = await Permission.systemAlertWindow.request();
       return result.isGranted;
     } catch (e) {

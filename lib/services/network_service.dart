@@ -87,10 +87,8 @@ class NetworkService extends ChangeNotifier {
       final dio = Dio();
       final response = await dio.get(
         'https://httpbin.org/status/200',
-        options: Options(
-          connectTimeout: const Duration(seconds: 5),
-          receiveTimeout: const Duration(seconds: 5),
-        ),
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
       );
       
       if (response.statusCode == 200) {
