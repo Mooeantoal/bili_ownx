@@ -484,7 +484,7 @@ ${ErrorHandler.formatApiResponseError(response)}
               context: context,
               title: '播放地址解析失败',
               error: '无法获取播放地址',
-              stackTrace: StackTrace.current,
+              stackTrace: StackTrace.current.toString(),
               additionalInfo: '''请求参数:
 - BVID: ${widget.bvid}
 - CID: $cid
@@ -514,7 +514,7 @@ ${ErrorHandler.formatApiResponseError(response)}
             context: context,
             title: '获取播放地址失败',
             error: 'API返回错误 (code: ${response['code']})',
-            stackTrace: StackTrace.current,
+            stackTrace: StackTrace.current.toString(),
             additionalInfo: '''请求参数:
 - BVID: ${widget.bvid}
 - CID: $cid
@@ -543,8 +543,8 @@ ${ErrorHandler.formatApiResponseError(response)}
         ErrorHandler.showErrorDialog(
           context: context,
           title: '播放出错',
-          error: e,
-          stackTrace: s,
+          error: e.toString(),
+          stackTrace: s.toString(),
           additionalInfo: '视频BVID: ${widget.bvid}, CID: $cid, 画质: $_selectedQuality',
         );
       });
@@ -906,7 +906,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 children: [
                   CircularProgressIndicator(
                     color: Colors.white,
-                    backgroundColor: Colors.white.withOpacity(0.3),
+                    backgroundColor: Colors.white.withValues(alpha: 0.3)
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -1021,7 +1021,7 @@ ${ErrorHandler.formatApiResponseError(response)}
 
       // 添加到下载队列
       final manager = DownloadManager();
-      final taskId = await manager.addDownloadTask(
+      await manager.addDownloadTask(
         bvid: _videoInfo!.bvid,
         cid: currentPart.cid,
         title: _videoInfo!.title,
@@ -1070,6 +1070,19 @@ ${ErrorHandler.formatApiResponseError(response)}
         }
         break;
       case AppLifecycleState.resumed:
+        // 应用回到前台时，处理画中画退出逻辑
+        _handleAppResumed();
+        break;
+      case AppLifecycleState.inactive:
+        // 应用非活动状态
+        break;
+      case AppLifecycleState.detached:
+        // 应用被分离时清理资源
+        _cleanupResources();
+        break;
+        }
+        break;
+      case AppLifecycleState.resumed:
         // 应用恢复前台时，可以选择退出画中画模式
         break;
       case AppLifecycleState.detached:
@@ -1092,6 +1105,16 @@ ${ErrorHandler.formatApiResponseError(response)}
     } catch (e) {
       print('自动进入画中画模式失败: $e');
     }
+  }
+
+  void _handleAppResumed() {
+    // 应用回到前台时的处理逻辑
+    // 可以在这里添加退出画中画的逻辑
+  }
+
+  void _cleanupResources() {
+    // 清理资源的逻辑
+    _chewieController?.dispose();
   }
 
   /// 切换画中画模式

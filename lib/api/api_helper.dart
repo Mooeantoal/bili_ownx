@@ -61,7 +61,6 @@ class ApiHelper {
       'buvid': 'XY${DateTime.now().millisecondsSinceEpoch}',
       'statistics': '{"appId":1,"platform":3,"version":"7.75.0","abtest":""}',
     };
-    
     // 合并自定义参数
     if (customParams.isNotEmpty) {
       params.addAll(customParams);
