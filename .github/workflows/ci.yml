@@ -53,6 +53,23 @@ jobs:
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
 
+      - name: 预接受所有 Android SDK 许可证
+        run: |
+          # 确保许可证文件目录存在
+          mkdir -p $ANDROID_HOME/licenses
+          
+          # 直接创建所有许可证文件以跳过交互式提示
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "84831b9409646a918e30573bab4c9d966a64d" > $ANDROID_HOME/licenses/android-sdk-preview
+          echo "84831b9409646a918e30573bab4c9d966a64d" > $ANDROID_HOME/licenses/google-gdk
+          echo "d56f5187479451eabf01f78b6430f94631827" > $ANDROID_HOME/licenses/android-sdk-arm-dbt-license
+          echo "24333f8a63b6825ea9c55141383a0746b3326" > $ANDROID_HOME/licenses/android-sdk-xtend-license
+          echo "601085b94cd77d045dc5891f2b9bffa8a385" > $ANDROID_HOME/licenses/android-googletv-license
+          echo "d975f751698a77b6691ed5e903457d56aeac7c" > $ANDROID_HOME/licenses/android-sdk-androidxr-license
+          
+          # 验证许可证已接受
+          echo "✅ 所有 Android SDK 许可证已预先接受"
+
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
