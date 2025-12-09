@@ -1063,7 +1063,6 @@ ${ErrorHandler.formatApiResponseError(response)}
 
     switch (state) {
       case AppLifecycleState.paused:
-      case AppLifecycleState.hidden:
         // 应用进入后台时，如果正在播放视频且不在画中画模式，自动进入画中画
         if (_chewieController?.videoPlayerController.value.isPlaying == true &&
             !isInPiPMode) {

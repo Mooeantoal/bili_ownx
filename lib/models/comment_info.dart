@@ -179,10 +179,10 @@ class ContentInfo {
       emotes: json['emote'] != null
           ? (json['emote'] as Map)
               .entries
-              .map((e) => EmoteInfo(
-                id: e.key,
-                ...Map<String, dynamic>.from(e.value),
-              ))
+              .map((e) => EmoteInfo.fromJson({
+                'id': e.key,
+                ...(e.value as Map<String, dynamic>),
+              }))
               .toList()
           : null,
       ats: json['at_name_to_mid'] != null
@@ -194,19 +194,19 @@ class ContentInfo {
       jumpUrls: json['jump_url'] != null
           ? (json['jump_url'] as Map)
               .entries
-              .map((e) => JumpUrl(
-                id: e.key,
-                ...Map<String, dynamic>.from(e.value),
-              ))
+              .map((e) => JumpUrl.fromJson({
+                'id': e.key,
+                ...(e.value as Map<String, dynamic>),
+              }))
               .toList()
           : null,
       topics: json['topics'] != null
           ? (json['topics'] as Map)
               .entries
-              .map((e) => TopicInfo(
-                id: e.key,
-                ...Map<String, dynamic>.from(e.value),
-              ))
+              .map((e) => TopicInfo.fromJson({
+                'id': e.key,
+                ...(e.value as Map<String, dynamic>),
+              }))
               .toList()
           : null,
     );

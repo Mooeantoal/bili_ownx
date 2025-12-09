@@ -48,10 +48,6 @@ class LifecycleService extends WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         // 应用失去焦点但仍然可见
         break;
-      case AppLifecycleState.hidden:
-        // 应用被隐藏（较新的Flutter版本）
-        _handleAppHidden();
-        break;
     }
   }
 
@@ -79,10 +75,7 @@ class LifecycleService extends WidgetsBindingObserver {
     }
   }
 
-  /// 处理应用隐藏
-  void _handleAppHidden() {
-    _handleAppPaused();
-  }
+
 
   /// 处理应用分离
   void _handleAppDetached() {
@@ -125,7 +118,9 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager>
     super.initState();
     if (widget.enableAutoPiP) {
       _lifecycleService.initialize();
-      _lifecycleService.setOnAppPaused(widget.onAppPaused);
+      if (widget.onAppPaused != null) {
+        _lifecycleService.setOnAppPaused(widget.onAppPaused!);
+      }
     }
     WidgetsBinding.instance.addObserver(this);
   }
@@ -150,7 +145,6 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager>
         break;
       case AppLifecycleState.detached:
       case AppLifecycleState.inactive:
-      case AppLifecycleState.hidden:
         break;
     }
   }
