@@ -10,7 +10,10 @@ import '../utils/error_handler.dart';
 import '../utils/comment_utils.dart';
 import '../widgets/theme_switch_button.dart';
 import '../widgets/network_status_widget.dart';
+import '../widgets/improved_video_card.dart';
+import '../utils/string_format_utils.dart';
 import 'comment_page.dart';
+import 'search_demo_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -283,6 +286,11 @@ class _SearchPageState extends State<SearchPage> {
             onPressed: _openQualityTest,
             tooltip: '画质测试',
           ),
+          IconButton(
+            icon: const Icon(Icons.compare),
+            onPressed: _openDemoPage,
+            tooltip: '卡片对比',
+          ),
         ],
       ),
       body: Column(
@@ -430,104 +438,59 @@ class _SearchPageState extends State<SearchPage> {
 
   /// 构建视频卡片
   Widget _buildVideoCard(VideoSearchResult video) {
-    return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                video.cover,
-                width: 120,
-                height: 68,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => 
-                    const Icon(Icons.broken_image, size: 60),
-              ),
+    return ImprovedVideoCard(
+      video: video,
+      heroTag: 'video_${video.bvid}_${video.aid}',
+      onTap: () {
+        // 验证视频ID是否有效
+        if (!video.hasValidId) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('无法播放此视频：缺少有效的视频ID信息'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
             ),
-            title: Text(
-              video.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          );
+          return;
+        }
+
+        // 只传递有效的 ID
+        final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
+        final int? validAid = video.aid != 0 ? video.aid : null;
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PlayerPage.withIds(
+              bvid: validBvid,
+              aid: validAid,
             ),
-            subtitle: Text(
-              'UP: ${video.author} | 播放: ${_formatPlayCount(video.play)}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 评论按钮
-                IconButton(
-                  icon: const Icon(Icons.comment_outlined, size: 20),
-                  onPressed: () {
-                    final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
-                    final int? validAid = video.aid != 0 ? video.aid : null;
-
-                    if (validBvid == null && validAid == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('无法查看评论：缺少有效的视频ID信息'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => CommentPage(
-                          bvid: validBvid ?? '',
-                          aid: validAid,
-                        ),
-                      ),
-                    );
-                  },
-                  tooltip: '查看评论',
-                ),
-                Text(video.duration),
-              ],
-            ),
-            onTap: () {
-            // 验证视频ID是否有效
-            if (!video.hasValidId) {
-              // 显示错误提示
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('无法播放此视频：缺少有效的视频ID信息'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-              return;
-            }
-
-            // 只传递有效的 ID
-            final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
-            final int? validAid = video.aid != 0 ? video.aid : null;
-
-            // 确保至少有一个有效的 ID
-            if (validBvid == null && validAid == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('无法播放此视频：缺少有效的视频ID信息'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-              return;
-            }
-
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => PlayerPage.withIds(
-                  bvid: validBvid,
-                  aid: validAid,
-                ),
-              ),
-            );
-          },
-        ),
+          ),
         );
+      },
+      onCommentTap: () {
+        final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
+        final int? validAid = video.aid != 0 ? video.aid : null;
+
+        if (validBvid == null && validAid == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('无法查看评论：缺少有效的视频ID信息'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CommentPage(
+              bvid: validBvid ?? '',
+              aid: validAid,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   /// 格式化播放量
@@ -556,6 +519,16 @@ class _SearchPageState extends State<SearchPage> {
           bvid: 'BV1xx411c7mD', // 测试视频
           cid: 19772637, // 对应的 CID
         ),
+      ),
+    );
+  }
+
+  /// 打开卡片对比演示页面
+  void _openDemoPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SearchDemoPage(),
       ),
     );
   }
