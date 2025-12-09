@@ -1,47 +1,51 @@
 #!/bin/bash
 
-# Android SDK 许可证预接受脚本
-# 解决 GitHub Actions 构建中的许可证卡住问题
+echo "🔧 预配置 Android SDK 许可证..."
 
-set -e
-
-echo "🔧 开始预配置 Android SDK 许可证..."
-
-# 定义 SDK 路径
-SDK_PATH="/usr/local/lib/android/sdk"
-LICENSES_PATH="$SDK_PATH/licenses"
-
-# 创建许可证目录
-mkdir -p "$LICENSES_PATH"
-
-# 许可证哈希值
-declare -A LICENSES=(
-    ["android-sdk-license"]="8933bad161af4178b1185d1a37fbf41ea5269c55"
-    ["android-sdk-preview"]="84831b9409646a918e30573bab4c9d966a64d"
-    ["google-gdk"]="84831b9409646a918e30573bab4c9d966a64d"
-    ["android-sdk-arm-dbt-license"]="d56f5187479451eabf01f78b6430f94631827"
-    ["android-sdk-xtend-license"]="24333f8a63b6825ea9c55141383a0746b3326"
-    ["android-googletv-license"]="601085b94cd77d045dc5891f2b9bffa8a385"
-    ["android-sdk-androidxr-license"]="d975f751698a77b6691ed5e903457d56aeac7c"
-)
+# 直接创建许可证文件到多个可能的位置
+mkdir -p $ANDROID_HOME/licenses 2>/dev/null || true
+mkdir -p /usr/local/lib/android/sdk/licenses 2>/dev/null || true
+mkdir -p $HOME/android-sdk/licenses 2>/dev/null || true
 
 # 创建许可证文件
-for license_file in "${!LICENSES[@]}"; do
-    echo "${LICENSES[$license_file]}" > "$LICENSES_PATH/$license_file"
-    echo "✅ 创建许可证文件: $license_file"
-done
+echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > android-sdk-license
+echo "84831b9409646a918e30573bab4c9d966a64d" > android-sdk-preview
+echo "84831b9409646a918e30573bab4c9d966a64d" > google-gdk
+echo "d56f5187479451eabf01f78b6430f94631827" > android-sdk-arm-dbt-license
+echo "24333f8a63b6825ea9c55141383a0746b3326" > android-sdk-xtend-license
+echo "601085b94cd77d045dc5891f2b9bffa8a385" > android-googletv-license
+echo "d975f751698a77b6691ed5e903457d56aeac7c" > android-sdk-androidxr-license
 
-# 设置权限
-chmod 644 "$LICENSES_PATH"/*
+# 复制到所有可能的许可证目录
+cp android-sdk-license $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-sdk-license /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-sdk-license $HOME/android-sdk/licenses/ 2>/dev/null || true
 
-# 创建环境变量文件
-echo "export ANDROID_HOME=$SDK_PATH" >> "$GITHUB_ENV"
-echo "export ANDROID_SDK_ROOT=$SDK_PATH" >> "$GITHUB_ENV"
+cp android-sdk-preview $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-sdk-preview /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-sdk-preview $HOME/android-sdk/licenses/ 2>/dev/null || true
 
-echo "✅ Android SDK 许可证预配置完成"
-echo "📍 SDK 路径: $SDK_PATH"
-echo "📍 许可证路径: $LICENSES_PATH"
+cp google-gdk $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp google-gdk /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp google-gdk $HOME/android-sdk/licenses/ 2>/dev/null || true
 
-# 列出创建的文件
-echo "📋 创建的许可证文件:"
-ls -la "$LICENSES_PATH"
+cp android-sdk-arm-dbt-license $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-sdk-arm-dbt-license /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-sdk-arm-dbt-license $HOME/android-sdk/licenses/ 2>/dev/null || true
+
+cp android-sdk-xtend-license $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-sdk-xtend-license /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-sdk-xtend-license $HOME/android-sdk/licenses/ 2>/dev/null || true
+
+cp android-googletv-license $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-googletv-license /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-googletv-license $HOME/android-sdk/licenses/ 2>/dev/null || true
+
+cp android-sdk-androidxr-license $ANDROID_HOME/licenses/ 2>/dev/null || true
+cp android-sdk-androidxr-license /usr/local/lib/android/sdk/licenses/ 2>/dev/null || true
+cp android-sdk-androidxr-license $HOME/android-sdk/licenses/ 2>/dev/null || true
+
+echo "✅ 许可证文件创建完成"
+
+# 清理临时文件
+rm -f android-sdk-license android-sdk-preview google-gdk android-sdk-arm-dbt-license android-sdk-xtend-license android-googletv-license android-sdk-androidxr-license
