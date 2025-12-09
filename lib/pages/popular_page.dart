@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/popular_video_card.dart';
 import '../models/bili_video_info.dart';
-import '../player_page.dart';
+import 'player_page.dart';
 
 /// 热门页面 - 完全基于bili_you热门页面设计
 class PopularPage extends StatefulWidget {

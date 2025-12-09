@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/recommend_card.dart';
 import '../models/bili_video_info.dart';
-import '../player_page.dart';
+import 'player_page.dart';
 
 /// 推荐页面 - 完全基于bili_you推荐页面设计
 class RecommendPage extends StatefulWidget {
