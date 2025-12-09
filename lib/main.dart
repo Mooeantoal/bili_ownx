@@ -45,6 +45,7 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
           providers: [
             ChangeNotifierProvider.value(value: NetworkService()),
+            ChangeNotifierProvider.value(value: ThemeService()),
           ],
           child: MaterialApp(
             title: 'Bilibili Flutter',
