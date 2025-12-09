@@ -56,46 +56,7 @@ class ImprovedVideoCard extends StatelessWidget {
           SizedBox(
             width: 160,
             height: 100,
-            child: heroTag != null
-                ? Hero(
-                    tag: heroTag!,
-                    child: CachedNetworkImage(
-                      imageUrl: video.cover,
-                      width: 160,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Theme.of(context).colorScheme.surfaceVariant,
-                        child: const Center(
-                          child: Icon(Icons.image_outlined, color: Colors.grey),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Theme.of(context).colorScheme.surfaceVariant,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                  )
-                : CachedNetworkImage(
-                    imageUrl: video.cover,
-                    width: 160,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
-                      child: const Center(
-                        child: Icon(Icons.image_outlined, color: Colors.grey),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
-                      child: const Center(
-                        child: Icon(Icons.broken_image, color: Colors.grey),
-                      ),
-                    ),
-                  ),
+            child: _buildImageWidget(context),
           ),
           
           // 时长标签
@@ -322,5 +283,57 @@ class ImprovedVideoCard extends StatelessWidget {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  /// 构建图片组件（处理空URL等错误情况）
+  Widget _buildImageWidget(BuildContext context) {
+    final imageUrl = video.cover.isEmpty ? '' : video.cover;
+    
+    Widget imageWidget;
+    
+    if (heroTag != null) {
+      imageWidget = Hero(
+        tag: heroTag!,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          width: 160,
+          height: 100,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            child: const Center(
+              child: Icon(Icons.image_outlined, color: Colors.grey),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            child: const Center(
+              child: Icon(Icons.broken_image, color: Colors.grey),
+            ),
+          ),
+        ),
+      );
+    } else {
+      imageWidget = CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: 160,
+        height: 100,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: const Center(
+            child: Icon(Icons.image_outlined, color: Colors.grey),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          child: const Center(
+            child: Icon(Icons.broken_image, color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    
+    return imageWidget;
   }
 }

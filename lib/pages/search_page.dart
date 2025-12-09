@@ -14,6 +14,7 @@ import '../widgets/improved_video_card.dart';
 import '../utils/string_format_utils.dart';
 import 'comment_page.dart';
 import 'search_demo_page.dart';
+import 'test_parsing_page.dart';
 
 /// 搜索页面
 class SearchPage extends StatefulWidget {
@@ -170,10 +171,19 @@ class _SearchPageState extends State<SearchPage> {
           print('第一个视频项示例: ${videoList.first}');
 
           // 解析搜索结果
-          final results = videoList
-              .map((item) => VideoSearchResult.fromJson(item))
-              .where((result) => result.hasValidId) // 只保留有有效ID的结果
-              .toList();
+          final results = <VideoSearchResult>[];
+          for (final item in videoList) {
+            try {
+              final videoResult = VideoSearchResult.fromJson(item);
+              if (videoResult.hasValidId) {
+                results.add(videoResult);
+              }
+            } catch (e) {
+              print('❌ 解析视频项失败，跳过: $e');
+              print('问题数据: $item');
+              // 继续处理其他项，不中断整个解析过程
+            }
+          }
 
           print('成功解析 ${results.length} 个有效视频项');
 
@@ -290,6 +300,11 @@ class _SearchPageState extends State<SearchPage> {
             icon: const Icon(Icons.compare),
             onPressed: _openDemoPage,
             tooltip: '卡片对比',
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report_outlined),
+            onPressed: _openTestPage,
+            tooltip: '解析测试',
           ),
         ],
       ),
@@ -529,6 +544,16 @@ class _SearchPageState extends State<SearchPage> {
       context,
       MaterialPageRoute(
         builder: (context) => const SearchDemoPage(),
+      ),
+    );
+  }
+
+  /// 打开解析测试页面
+  void _openTestPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TestParsingPage(),
       ),
     );
   }

@@ -41,19 +41,20 @@ class VideoSearchResult {
   
   /// 从 JSON 解析
   factory VideoSearchResult.fromJson(Map<String, dynamic> json) {
-    // 调试：打印原始数据
-    print('=== 解析视频项 ===');
-    print('原始数据: $json');
-    print('所有字段: ${json.keys.toList()}');
-    
-    // 尝试多种可能的字段名
-    String title = '';
-    String cover = '';
-    String author = '';
-    int play = 0;
-    String duration = '';
-    String bvid = '';
-    int aid = 0;
+    try {
+      // 调试：打印原始数据
+      print('=== 解析视频项 ===');
+      print('原始数据: $json');
+      print('所有字段: ${json.keys.toList()}');
+      
+      // 尝试多种可能的字段名
+      String title = '';
+      String cover = '';
+      String author = '';
+      int play = 0;
+      String duration = '';
+      String bvid = '';
+      int aid = 0;
     
     // 处理嵌套结构（B站 API 常见结构）
     Map<String, dynamic> videoData = json;
@@ -65,14 +66,14 @@ class VideoSearchResult {
       videoData = {...videoData, ...json['archive']};
     }
     
-    // 提取基本信息
-    title = videoData['title'] ?? json['title'] ?? json['name'] ?? '';
-    cover = videoData['cover'] ?? videoData['pic'] ?? json['cover'] ?? json['pic'] ?? json['image'] ?? '';
-    author = videoData['author'] ?? videoData['uname'] ?? videoData['owner'] ?? json['author'] ?? json['uname'] ?? json['owner'] ?? '';
+    // 提取基本信息 - 添加类型安全检查
+    title = _parseString(videoData['title'] ?? json['title'] ?? json['name'] ?? '');
+    cover = _parseString(videoData['cover'] ?? videoData['pic'] ?? json['cover'] ?? json['pic'] ?? json['image'] ?? '');
+    author = _parseString(videoData['author'] ?? videoData['uname'] ?? videoData['owner'] ?? json['author'] ?? json['uname'] ?? json['owner'] ?? '');
     play = _parsePlayCount(videoData['play'] ?? videoData['video_view'] ?? json['play'] ?? json['video_view'] ?? 0);
-    duration = videoData['duration'] ?? videoData['length'] ?? json['duration'] ?? json['length'] ?? '';
-    bvid = videoData['bvid'] ?? videoData['bvid_id'] ?? json['bvid'] ?? json['bvid_id'] ?? '';
-    aid = videoData['aid'] ?? videoData['id'] ?? json['aid'] ?? json['id'] ?? 0;
+    duration = _parseDuration(videoData['duration'] ?? videoData['length'] ?? json['duration'] ?? json['length'] ?? '');
+    bvid = _parseString(videoData['bvid'] ?? videoData['bvid_id'] ?? json['bvid'] ?? json['bvid_id'] ?? '');
+    aid = _parseInt(videoData['aid'] ?? videoData['id'] ?? json['aid'] ?? json['id'] ?? 0);
     
     // 如果还是没有 bvid，尝试从其他字段构造
     if (bvid.isEmpty) {
@@ -97,7 +98,7 @@ class VideoSearchResult {
         
         if (param != null && goto == 'av') {
           // 使用 AV 号，将 aid 设置为 param 的值
-          aid = int.tryParse(param.toString()) ?? aid;
+          aid = _parseInt(param);
           print('从 param 字段提取 AV 号: $aid');
         }
       }
@@ -118,8 +119,8 @@ class VideoSearchResult {
     final favorite = _parseCount(videoData['favorite'] ?? videoData['video_fav'] ?? json['favorite'] ?? json['video_fav'] ?? 0);
     final reply = _parseCount(videoData['reply'] ?? videoData['video_reply'] ?? json['reply'] ?? json['video_reply'] ?? 0);
     final pubdate = _parseTimestamp(videoData['pubdate'] ?? videoData['created'] ?? json['pubdate'] ?? json['created'] ?? 0);
-    final description = videoData['description'] ?? videoData['desc'] ?? json['description'] ?? json['desc'] ?? '';
-    final mid = videoData['mid'] ?? videoData['uid'] ?? json['mid'] ?? json['uid'] ?? '';
+    final description = _parseString(videoData['description'] ?? videoData['desc'] ?? json['description'] ?? json['desc'] ?? '');
+    final mid = _parseString(videoData['mid'] ?? videoData['uid'] ?? json['mid'] ?? json['uid'] ?? '');
 
     return VideoSearchResult(
       title: title,
@@ -138,8 +139,39 @@ class VideoSearchResult {
       description: description,
       mid: mid,
     );
+    } catch (e, stackTrace) {
+      print('❌ 解析视频项出错: $e');
+      print('堆栈跟踪: $stackTrace');
+      print('原始数据: $json');
+      
+      // 返回一个安全的默认对象
+      return VideoSearchResult(
+        title: _parseString(json['title'] ?? json['name'] ?? '解析失败'),
+        cover: _parseString(json['cover'] ?? json['pic'] ?? ''),
+        author: _parseString(json['author'] ?? json['uname'] ?? '未知UP主'),
+        play: _parsePlayCount(json['play'] ?? 0),
+        duration: _parseString(json['duration'] ?? ''),
+        bvid: _parseString(json['bvid'] ?? ''),
+        aid: _parseInt(json['aid'] ?? 0),
+        description: '数据解析出错: $e',
+      );
+    }
   }
   
+  /// 安全解析字符串
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value.trim();
+    return value.toString().trim();
+  }
+
+  /// 安全解析整数
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
   /// 解析播放量（处理字符串格式的播放量）
   static int _parsePlayCount(dynamic play) {
     if (play is int) return play;
@@ -154,6 +186,25 @@ class VideoSearchResult {
   /// 解析数字统计（播放量、点赞数等）
   static int _parseCount(dynamic count) {
     return _parsePlayCount(count);
+  }
+
+  /// 解析时长（支持秒数或字符串格式）
+  static String _parseDuration(dynamic duration) {
+    if (duration == null) return '';
+    
+    // 如果是字符串，直接返回
+    if (duration is String) return duration.trim();
+    
+    // 如果是数字（秒数），转换为 分:秒 格式
+    if (duration is int) {
+      if (duration <= 0) return '';
+      final minutes = duration ~/ 60;
+      final seconds = duration % 60;
+      return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    }
+    
+    // 其他情况，尝试转换为字符串
+    return duration.toString().trim();
   }
 
   /// 解析时间戳
