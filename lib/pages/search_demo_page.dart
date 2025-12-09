@@ -16,7 +16,7 @@ class _SearchDemoPageState extends State<SearchDemoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('搜索结果卡片对比'),
+        title: const Text('卡片对比'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: SingleChildScrollView(

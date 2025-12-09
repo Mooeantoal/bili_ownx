@@ -271,53 +271,96 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('Bilibili 搜索'),
-            const SizedBox(width: 8),
-            // 网络状态指示器
-            NetworkStatusWidget(
+        title: const Text('B站搜索'), // 简化标题
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        toolbarHeight: kToolbarHeight, // 使用标准高度
+        titleSpacing: 16, // 减小标题间距
+        actions: [
+          // 网络状态指示器 - 移到actions中减小占用空间
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: NetworkStatusWidget(
               showLabel: false,
               onlineColor: Colors.green,
               offlineColor: Colors.red,
             ),
-          ],
-        ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
+          ),
           const ThemeSwitchButton(),
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => _navigateToPlayHistory(),
-            tooltip: '播放历史',
-          ),
-          IconButton(
-            icon: const Icon(Icons.high_quality),
-            onPressed: _openQualityTest,
-            tooltip: '画质测试',
-          ),
-          IconButton(
-            icon: const Icon(Icons.compare),
-            onPressed: _openDemoPage,
-            tooltip: '卡片对比',
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report_outlined),
-            onPressed: _openTestPage,
-            tooltip: '解析测试',
+          // 使用PopupMenuButton替代多个独立按钮
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: '更多功能',
+            onSelected: (value) {
+              switch (value) {
+                case 'history':
+                  _navigateToPlayHistory();
+                  break;
+                case 'quality':
+                  _openQualityTest();
+                  break;
+                case 'demo':
+                  _openDemoPage();
+                  break;
+                case 'test':
+                  _openTestPage();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'history',
+                child: Row(
+                  children: [
+                    Icon(Icons.history, size: 20),
+                    SizedBox(width: 12),
+                    Text('播放历史'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'quality',
+                child: Row(
+                  children: [
+                    Icon(Icons.high_quality, size: 20),
+                    SizedBox(width: 12),
+                    Text('画质测试'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'demo',
+                child: Row(
+                  children: [
+                    Icon(Icons.compare, size: 20),
+                    SizedBox(width: 12),
+                    Text('卡片对比'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'test',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('解析测试'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
       body: Column(
         children: [
-          // 网络状态栏
+          // 网络状态栏 - 减小高度
           NetworkStatusBar(
-            height: 24,
+            height: 20,
             animationDuration: const Duration(milliseconds: 300),
           ),
-          // 搜索框
+          // 搜索框 - 减小内边距
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Consumer<NetworkService>(
               builder: (context, networkService, child) {
                 return TextField(
