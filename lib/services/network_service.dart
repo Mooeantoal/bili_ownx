@@ -20,7 +20,7 @@ class NetworkService extends ChangeNotifier {
 
   NetworkStatus _status = NetworkStatus.checking;
   final Connectivity _connectivity = Connectivity();
-  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   final List<String> _failedRequests = [];
 
   /// 当前网络状态
@@ -39,7 +39,7 @@ class NetworkService extends ChangeNotifier {
   Future<void> initialize() async {
     // 检查当前网络状态
     await checkConnectivity();
-    
+
     // 监听网络状态变化
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
   }
@@ -49,10 +49,10 @@ class NetworkService extends ChangeNotifier {
     try {
       _status = NetworkStatus.checking;
       notifyListeners();
-      
+
       final result = await _connectivity.checkConnectivity();
       _updateConnectionStatus(result);
-      
+
       // 进一步验证网络是否真正可用
       if (result != ConnectivityResult.none) {
         await _validateNetworkConnection();
@@ -64,19 +64,24 @@ class NetworkService extends ChangeNotifier {
   }
 
   /// 更新连接状态
-  void _updateConnectionStatus(ConnectivityResult result) {
-    switch (result) {
-      case ConnectivityResult.wifi:
-      case ConnectivityResult.mobile:
-      case ConnectivityResult.ethernet:
-      case ConnectivityResult.bluetooth:
-      case ConnectivityResult.vpn:
-      case ConnectivityResult.other:
-        _status = NetworkStatus.online;
-        break;
-      case ConnectivityResult.none:
-        _status = NetworkStatus.offline;
-        break;
+  void _updateConnectionStatus(List<ConnectivityResult> results) {
+    if (results.isNotEmpty) {
+      final result = results.first;
+      switch (result) {
+        case ConnectivityResult.wifi:
+        case ConnectivityResult.mobile:
+        case ConnectivityResult.ethernet:
+        case ConnectivityResult.bluetooth:
+        case ConnectivityResult.vpn:
+        case ConnectivityResult.other:
+          _status = NetworkStatus.online;
+          break;
+        case ConnectivityResult.none:
+          _status = NetworkStatus.offline;
+          break;
+      }
+    } else {
+      _status = NetworkStatus.offline;
     }
     notifyListeners();
   }
@@ -90,7 +95,7 @@ class NetworkService extends ChangeNotifier {
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 5),
       );
-      
+
       if (response.statusCode == 200) {
         _status = NetworkStatus.online;
         notifyListeners();
@@ -119,7 +124,7 @@ class NetworkService extends ChangeNotifier {
   /// 重试所有失败请求
   Future<void> retryFailedRequests() async {
     if (!isOnline) return;
-    
+
     // 这里可以添加具体的重试逻辑
     clearFailedRequests();
   }
@@ -127,7 +132,7 @@ class NetworkService extends ChangeNotifier {
   /// 创建带网络检查的 Dio 实例
   Dio createDioWithNetworkCheck() {
     final dio = Dio();
-    
+
     // 添加请求拦截器
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -154,7 +159,7 @@ class NetworkService extends ChangeNotifier {
         },
       ),
     );
-    
+
     return dio;
   }
 
@@ -172,13 +177,13 @@ class NetworkService extends ChangeNotifier {
 
     final config = retryConfig ?? RetryConfig.defaultConfig;
     int attempts = 0;
-    
+
     while (attempts < config.maxRetries) {
       try {
         return await request().timeout(timeout);
       } catch (e) {
         attempts++;
-        
+
         // 检查是否应该重试
         if (!config.shouldRetry(e, attempts)) {
           // 更新网络状态
@@ -188,12 +193,12 @@ class NetworkService extends ChangeNotifier {
           }
           rethrow;
         }
-        
+
         // 等待后重试
         await Future.delayed(config.getRetryDelay(attempts));
       }
     }
-    
+
     throw NetworkException('请求失败，已重试 ${config.maxRetries} 次');
   }
 
@@ -208,9 +213,9 @@ class NetworkService extends ChangeNotifier {
 class NetworkException implements Exception {
   final String message;
   final String? code;
-  
+
   const NetworkException(this.message, {this.code});
-  
+
   @override
   String toString() => message;
 }
@@ -219,15 +224,15 @@ class NetworkException implements Exception {
 class NetworkStatusListener {
   final NetworkService _networkService;
   final void Function(NetworkStatus) onStatusChanged;
-  
+
   NetworkStatusListener(this._networkService, {required this.onStatusChanged}) {
     _networkService.addListener(_handleStatusChange);
   }
-  
+
   void _handleStatusChange() {
     onStatusChanged(_networkService.status);
   }
-  
+
   void dispose() {
     _networkService.removeListener(_handleStatusChange);
   }

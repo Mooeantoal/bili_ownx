@@ -141,30 +141,57 @@ class ErrorHandler {
   }
 
   /// 显示错误对话框
-  static Future<void> showErrorDialog(
-    BuildContext context,
-    String message, {
+  static Future<void> showErrorDialog({
+    required BuildContext context,
     String title = '错误',
-    VoidCallback? onRetry,
+    required String error,
+    String? stackTrace,
+    String? additionalInfo,
   }) async {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(title),
-        content: Text(message),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(error),
+              if (additionalInfo != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  additionalInfo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+              if (stackTrace != null) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  '详细信息:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  stackTrace,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('确定'),
           ),
-          if (onRetry != null)
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onRetry();
-              },
-              child: const Text('重试'),
-            ),
         ],
       ),
     );
@@ -179,9 +206,9 @@ class ErrorHandler {
     if (response is Response) {
       final statusCode = response.statusCode ?? 0;
       final data = response.data;
-      
+
       String result = '状态码: $statusCode';
-      
+
       if (data != null) {
         if (data is Map<String, dynamic>) {
           final message = data['message'] ?? data['msg'] ?? data['error'];
@@ -195,10 +222,10 @@ class ErrorHandler {
           result += '\n响应数据: ${data.toString()}';
         }
       }
-      
+
       return result;
     }
-    
+
     return response.toString();
   }
 }
@@ -288,7 +315,7 @@ class RetryConfig {
     }
 
     final errorType = ErrorHandler.getErrorType(error);
-    
+
     switch (errorType) {
       case ErrorType.network:
         return true; // 网络错误总是重试

@@ -47,14 +47,14 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  
+
   VideoInfo? _videoInfo;
   bool _isLoading = true;
   bool _isChangingQuality = false; // 是否正在切换画质
   String _errorMessage = '';
   int _currentPartIndex = 0;
   int _selectedQuality = 80; // 默认超清画质
-  
+
   // 可选画质列表
   final List<Map<String, dynamic>> _allQualityOptions = [
     {'qn': 16, 'name': '流畅'},
@@ -64,7 +64,7 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
     {'qn': 112, 'name': '高清 1080P'},
     {'qn': 116, 'name': '高清 1080P60'},
   ];
-  
+
   // 当前视频支持的画质列表
   List<Map<String, dynamic>> _availableQualities = [];
 
@@ -91,7 +91,7 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
         _errorMessage = '参数错误: 缺少视频标识符 (BVID 或 AID)';
         _isLoading = false;
       });
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ErrorHandler.showErrorDialog(
           context: context,
@@ -111,7 +111,7 @@ AID: ${widget.aid}
       });
       return;
     }
-    
+
     try {
       final response = await VideoApi.getVideoDetail(
         bvid: widget.bvid,
@@ -122,10 +122,10 @@ AID: ${widget.aid}
         setState(() {
           _videoInfo = VideoInfo.fromJson(response['data']);
         });
-        
+
         // 先获取可用画质列表
         await _loadAvailableQualities(_videoInfo!.cid);
-        
+
         // 然后加载播放地址
         await _loadPlayUrl(_videoInfo!.cid);
       } else {
@@ -133,7 +133,7 @@ AID: ${widget.aid}
           _errorMessage = '加载视频失败: ${response['message'] ?? '未知错误'}';
           _isLoading = false;
         });
-        
+
         // 显示详细错误信息对话框
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ErrorHandler.showErrorDialog(
@@ -164,7 +164,7 @@ ${ErrorHandler.formatApiResponseError(response)}
 - AID: ${widget.aid}
 
 错误详情:''';
-      
+
       // 如果是 DioException，提供更详细的信息
       if (e.toString().contains('DioException')) {
         additionalInfo += '''
@@ -181,12 +181,12 @@ ${ErrorHandler.formatApiResponseError(response)}
 - 错误类型: ${e.runtimeType}
 - 错误信息: $e''';
       }
-      
+
       setState(() {
         _errorMessage = '加载视频失败: $detailedError';
         _isLoading = false;
       });
-      
+
       // 显示详细错误信息对话框
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ErrorHandler.showErrorDialog(
@@ -207,22 +207,22 @@ ${ErrorHandler.formatApiResponseError(response)}
       if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
         bvidToUse = _videoInfo!.bvid;
       }
-      
+
       if (bvidToUse.isEmpty) return;
-      
+
       // 使用默认画质请求，获取支持的画质列表
       final response = await VideoApi.getPlayUrl(
         bvid: bvidToUse,
         cid: cid,
         qn: 80, // 使用超清画质查询
       );
-      
+
       if (response['code'] == 0 && response['data'] != null) {
         final data = response['data'];
-        
+
         // 从 API 响应中获取支持的画质
         List<int> supportedQualities = [];
-        
+
         if (data['accept_quality'] != null) {
           // 如果有 accept_quality 字段，直接使用
           final acceptQuality = data['accept_quality'] as List;
@@ -231,20 +231,20 @@ ${ErrorHandler.formatApiResponseError(response)}
           // 否则根据常见的画质等级推断
           supportedQualities = [16, 32, 64, 80, 112, 116];
         }
-        
+
         // 过滤出可用的画质选项
         setState(() {
           _availableQualities = _allQualityOptions
               .where((quality) => supportedQualities.contains(quality['qn']))
               .toList();
-          
+
           // 如果当前选择的画质不可用，选择第一个可用的画质
           if (!_availableQualities.any((q) => q['qn'] == _selectedQuality) && _availableQualities.isNotEmpty) {
             _selectedQuality = _availableQualities.first['qn'];
             print('自动选择可用画质: ${_getQualityName(_selectedQuality)}');
           }
         });
-        
+
         print('可用画质列表: ${_availableQualities.map((q) => '${q['name']}(${q['qn']})').join(', ')}');
       }
     } catch (e) {
@@ -267,17 +267,17 @@ ${ErrorHandler.formatApiResponseError(response)}
     try {
       // 确定要使用的 bvid
       String bvidToUse = widget.bvid;
-      
+
       if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
         bvidToUse = _videoInfo!.bvid;
       }
-      
+
       if (bvidToUse.isEmpty) {
         throw Exception('无法获取有效的 BVID');
       }
-      
+
       print('切换画质: $_selectedQuality (${_getQualityName(_selectedQuality)})');
-      
+
       final response = await VideoApi.getPlayUrl(
         bvid: bvidToUse,
         cid: cid,
@@ -376,20 +376,20 @@ ${ErrorHandler.formatApiResponseError(response)}
     try {
       // 确定要使用的 bvid
       String bvidToUse = widget.bvid;
-      
+
       // 如果 widget.bvid 为空，尝试从 _videoInfo 获取
       if (bvidToUse.isEmpty && _videoInfo != null && _videoInfo!.bvid.isNotEmpty) {
         bvidToUse = _videoInfo!.bvid;
         print('使用从视频信息中获取的 BVID: $bvidToUse');
       }
-      
+
       // 最终验证
       if (bvidToUse.isEmpty) {
         throw Exception('无法获取有效的 BVID：widget.bvid 为空，且无法从视频信息中获取');
       }
-      
+
       print('开始加载播放地址: 画质=$_selectedQuality (${_getQualityName(_selectedQuality)})');
-      
+
       final response = await VideoApi.getPlayUrl(
         bvid: bvidToUse,
         cid: cid,
@@ -405,7 +405,7 @@ ${ErrorHandler.formatApiResponseError(response)}
         if (data['quality'] != null) {
           actualQuality = data['quality'];
           print('API 返回的实际画质: $actualQuality (${_getQualityName(actualQuality)})');
-          
+
           // 如果实际画质与请求画质不同，更新状态
           if (actualQuality != _selectedQuality) {
             print('画质自动调整: ${_getQualityName(_selectedQuality)} -> ${_getQualityName(actualQuality)}');
@@ -463,21 +463,21 @@ ${ErrorHandler.formatApiResponseError(response)}
               );
             },
           );
-          
+
           setState(() {
             _isLoading = false;
           });
-          
+
           // 监听播放位置以保存历史
           _setupPlaybackListener();
-          
+
           print('播放器初始化成功，当前画质: ${_getQualityName(_selectedQuality)}');
         } else {
           setState(() {
             _errorMessage = '无法获取播放地址';
             _isLoading = false;
           });
-          
+
           // 显示详细错误信息对话框
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ErrorHandler.showErrorDialog(
@@ -507,7 +507,7 @@ ${ErrorHandler.formatApiResponseError(response)}
           _errorMessage = '获取播放地址失败: ${response['message'] ?? '未知错误'}';
           _isLoading = false;
         });
-        
+
         // 显示详细错误信息对话框
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ErrorHandler.showErrorDialog(
@@ -537,7 +537,7 @@ ${ErrorHandler.formatApiResponseError(response)}
         _errorMessage = '播放失败: $e';
         _isLoading = false;
       });
-      
+
       // 显示详细错误信息对话框
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ErrorHandler.showErrorDialog(
@@ -554,14 +554,14 @@ ${ErrorHandler.formatApiResponseError(response)}
   /// 设置播放监听器
   void _setupPlaybackListener() {
     if (_videoPlayerController == null) return;
-    
+
     // 每30秒保存一次播放进度
     _videoPlayerController!.addListener(() async {
       if (_videoInfo == null || !_videoPlayerController!.value.isInitialized) return;
-      
+
       final position = _videoPlayerController!.value.position;
       final positionSeconds = position.inSeconds;
-      
+
       // 每30秒或播放进度变化较大时保存
       if (positionSeconds % 30 == 0 && positionSeconds > 0) {
         await PlayHistoryService.addHistory(
@@ -618,23 +618,23 @@ ${ErrorHandler.formatApiResponseError(response)}
             },
             tooltip: '查看评论',
           ),
-          
+
           // 画中画按钮
           IconButton(
             icon: Icon(isInPiPMode ? Icons.picture_in_picture : Icons.picture_in_picture_alt),
             onPressed: _togglePiP,
             tooltip: isInPiPMode ? '退出画中画' : '进入画中画',
           ),
-          
+
           const ThemeSwitchButton(),
-          
+
           // 下载按钮
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: _downloadVideo,
             tooltip: '下载视频',
           ),
-          
+
           // 画质选择
           PopupMenuButton<int>(
             icon: Row(
@@ -650,7 +650,7 @@ ${ErrorHandler.formatApiResponseError(response)}
             ),
             onSelected: (qn) async {
               if (_selectedQuality == qn) return; // 相同画质不切换
-              
+
               // 显示切换提示
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -658,23 +658,23 @@ ${ErrorHandler.formatApiResponseError(response)}
                   duration: const Duration(seconds: 1),
                 ),
               );
-              
+
               // 保存当前播放位置
               final currentPosition = _videoPlayerController?.value.position.inSeconds ?? 0;
               final wasPlaying = _videoPlayerController?.value.isPlaying ?? false;
-              
+
               // 设置新的画质
               final previousQuality = _selectedQuality;
               setState(() {
                 _selectedQuality = qn;
                 _isChangingQuality = true; // 新增状态，表示正在切换画质
               });
-              
+
               // 重新加载播放器（只刷新播放器，不重新加载页面）
               if (_videoInfo != null) {
                 try {
                   await _switchQuality(_videoInfo!.parts[_currentPartIndex].cid, currentPosition, wasPlaying);
-                  
+
                   // 显示切换成功提示
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -690,7 +690,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                     _selectedQuality = previousQuality;
                     _isChangingQuality = false;
                   });
-                  
+
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -781,7 +781,7 @@ ${ErrorHandler.formatApiResponseError(response)}
           aspectRatio: 16 / 9,
           child: _buildVideoPlayer(),
         ),
-        
+
         // 视频信息
         Expanded(
           child: ListView(
@@ -793,7 +793,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              
+
               // UP主和播放信息
               Row(
                 children: [
@@ -807,7 +807,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // 简介
               if (_videoInfo!.desc.isNotEmpty) ...[
                 Text(
@@ -818,7 +818,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 Text(_videoInfo!.desc),
                 const SizedBox(height: 16),
               ],
-              
+
               // 分P列表
               if (_videoInfo!.parts.length > 1) ...[
                 Text(
@@ -898,7 +898,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                   ),
                 ),
               ),
-            
+
             // 切换画质的加载指示器
             Center(
               child: Column(
@@ -931,12 +931,12 @@ ${ErrorHandler.formatApiResponseError(response)}
         ),
       );
     }
-    
+
     // 正常播放器显示
     if (_chewieController != null && _chewieController!.videoPlayerController.value.isInitialized) {
       return Chewie(controller: _chewieController!);
     }
-    
+
     // 初始加载状态
     return Container(
       decoration: BoxDecoration(
@@ -959,7 +959,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 ),
               ),
             ),
-            
+
           // 加载指示器
           const Center(
             child: CircularProgressIndicator(
@@ -1060,7 +1060,7 @@ ${ErrorHandler.formatApiResponseError(response)}
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
+
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
@@ -1086,7 +1086,7 @@ ${ErrorHandler.formatApiResponseError(response)}
         aspectRatio: _chewieController?.videoPlayerController.value.aspectRatio ?? 16.0 / 9.0,
         title: _videoInfo?.title ?? 'Bilimiao',
       );
-      
+
       if (success) {
         print('自动进入画中画模式成功');
       }
@@ -1126,5 +1126,4 @@ ${ErrorHandler.formatApiResponseError(response)}
       );
     }
   }
-
 }

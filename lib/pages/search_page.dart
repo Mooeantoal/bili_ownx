@@ -22,7 +22,7 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final NetworkService _networkService = NetworkService();
-  
+
   List<VideoSearchResult> _searchResults = [];
   List<String> _searchHistory = [];
   bool _isLoading = false;
@@ -54,32 +54,33 @@ class _SearchPageState extends State<SearchPage> {
     });
 
     try {
-      await SearchHistoryService.addToHistory(keyword);
-      
+      // 保存搜索历史（只保存一次）
+      await SearchHistoryService.addHistory(keyword);
+      await _loadSearchHistory();
+
       final response = await _networkService.executeWithNetworkCheck(
         () => SearchApi.searchArchive(keyword: keyword),
         timeout: const Duration(seconds: 15),
         retryConfig: RetryConfig.networkConfig,
       );
-      final response = await SearchApi.searchArchive(keyword: keyword);
-      
+
       // 调试：打印完整响应
       print('=== 搜索 API 响应 ===');
       print('状态码: ${response['code']}');
       print('消息: ${response['message']}');
       print('完整数据: ${response['data']}');
-      
+
       if (response['code'] == 0 && response['data'] != null) {
         final data = response['data'];
         List? videoList;
-        
+
         // Bilibili API 返回的数据结构可能不同，需要判断
         if (data is Map<String, dynamic>) {
           print('=== API 响应数据分析 ===');
           print('data 是 Map 类型');
           print('data 的所有键: ${data.keys.toList()}');
           print('data 完整内容: $data');
-          
+
           // 检查是否有 items 字段
           if (data['items'] != null) {
             print('找到 items 字段，类型: ${data['items'].runtimeType}');
@@ -95,7 +96,7 @@ class _SearchPageState extends State<SearchPage> {
               final itemsMap = data['items'] as Map<String, dynamic>;
               print('items 是 Map，键: ${itemsMap.keys.toList()}');
               print('items 完整内容: $itemsMap');
-              
+
               // 尝试从 archive 提取视频列表（根据错误日志中的数据结构）
               if (itemsMap['archive'] != null && itemsMap['archive'] is List) {
                 videoList = itemsMap['archive'] as List?;
@@ -126,7 +127,7 @@ class _SearchPageState extends State<SearchPage> {
               print('第一个 result 项字段: ${(videoList.first as Map).keys.toList()}');
             }
           }
-          
+
           // 尝试其他可能的字段名
           else {
             print('未找到预期的字段，检查所有可能的列表字段...');
@@ -138,11 +139,11 @@ class _SearchPageState extends State<SearchPage> {
                 if (value.first is Map) {
                   final firstItem = value.first as Map;
                   print('第一个元素字段: ${firstItem.keys.toList()}');
-                  
+
                   // 检查是否包含视频相关字段
                   final hasVideoFields = firstItem.keys.any((k) => 
                     ['title', 'bvid', 'aid', 'author', 'cover', 'play'].contains(k));
-                  
+
                   if (hasVideoFields) {
                     print('✓ $key 字段包含视频信息，使用此列表');
                     videoList = value;
@@ -152,30 +153,26 @@ class _SearchPageState extends State<SearchPage> {
               }
             }
           }
-          
+
           // 如果仍然没有找到视频列表，尝试深度搜索
           if (videoList == null) {
             print('尝试深度搜索嵌套结构...');
             videoList = _deepSearchVideoList(data);
           }
         }
-        
+
         if (videoList != null && videoList.isNotEmpty) {
           print('准备解析 ${videoList.length} 个视频项');
           print('第一个视频项示例: ${videoList.first}');
-          
-          // 保存搜索历史
-          await SearchHistoryService.addHistory(keyword);
-          await _loadSearchHistory();
-          
+
           // 解析搜索结果
           final results = videoList
               .map((item) => VideoSearchResult.fromJson(item))
               .where((result) => result.hasValidId) // 只保留有有效ID的结果
               .toList();
-          
+
           print('成功解析 ${results.length} 个有效视频项');
-          
+
           if (mounted) {
             setState(() {
               _searchResults = results;
@@ -183,7 +180,7 @@ class _SearchPageState extends State<SearchPage> {
               _isSearching = false;
             });
           }
-          
+
           // 如果没有有效结果，显示提示
           if (results.isEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -205,7 +202,7 @@ class _SearchPageState extends State<SearchPage> {
               _isSearching = false;
             });
           }
-          
+
           // 显示详细错误信息对话框 - 即使是"未找到相关视频"也显示详细信息
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ErrorHandler.showErrorDialog(
@@ -224,7 +221,7 @@ class _SearchPageState extends State<SearchPage> {
             _isSearching = false;
           });
         }
-        
+
         // 显示详细错误信息对话框
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ErrorHandler.showErrorDialog(
@@ -244,7 +241,7 @@ class _SearchPageState extends State<SearchPage> {
           _isSearching = false;
         });
       }
-      
+
       // 显示详细错误信息对话框
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ErrorHandler.showErrorDialog(
@@ -343,7 +340,7 @@ class _SearchPageState extends State<SearchPage> {
               },
             ),
           ),
-          
+
           // 结果列表
           Expanded(
             child: _buildResultsView(),
@@ -464,7 +461,7 @@ class _SearchPageState extends State<SearchPage> {
                   onPressed: () {
                     final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
                     final int? validAid = video.aid != 0 ? video.aid : null;
-                    
+
                     if (validBvid == null && validAid == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -474,7 +471,7 @@ class _SearchPageState extends State<SearchPage> {
                       );
                       return;
                     }
-                    
+
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => CommentPage(
@@ -502,11 +499,11 @@ class _SearchPageState extends State<SearchPage> {
               );
               return;
             }
-            
+
             // 只传递有效的 ID
             final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
             final int? validAid = video.aid != 0 ? video.aid : null;
-            
+
             // 确保至少有一个有效的 ID
             if (validBvid == null && validAid == null) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -518,7 +515,7 @@ class _SearchPageState extends State<SearchPage> {
               );
               return;
             }
-            
+
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => PlayerPage.withIds(
@@ -530,7 +527,6 @@ class _SearchPageState extends State<SearchPage> {
           },
         ),
         );
-  }
   }
 
   /// 格式化播放量
@@ -611,14 +607,14 @@ class _SearchPageState extends State<SearchPage> {
   /// 深度搜索视频列表
   List? _deepSearchVideoList(dynamic data, {int depth = 0, int maxDepth = 3}) {
     if (depth > maxDepth) return null;
-    
+
     if (data is List && data.isNotEmpty) {
       // 检查是否是视频列表
       final firstItem = data.first;
       if (firstItem is Map) {
         final hasVideoFields = firstItem.keys.any((k) => 
           ['title', 'bvid', 'aid', 'author', 'cover', 'play'].contains(k));
-        
+
         if (hasVideoFields) {
           print('✓ 在深度 $depth 处找到视频列表，长度: ${data.length}');
           return data;
@@ -637,7 +633,7 @@ class _SearchPageState extends State<SearchPage> {
         }
       }
     }
-    
+
     return null;
   }
 
