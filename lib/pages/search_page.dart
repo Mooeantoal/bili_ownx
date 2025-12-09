@@ -247,7 +247,7 @@ class _SearchPageState extends State<SearchPage> {
         ErrorHandler.showErrorDialog(
           context: context,
           title: '搜索出错',
-          message: ErrorHandler.getMessage(e),
+          error: ErrorHandler.getMessage(e),
         );
       });
     }

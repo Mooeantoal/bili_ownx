@@ -148,6 +148,7 @@ class _AppLifecycleManagerState extends State<AppLifecycleManager>
         break;
       case AppLifecycleState.detached:
       case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
         break;
     }
   }
