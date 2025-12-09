@@ -3,6 +3,8 @@ import 'search_page.dart';
 import 'settings_page.dart';
 import 'download_list_page.dart';
 import 'metadata_page.dart';
+import 'recommend_page.dart';
+import 'popular_page.dart';
 
 /// 主页面 - 包含底部导航栏
 class MainPage extends StatefulWidget {
@@ -15,16 +17,28 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _currentIndex = 0;
 
-  // 页面列表
+  // 页面列表 - 添加推荐和热门页面
   final List<Widget> _pages = [
+    const RecommendPage(),
+    const PopularPage(),
     const SearchPage(),
     const DownloadListPage(),
     const MetadataPage(),
     const SettingsPage(),
   ];
 
-  // 底部导航项
+  // 底部导航项 - 重新排序，添加推荐和热门
   final List<BottomNavigationBarItem> _bottomNavItems = [
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.home_outlined),
+      activeIcon: Icon(Icons.home),
+      label: '推荐',
+    ),
+    const BottomNavigationBarItem(
+      icon: Icon(Icons.local_fire_department_outlined),
+      activeIcon: Icon(Icons.local_fire_department),
+      label: '热门',
+    ),
     const BottomNavigationBarItem(
       icon: Icon(Icons.search),
       activeIcon: Icon(Icons.search),
