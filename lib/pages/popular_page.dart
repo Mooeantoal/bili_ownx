@@ -227,7 +227,7 @@ class _PopularPageState extends State<PopularPage>
       MaterialPageRoute(
         builder: (context) => PlayerPage.withIds(
           bvid: video.bvid.isNotEmpty ? video.bvid : null,
-          aid: int.tryParse(video.aid) ?? 0,
+          aid: int.tryParse(video.aid),
         ),
       ),
     );
