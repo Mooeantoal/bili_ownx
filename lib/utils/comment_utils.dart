@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import '../models/comment_info.dart';
 import 'package:dio/dio.dart';
 
@@ -156,8 +158,10 @@ class RetryConfig {
   bool shouldRetry(dynamic error, int attempt) {
     if (attempt >= maxRetries) return false;
     
-    for (final type in retryableExceptions) {
-      if (error.runtimeType == type || error is type) {
+    // 检查错误类型是否在重试列表中
+    for (final retryableType in retryableExceptions) {
+      // 直接类型检查
+      if (error.runtimeType == retryableType) {
         return true;
       }
     }
@@ -167,7 +171,9 @@ class RetryConfig {
 
   /// 获取重试延迟时间
   Duration getRetryDelay(int attempt) {
-    final delay = initialDelay * (backoffMultiplier ^ attempt);
+    // 使用数学pow而不是幂运算符
+    final multiplier = math.pow(backoffMultiplier, attempt);
+    final delay = Duration(milliseconds: (initialDelay.inMilliseconds * multiplier).round());
     return delay > const Duration(seconds: 30) ? const Duration(seconds: 30) : delay;
   }
 }

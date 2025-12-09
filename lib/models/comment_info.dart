@@ -1,3 +1,5 @@
+import '../utils/comment_utils.dart';
+
 /// 评论信息模型
 class CommentInfo {
   final String rpid; // 评论ID

@@ -156,11 +156,13 @@ class CommentApi {
   /// [rpid] 根评论 rpid
   /// [pageNum] 页码
   /// [pageSize] 每页数量
+  /// [retryConfig] 重试配置
   Future<CommentReplyResponse> getCommentReplies({
     required String oid,
     required String rpid,
     int pageNum = 1,
     int pageSize = 10,
+    RetryConfig? retryConfig,
   }) async {
     try {
       final params = {
