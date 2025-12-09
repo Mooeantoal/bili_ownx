@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'pages/main_page.dart';
 import 'services/download_manager.dart';
@@ -41,12 +42,17 @@ class MyApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: ThemeService(),
       builder: (context, child) {
-        return MaterialApp(
-          title: 'Bilibili Flutter',
-          theme: ThemeService().lightTheme,
-          darkTheme: ThemeService().darkTheme,
-          themeMode: ThemeService().themeMode,
-          home: const MainPage(),
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: NetworkService()),
+          ],
+          child: MaterialApp(
+            title: 'Bilibili Flutter',
+            theme: ThemeService().lightTheme,
+            darkTheme: ThemeService().darkTheme,
+            themeMode: ThemeService().themeMode,
+            home: const MainPage(),
+          ),
         );
       },
     );
