@@ -12,8 +12,7 @@ SDK_PATH="/usr/local/lib/android/sdk"
 LICENSES_PATH="$SDK_PATH/licenses"
 
 # 创建许可证目录
-sudo mkdir -p "$LICENSES_PATH"
-sudo chmod 755 "$LICENSES_PATH"
+mkdir -p "$LICENSES_PATH"
 
 # 许可证哈希值
 declare -A LICENSES=(
@@ -28,16 +27,16 @@ declare -A LICENSES=(
 
 # 创建许可证文件
 for license_file in "${!LICENSES[@]}"; do
-    echo "${LICENSES[$license_file]}" | sudo tee "$LICENSES_PATH/$license_file"
+    echo "${LICENSES[$license_file]}" > "$LICENSES_PATH/$license_file"
     echo "✅ 创建许可证文件: $license_file"
 done
 
 # 设置权限
-sudo chmod 644 "$LICENSES_PATH"/*
+chmod 644 "$LICENSES_PATH"/*
 
 # 创建环境变量文件
-echo "export ANDROID_HOME=$SDK_PATH" | sudo tee -a /etc/environment
-echo "export ANDROID_SDK_ROOT=$SDK_PATH" | sudo tee -a /etc/environment
+echo "export ANDROID_HOME=$SDK_PATH" >> "$GITHUB_ENV"
+echo "export ANDROID_SDK_ROOT=$SDK_PATH" >> "$GITHUB_ENV"
 
 echo "✅ Android SDK 许可证预配置完成"
 echo "📍 SDK 路径: $SDK_PATH"

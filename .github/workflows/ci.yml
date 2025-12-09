@@ -55,15 +55,13 @@ jobs:
 
       - name: 设置 Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
         continue-on-error: true
 
       - name: 强制接受许可证 (后置)
         run: |
           # 确保 ANDROID_HOME 环境变量可用
           export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
           
           # 再次创建许可证文件，覆盖任何可能的变更
           mkdir -p $ANDROID_HOME/licenses
