@@ -21,17 +21,17 @@ class ImprovedVideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Container(
-        height: 100,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        height: 85, // 进一步减小高度防止溢出
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 1), // 减小垂直间距
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 封面图区域
             _buildCoverImage(context),
-            const SizedBox(width: 12),
+            const SizedBox(width: 6), // 减小间距
             
             // 信息区域
             Expanded(
@@ -49,37 +49,37 @@ class ImprovedVideoCard extends StatelessWidget {
   /// 构建封面图
   Widget _buildCoverImage(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(4), // 减小圆角，符合 bili_you 风格
       child: Stack(
         children: [
           // 主封面图
           SizedBox(
-            width: 160,
-            height: 100,
+            width: 120, // 减小宽度
+            height: 85,  // 匹配容器高度
             child: _buildImageWidget(context),
           ),
           
-          // 时长标签
-          if (video.duration.isNotEmpty)
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  video.duration,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
+// 时长标签
+            if (video.duration.isNotEmpty)
+              Positioned(
+                bottom: 2, // 减小边距
+                right: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1), // 减小内边距
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8), // 增加不透明度
+                    borderRadius: BorderRadius.circular(2), // 减小圆角
+                  ),
+                  child: Text(
+                    video.duration,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9, // 减小字号
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
                 ),
               ),
-            ),
         ],
       ),
     );
@@ -90,30 +90,32 @@ class ImprovedVideoCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题
+        // 标题 - 减小字号和行高
         Text(
           video.title,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.3,
+            fontSize: 12, // 进一步减小字号
+            fontWeight: FontWeight.normal, // 减轻字重
+            height: 1.1, // 减小行高防止溢出
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         
-        const SizedBox(height: 6),
+        const SizedBox(height: 2), // 减小间距
         
         // UP主名称
         Text(
           video.author,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontSize: 10, // 进一步减小字号
             color: Theme.of(context).hintColor,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         
-        const Spacer(),
+        const SizedBox(height: 1), // 进一步减小间距防止溢出
         
         // 统计信息行
         _buildStatsRow(context),
@@ -123,9 +125,7 @@ class ImprovedVideoCard extends StatelessWidget {
 
   /// 构建统计信息行
   Widget _buildStatsRow(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 2,
+    return Row(
       children: [
         // 播放量
         _buildStatItem(
@@ -134,36 +134,25 @@ class ImprovedVideoCard extends StatelessWidget {
           StringFormatUtils.formatPlayCount(video.play),
         ),
         
-        // 弹幕数
-        if (video.danmaku > 0)
+        const SizedBox(width: 6),
+        
+        // 弹幕数（如果有的话）
+        if (video.danmaku > 0) ...[
           _buildStatItem(
             context,
             Icons.chat_bubble_outline,
             StringFormatUtils.formatDanmakuCount(video.danmaku),
           ),
+          const SizedBox(width: 6),
+        ],
         
-        // 评论数
-        if (video.reply > 0)
-          _buildStatItem(
-            context,
-            Icons.comment_outlined,
-            StringFormatUtils.formatLikeCount(video.reply),
-          ),
-        
-        // 发布时间
+        // 发布时间（优先显示时间而非评论数）
         if (video.pubdate > 0)
           _buildStatItem(
             context,
             Icons.schedule_outlined,
             StringFormatUtils.formatTimestampToRelative(video.pubdate),
           ),
-        
-        // 视频ID标识（简化显示）
-        _buildStatItem(
-          context,
-          Icons.video_library_outlined,
-          video.bvid.isNotEmpty ? video.bvid.substring(0, 6) : 'AV${video.aid}',
-        ),
       ],
     );
   }
@@ -175,15 +164,15 @@ class ImprovedVideoCard extends StatelessWidget {
       children: [
         Icon(
           icon,
-          size: 12,
+          size: 10, // 减小图标尺寸
           color: Theme.of(context).hintColor,
         ),
-        const SizedBox(width: 2),
+        const SizedBox(width: 1), // 减小间距
         Text(
           text,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).hintColor,
-            fontSize: 11,
+            fontSize: 10, // 减小字号
           ),
         ),
       ],
@@ -194,29 +183,30 @@ class ImprovedVideoCard extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min, // 防止溢出
       children: [
         // 评论按钮
         if (onCommentTap != null)
           IconButton(
             icon: Icon(
               Icons.comment_outlined,
-              size: 20,
+              size: 14, // 进一步减小图标尺寸
               color: Theme.of(context).hintColor,
             ),
             onPressed: onCommentTap,
             tooltip: '查看评论',
             constraints: const BoxConstraints(
-              minWidth: 36,
-              minHeight: 36,
+              minWidth: 24, // 进一步减小点击区域
+              minHeight: 24,
             ),
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(2), // 减小内边距
           ),
         
         // 更多操作按钮
         PopupMenuButton<String>(
           icon: Icon(
             Icons.more_vert,
-            size: 20,
+            size: 14, // 进一步减小图标尺寸
             color: Theme.of(context).hintColor,
           ),
           onSelected: (value) {
@@ -291,24 +281,24 @@ class ImprovedVideoCard extends StatelessWidget {
     
     Widget imageWidget;
     
-    if (heroTag != null) {
+      if (heroTag != null) {
       imageWidget = Hero(
         tag: heroTag!,
         child: CachedNetworkImage(
           imageUrl: imageUrl,
-          width: 160,
-          height: 100,
+          width: 120,
+          height: 85,
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
             color: Theme.of(context).colorScheme.surfaceVariant,
             child: const Center(
-              child: Icon(Icons.image_outlined, color: Colors.grey),
+              child: Icon(Icons.image_outlined, color: Colors.grey, size: 20),
             ),
           ),
           errorWidget: (context, url, error) => Container(
             color: Theme.of(context).colorScheme.surfaceVariant,
             child: const Center(
-              child: Icon(Icons.broken_image, color: Colors.grey),
+              child: Icon(Icons.broken_image, color: Colors.grey, size: 20),
             ),
           ),
         ),
@@ -316,19 +306,19 @@ class ImprovedVideoCard extends StatelessWidget {
     } else {
       imageWidget = CachedNetworkImage(
         imageUrl: imageUrl,
-        width: 160,
-        height: 100,
+        width: 120,
+        height: 85,
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(
           color: Theme.of(context).colorScheme.surfaceVariant,
           child: const Center(
-            child: Icon(Icons.image_outlined, color: Colors.grey),
+            child: Icon(Icons.image_outlined, color: Colors.grey, size: 20),
           ),
         ),
         errorWidget: (context, url, error) => Container(
           color: Theme.of(context).colorScheme.surfaceVariant,
           child: const Center(
-            child: Icon(Icons.broken_image, color: Colors.grey),
+            child: Icon(Icons.broken_image, color: Colors.grey, size: 20),
           ),
         ),
       );

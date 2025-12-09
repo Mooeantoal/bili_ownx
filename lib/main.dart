@@ -52,6 +52,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeService().lightTheme,
             darkTheme: ThemeService().darkTheme,
             themeMode: ThemeService().themeMode,
+            debugShowCheckedModeBanner: false, // 移除debug横幅
             home: const MainPage(),
           ),
         );

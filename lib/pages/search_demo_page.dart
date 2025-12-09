@@ -42,8 +42,47 @@ class _SearchDemoPageState extends State<SearchDemoPage> {
             
             const SizedBox(height: 20),
             
+            // 新版布局说明
+            _buildSectionHeader('布局优化 (0.75倍缩放风格)'),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('📏 尺寸优化', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('• 卡片高度: 100px → 90px'),
+                      Text('• 封面尺寸: 160x100 → 120x90'),
+                      Text('• 间距优化: 减小卡片间距和内边距'),
+                      SizedBox(height: 16),
+                      
+                      Text('🔤 字号调整', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('• 标题字号: 16px → 13px'),
+                      Text('• UP主字号: 12px → 11px'),
+                      Text('• 统计信息字号: 11px → 10px'),
+                      Text('• 图标尺寸: 12px → 10px'),
+                      SizedBox(height: 16),
+                      
+                      Text('📐 布局紧凑化', style: TextStyle(fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Text('• 统计信息改为单行显示'),
+                      Text('• 优先显示播放量和发布时间'),
+                      Text('• 操作按钮尺寸减小'),
+                      Text('• 时长标签更小更紧凑'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
             // 功能说明
-            _buildSectionHeader('改进说明'),
+            _buildSectionHeader('功能特性'),
             const Padding(
               padding: EdgeInsets.all(16.0),
               child: Card(
@@ -61,10 +100,11 @@ class _SearchDemoPageState extends State<SearchDemoPage> {
                       
                       Text('🎨 视觉效果优化', style: TextStyle(fontWeight: FontWeight.bold)),
                       SizedBox(height: 8),
-                      Text('• 圆角封面设计'),
+                      Text('• 紧凑型布局设计'),
                       Text('• Hero动画支持'),
                       Text('• 时长标签显示在封面上'),
                       Text('• 缓存图片加载'),
+                      Text('• 0.75倍缩放风格'),
                       SizedBox(height: 16),
                       
                       Text('🔧 功能增强', style: TextStyle(fontWeight: FontWeight.bold)),
