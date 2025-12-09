@@ -89,12 +89,11 @@ class NetworkService extends ChangeNotifier {
   /// 验证网络连接是否真正可用
   Future<bool> _validateNetworkConnection() async {
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        'https://httpbin.org/status/200',
+      final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(seconds: 5),
-      );
+      ));
+      final response = await dio.get('https://httpbin.org/status/200');
 
       if (response.statusCode == 200) {
         _status = NetworkStatus.online;

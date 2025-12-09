@@ -97,7 +97,7 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
           context: context,
           title: '参数错误',
           error: '缺少视频标识符',
-          stackTrace: StackTrace.current,
+          stackTrace: StackTrace.current.toString(),
           additionalInfo: '''BVID: "${widget.bvid}"
 AID: ${widget.aid}
 
@@ -140,7 +140,7 @@ AID: ${widget.aid}
             context: context,
             title: '加载视频失败',
             error: 'API返回错误 (code: ${response['code']})',
-            stackTrace: StackTrace.current,
+            stackTrace: StackTrace.current.toString(),
             additionalInfo: '''请求参数:
 - BVID: ${widget.bvid}
 - AID: ${widget.aid}
@@ -193,7 +193,7 @@ ${ErrorHandler.formatApiResponseError(response)}
           context: context,
           title: '加载视频出错',
           error: detailedError,
-          stackTrace: s,
+          stackTrace: s.toString(),
           additionalInfo: additionalInfo,
         );
       });
@@ -906,7 +906,7 @@ ${ErrorHandler.formatApiResponseError(response)}
                 children: [
                   CircularProgressIndicator(
                     color: Colors.white,
-                    backgroundColor: Colors.white.withValues(alpha: 0.3)
+                    backgroundColor: Colors.white.withOpacity(0.3)
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -1080,13 +1080,8 @@ ${ErrorHandler.formatApiResponseError(response)}
         // 应用被分离时清理资源
         _cleanupResources();
         break;
-        }
-        break;
-      case AppLifecycleState.resumed:
-        // 应用恢复前台时，可以选择退出画中画模式
-        break;
-      case AppLifecycleState.detached:
-      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+        // 应用隐藏
         break;
     }
   }

@@ -5,7 +5,7 @@ class CommentInfo {
   final int type; // 类型，1表示视频
   final String mid; // 用户ID
   final String message; // 评论内容
-  final int like; // 点赞数
+  int like; // 点赞数
   final int dislike; // 踩数
   final int replyCount; // 回复数
   final int createTime; // 创建时间
@@ -13,7 +13,7 @@ class CommentInfo {
   final ContentInfo? content; // 内容信息（包含表情等）
   final ReplyControl? replyControl; // 回复控制信息
   final List<CommentInfo>? replies; // 热门回复
-  final bool isLiked; // 是否已点赞
+  bool isLiked; // 是否已点赞
   final bool isTop; // 是否置顶
   final bool isFloorTop; // 是否楼层置顶
 

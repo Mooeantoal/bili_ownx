@@ -115,7 +115,7 @@ class NetworkStatusBar extends StatelessWidget {
                       GestureDetector(
                         onTap: () {
                           // 触发网络检查
-                          networkService._checkConnectivity();
+                          networkService.checkConnectivity();
                         },
                         child: const Text(
                           '重试',

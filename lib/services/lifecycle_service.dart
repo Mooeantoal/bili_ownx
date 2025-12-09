@@ -48,6 +48,9 @@ class LifecycleService extends WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         // 应用失去焦点但仍然可见
         break;
+      case AppLifecycleState.hidden:
+        // 应用隐藏
+        break;
     }
   }
 
