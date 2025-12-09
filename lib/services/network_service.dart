@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../utils/error_handler.dart';
+import '../utils/comment_utils.dart';
 
 /// 网络状态
 enum NetworkStatus {

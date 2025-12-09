@@ -154,6 +154,13 @@ class RetryConfig {
 
   static const RetryConfig defaultConfig = RetryConfig();
 
+  /// 网络错误重试配置
+  static const RetryConfig networkConfig = RetryConfig(
+    maxRetries: 5,
+    initialDelay: Duration(seconds: 2),
+    backoffMultiplier: 2.0,
+  );
+
   /// 判断是否应该重试
   bool shouldRetry(dynamic error, int attempt) {
     if (attempt >= maxRetries) return false;
