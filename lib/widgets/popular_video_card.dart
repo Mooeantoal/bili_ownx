@@ -59,24 +59,22 @@ class PopularVideoCard extends StatelessWidget {
                 child: Stack(
                   children: [
                     _buildImageWidget(context),
-                    // 时长标签 - 右下角显示，带阴影
+                    // 时长标签 - 右下角显示，带背景
                     Positioned(
-                      bottom: 0,
-                      right: 0,
+                      bottom: 4,
+                      right: 4,
                       child: Container(
-                        alignment: Alignment.bottomRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                         child: Text(
                           video.duration,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
-                            shadows: [
-                              BoxShadow(
-                                color: Colors.black87,
-                                blurRadius: 10,
-                                spreadRadius: 10,
-                              ),
-                            ],
+                            fontSize: 9,
+                            fontWeight: FontWeight.normal,
                           ),
                         ),
                       ),

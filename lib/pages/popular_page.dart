@@ -190,14 +190,14 @@ class _PopularPageState extends State<PopularPage>
         },
         child: ListView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           itemCount: _popularItems.length,
           itemBuilder: (context, index) {
             final video = _popularItems[index];
             final heroTag = 'popular_${video.bvid}_${_heroTagId++}';
             
             return Padding(
-              padding: const EdgeInsets.only(bottom: 10), // 完全匹配bili_you的间距
+              padding: const EdgeInsets.symmetric(vertical: 2), // 减小垂直间距防止溢出
               child: PopularVideoCard(
                 video: video,
                 heroTag: heroTag,
