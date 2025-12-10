@@ -65,8 +65,8 @@ class _PopularPageState extends State<PopularPage>
           cid: 1477599774,
         ),
         BiliVideoInfo(
-          bvid: 'BV1YW411T7Y9',
-          aid: '1317167706',
+          bvid: 'BV1fs4y1W7SJ',
+          aid: '946814289',
           title: '【音乐现场】演唱会现场版，这声线太绝了',
           author: '音乐分享',
           cover: 'https://i2.hdslb.com/bfs/archive/c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d.jpg',
@@ -101,8 +101,8 @@ class _PopularPageState extends State<PopularPage>
           cid: 123456,
         ),
         BiliVideoInfo(
-          bvid: 'BV6jL8m4O5P6',
-          aid: '432109876',
+          bvid: 'BV1u411y77PJ',
+          aid: '987654321',
           title: '【旅行攻略】穷游攻略，如何用最少的钱玩最多的地方',
           author: '旅游达人',
           cover: 'https://i1.hdslb.com/bfs/archive/f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a.jpg',

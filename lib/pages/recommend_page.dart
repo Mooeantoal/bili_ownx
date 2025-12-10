@@ -101,8 +101,8 @@ class _RecommendPageState extends State<RecommendPage>
           cid: 567890,
         ),
         BiliVideoInfo(
-          bvid: 'BV1122334455',
-          aid: '112233445',
+          bvid: 'BV1HY411C7SS',
+          aid: '351605108',
           title: '【旅行vlog】云南大理古城，风花雪月的美',
           author: '旅行达人',
           cover: 'https://i2.hdslb.com/bfs/archive/a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b.jpg',
@@ -110,7 +110,7 @@ class _RecommendPageState extends State<RecommendPage>
           play: 445000,
           danmaku: 8900,
           pubdate: 1703952000,
-          cid: 678901,
+          cid: 1135363295,
         ),
       ];
 

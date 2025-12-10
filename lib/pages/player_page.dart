@@ -89,6 +89,13 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
     if (widget.bvid.isNotEmpty) {
       // BVID格式验证: BV + 10位字符
       if (!RegExp(r'^BV[a-zA-Z0-9]{10}$').hasMatch(widget.bvid)) {
+        print('BVID格式无效: ${widget.bvid}');
+        return false;
+      }
+      
+      // 检查常见的问题BVID模式
+      if (_isProblematicBvid(widget.bvid)) {
+        print('检测到问题BVID: ${widget.bvid}');
         return false;
       }
     }
@@ -97,11 +104,38 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
     if (widget.aid != null) {
       // AID应该是正整数且在合理范围内
       if (widget.aid! <= 0 || widget.aid! > 9999999999) {
+        print('AID格式无效: ${widget.aid}');
         return false;
       }
     }
     
     return true;
+  }
+
+  /// 检测问题BVID模式
+  bool _isProblematicBvid(String bvid) {
+    // 检测连续数字模式 (如: BV1234567890)
+    if (RegExp(r'^BV[0-9]{10}$').hasMatch(bvid)) {
+      // 检查是否为连续数字
+      for (int i = 0; i < 9; i++) {
+        if (int.parse(bvid[i+2]) + 1 != int.parse(bvid[i+3])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    // 检测重复字符模式 (如: BVAAAAAAAAAA)
+    if (RegExp(r'^BV(.)\1{9}$').hasMatch(bvid)) {
+      return true;
+    }
+    
+    // 检测简单的交替模式
+    if (RegExp(r'^BV([a-zA-Z0-9]{2})\1\1\1$').hasMatch(bvid)) {
+      return true;
+    }
+    
+    return false;
   }
 
   /// 加载视频信息
@@ -153,7 +187,12 @@ AID: ${widget.aid}
 - BVID: BV + 10位字母数字组合 (如: BV1GJ411x7h7)
 - AID: 正整数且小于100亿
 
-请检查视频数据来源，可能使用了测试数据。''',
+常见问题:
+- 测试数据: BV1234567890, BV0987654321
+- 重复字符: BVAAAAAAAAAA
+- 连续模式: BV1122334455
+
+请检查视频数据来源，确保使用真实的bilibili视频ID。''',
         );
       });
       return;

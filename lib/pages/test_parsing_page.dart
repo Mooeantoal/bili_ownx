@@ -11,15 +11,15 @@ class TestParsingPage extends StatefulWidget {
 
 class _TestParsingPageState extends State<TestParsingPage> {
   final List<Map<String, dynamic>> _testData = [
-    // 测试1: 标准数据
+    // 测试1: 标准数据 - 故意使用假BVID用于测试解析
     {
       'title': '测试视频1',
       'cover': 'https://example.com/cover1.jpg',
       'author': 'UP主1',
       'play': 125000,
       'duration': '10:30',
-      'bvid': 'BV1234567890',
-      'aid': 987654321,
+      'bvid': 'BV1234567890', // 假数据 - 仅用于测试
+      'aid': 987654321, // 假数据 - 仅用于测试
     },
     // 测试2: 时长为数字（可能的问题）
     {
@@ -28,8 +28,8 @@ class _TestParsingPageState extends State<TestParsingPage> {
       'author': 'UP主2',
       'play': 85000,
       'duration': 630, // 10分30秒，以秒数形式
-      'bvid': 'BV0987654321',
-      'aid': 123456789,
+      'bvid': 'BV0987654321', // 假数据 - 仅用于测试
+      'aid': 123456789, // 假数据 - 仅用于测试
     },
     // 测试3: 缺少某些字段
     {
@@ -38,16 +38,16 @@ class _TestParsingPageState extends State<TestParsingPage> {
       'author': '',
       'play': null,
       'duration': null,
-      'bvid': '',
-      'aid': 0,
+      'bvid': '', // 空BVID - 测试边界情况
+      'aid': 0, // 无效AID - 测试边界情况
     },
     // 测试4: 类型混乱（可能导致错误）
     {
-      'title': 12345, // 数字类型的标题
+      'title': 12345, // 数字类型的标题 - 测试类型错误处理
       'cover': null,
-      'author': 67890, // 数字类型的作者
-      'play': '15.5万', // 字符串类型的播放量
-      'duration': [], // 数组类型的时长
+      'author': 67890, // 数字类型的作者 - 测试类型错误处理
+      'play': '15.5万', // 字符串类型的播放量 - 测试类型转换
+      'duration': [], // 数组类型的时长 - 测试类型错误处理
       'bvid': null,
       'aid': '123456789', // 字符串类型的aid
     },
