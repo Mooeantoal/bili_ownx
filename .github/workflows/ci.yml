@@ -62,18 +62,16 @@ jobs:
 
       - name: 配置 Android SDK 许可证
         run: |
-          # 使用脚本创建许可证，指向本地 android-sdk 目录
-          bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
+          # 强制配置许可证，跳过所有交互
+          bash .github/scripts/force-accept-licenses.sh "$PWD/android-sdk"
           
-          # 强制自动确认所有许可证
+          # 设置环境变量
           export ANDROID_HOME="$PWD/android-sdk"
           export ANDROID_SDK_ROOT="$PWD/android-sdk"
+          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
+          export ANDROID_SDK_LICENSES_ACCEPTED=true
           
-          # 预先确认许可证，避免任何交互
-          mkdir -p "$ANDROID_HOME/licenses"
-          echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
-          echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
-          echo "✅ 许可证自动配置完成"
+          echo "✅ 许可证强制配置完成"
 
       - name: 安装 Android SDK 平台和构建工具
         run: |
@@ -83,8 +81,10 @@ jobs:
           mkdir -p $ANDROID_HOME/platforms
           mkdir -p $ANDROID_HOME/build-tools
           
-          # 确保许可证已确认
-          echo "y" | sdkmanager --licenses || true
+ # 确保许可证已确认
+          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
+          export ANDROID_SDK_LICENSES_ACCEPTED=true
+          sdkmanager --licenses || true
           
           # 显示 sdkmanager 版本
           sdkmanager --version || echo "sdkmanager 不可用"
@@ -225,12 +225,14 @@ jobs:
 
       - name: 配置 Android SDK 许可证
         run: |
-          bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
+          # 强制配置许可证，跳过所有交互
+          bash .github/scripts/force-accept-licenses.sh "$PWD/android-sdk"
           
-          # 自动确认许可证
+          # 设置环境变量
           export ANDROID_HOME="$PWD/android-sdk"
           export ANDROID_SDK_ROOT="$PWD/android-sdk"
-          echo "y" | sdkmanager --licenses || true
+          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
+          export ANDROID_SDK_LICENSES_ACCEPTED=true
 
       - name: 安装 Android SDK 组件
         run: |
@@ -335,12 +337,14 @@ jobs:
 
       - name: 配置 Android SDK 许可证
         run: |
-          bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
+          # 强制配置许可证，跳过所有交互
+          bash .github/scripts/force-accept-licenses.sh "$PWD/android-sdk"
           
-          # 自动确认许可证
+          # 设置环境变量
           export ANDROID_HOME="$PWD/android-sdk"
           export ANDROID_SDK_ROOT="$PWD/android-sdk"
-          echo "y" | sdkmanager --licenses || true
+          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
+          export ANDROID_SDK_LICENSES_ACCEPTED=true
       
       - name: 安装 Android SDK 组件
         run: |
@@ -399,12 +403,14 @@ jobs:
 
       - name: 配置 Android SDK 许可证
         run: |
-          bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
+          # 强制配置许可证，跳过所有交互
+          bash .github/scripts/force-accept-licenses.sh "$PWD/android-sdk"
           
-          # 自动确认许可证
+          # 设置环境变量
           export ANDROID_HOME="$PWD/android-sdk"
           export ANDROID_SDK_ROOT="$PWD/android-sdk"
-          echo "y" | sdkmanager --licenses || true
+          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
+          export ANDROID_SDK_LICENSES_ACCEPTED=true
       
       - name: 安装 Android SDK 组件
         run: |
