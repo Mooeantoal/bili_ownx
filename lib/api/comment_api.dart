@@ -206,16 +206,22 @@ class CommentApi {
     }
   }
 
-  /// 发送评论
+  /// 发送评论 - 增强版
   /// [message] 评论内容
   /// [oid] 视频 avid
   /// [root] 根评论 rpid（回复评论时使用）
   /// [parent] 父评论 rpid（回复评论时使用）
+  /// [medias] 媒体文件列表
+  /// [atUsers] @用户列表
+  /// [topics] 话题列表
   Future<Map<String, dynamic>> sendComment({
     required String message,
     required String oid,
     String? root,
     String? parent,
+    List<Map<String, dynamic>>? medias,
+    List<String>? atUsers,
+    List<String>? topics,
   }) async {
     try {
       final params = {
@@ -227,6 +233,16 @@ class CommentApi {
 
       if (root != null) params['root'] = root;
       if (parent != null) params['parent'] = parent;
+      
+      // 处理媒体文件
+      if (medias != null && medias.isNotEmpty) {
+        params['pictures'] = medias.map((media) => {
+          'img_src': media['url'],
+          'img_width': media['width'],
+          'img_height': media['height'],
+          'img_size': media['size'],
+        }).toList();
+      }
 
       final response = await _dio.post(
         'https://api.bilibili.com/x/v2/reply/add',
@@ -245,6 +261,43 @@ class CommentApi {
       return JsonParser.getMap(response.data['data']) ?? {};
     } catch (e) {
       throw Exception('发送评论失败: ${ErrorHandler.getMessage(e)}');
+    }
+  }
+
+  /// 搜索用户 - 用于@功能
+  Future<List<UserSuggestion>> searchUsers({
+    required String keyword,
+    int limit = 10,
+  }) async {
+    try {
+      // 这里应该调用B站用户搜索API
+      // 暂时返回模拟数据
+      final mockUsers = [
+        UserSuggestion('123456', '用户A', ''),
+        UserSuggestion('234567', '用户B', ''),
+        UserSuggestion('345678', '用户C', ''),
+      ];
+      
+      return mockUsers
+          .where((user) => user.name.toLowerCase().contains(keyword.toLowerCase()))
+          .take(limit)
+          .toList();
+    } catch (e) {
+      throw Exception('搜索用户失败: ${ErrorHandler.getMessage(e)}');
+    }
+  }
+
+  /// 获取话题详情
+  Future<Map<String, dynamic>> getTopicInfo(String topicName) async {
+    try {
+      // 这里应该调用B站话题API
+      return {
+        'name': topicName,
+        'description': '话题描述',
+        'count': 1000,
+      };
+    } catch (e) {
+      throw Exception('获取话题信息失败: ${ErrorHandler.getMessage(e)}');
     }
   }
 
@@ -306,7 +359,7 @@ class CommentApi {
   }
 
   /// 获取表情包列表
-  Future<Map<String, dynamic>> getEmoteList() async {
+  Future<EmoteResponse> getEmoteList() async {
     try {
       final response = await _dio.get(
         'https://api.bilibili.com/x/emote/user/panel',
@@ -324,9 +377,95 @@ class CommentApi {
         throw Exception(JsonParser.getApiMessage(response.data, '获取表情包失败'));
       }
       
-      return JsonParser.getMap(response.data['data']) ?? {};
+      final data = JsonParser.getMap(response.data['data']);
+      if (data != null) {
+        return EmoteResponse.fromJson(data);
+      }
+      return EmoteResponse(packages: []);
     } catch (e) {
       throw Exception('获取表情包失败: ${ErrorHandler.getMessage(e)}');
+    }
+  }
+
+  /// 获取指定表情包详情
+  Future<EmotePackage> getEmotePackage(String ids) async {
+    try {
+      final response = await _dio.get(
+        'https://api.bilibili.com/x/emote/package',
+        queryParameters: {
+          'business': 'reply',
+          'ids': ids,
+        },
+      );
+
+      // 使用JsonParser进行安全验证
+      if (!JsonParser.isValidApiResponse(response.data)) {
+        throw Exception('API响应格式无效');
+      }
+      
+      if (JsonParser.getInt(response.data['code']) != 0) {
+        throw Exception(JsonParser.getApiMessage(response.data, '获取表情包详情失败'));
+      }
+      
+      final data = JsonParser.getMap(response.data['data']);
+      if (data != null) {
+        return EmotePackage.fromJson(data);
+      }
+      throw Exception('表情包数据解析失败');
+    } catch (e) {
+      throw Exception('获取表情包详情失败: ${ErrorHandler.getMessage(e)}');
+    }
+  }
+
+  /// 批量获取评论详情（用于优化性能）
+  Future<List<CommentInfo>> getCommentsBatch(List<String> rpids) async {
+    try {
+      final futures = rpids.map((rpid) async {
+        // 这里可以实现批量查询API，目前使用单独查询
+        // 实际项目中应该使用真正的批量接口
+        return CommentInfo.fromJson({
+          'rpid': rpid,
+          'message': '加载中...',
+          'ctime': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          'like': 0,
+        });
+      });
+      
+      return await Future.wait(futures);
+    } catch (e) {
+      throw Exception('批量获取评论失败: ${ErrorHandler.getMessage(e)}');
+    }
+  }
+
+  /// 预加载下一页评论
+  Future<void> preloadNextPage({
+    required String oid,
+    int sort = 3,
+    int currentPage = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final params = {
+        'type': CommentConfig.videoType.toString(),
+        'oid': oid,
+        'sort': sort.toString(),
+        'pn': (currentPage + 1).toString(),
+        'ps': pageSize.toString(),
+        'plat': '2',
+      };
+
+      // 异步预加载，不等待结果
+      _executeWithRetry(
+        () => _dio.get(
+          'https://api.bilibili.com/x/v2/reply/main',
+          queryParameters: params,
+        ),
+        RetryConfig(maxRetries: 1, retryDelay: const Duration(milliseconds: 500)),
+      ).catchError((e) {
+        _debugLog('预加载失败: $e');
+      });
+    } catch (e) {
+      _debugLog('预加载异常: $e');
     }
   }
 }

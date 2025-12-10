@@ -1,6 +1,6 @@
 import '../utils/comment_utils.dart';
 
-/// 评论信息模型
+/// 评论信息模型 - 参考BLVD项目完善
 class CommentInfo {
   final String rpid; // 评论ID
   final String oid; // 视频ID
@@ -18,6 +18,21 @@ class CommentInfo {
   bool isLiked; // 是否已点赞
   final bool isTop; // 是否置顶
   final bool isFloorTop; // 是否楼层置顶
+  
+  // BLVD项目新增字段
+  final int action; // 操作状态 0:无 1:点赞 2:反对
+  final int attr; // 属性位
+  final int assist; // 助攻数
+  final int count; // 总计数（可能是回复计数）
+  final int dialog; // 对话ID
+  final int fansgrade; // 粉丝等级
+  final String rpidStr; // 字符串格式的rpid
+  final String parentStr; // 父评论rpid字符串
+  final String rootStr; // 根评论rpid字符串
+  final bool isUpSelect; // 是否UP主精选
+  final String? location; // 地理位置
+  final String? device; // 发布设备
+  final List<MediaInfo>? medias; // 图片/视频等媒体内容
 
   CommentInfo({
     required this.rpid,
@@ -36,6 +51,20 @@ class CommentInfo {
     this.isLiked = false,
     this.isTop = false,
     this.isFloorTop = false,
+    // 新增字段默认值
+    this.action = 0,
+    this.attr = 0,
+    this.assist = 0,
+    this.count = 0,
+    this.dialog = 0,
+    this.fansgrade = 0,
+    this.rpidStr = '',
+    this.parentStr = '',
+    this.rootStr = '',
+    this.isUpSelect = false,
+    this.location,
+    this.device,
+    this.medias,
   });
 
   /// 获取格式化的时间显示
@@ -65,24 +94,45 @@ class CommentInfo {
   }
 
   factory CommentInfo.fromJson(Map<String, dynamic> json) {
-    // 根据proto定义，使用正确的字段名
+    // 根据BLVD项目的数据结构完善解析
+    final contentData = json['content'];
+    String message = '';
+    if (contentData is Map) {
+      message = contentData['message'] ?? '';
+    } else {
+      message = json['message'] ?? '';
+    }
+    
+    // 确保获取正确的层级关系字段
+    final parent = json['parent'] ?? 0;
+    final root = json['root'] ?? 0;
+    final parentStr = json['parent_str']?.toString() ?? parent.toString();
+    final rootStr = json['root_str']?.toString() ?? root.toString();
+    
     return CommentInfo(
       rpid: json['rpid']?.toString() ?? json['id']?.toString() ?? '',
+      rpidStr: json['rpid_str']?.toString() ?? json['rpid'].toString(),
       oid: json['oid']?.toString() ?? '',
       type: json['type'] ?? 1,
       mid: json['mid']?.toString() ?? '',
-      message: json['content'] is Map 
-          ? json['content']['message'] ?? '' 
-          : json['message'] ?? '',
+      message: message,
       like: json['like'] ?? 0,
       dislike: json['dislike'] ?? 0,
       replyCount: json['rcount'] ?? json['reply_count'] ?? json['count'] ?? 0,
       createTime: json['ctime'] ?? 0,
+      action: json['action'] ?? 0,
+      attr: json['attr'] ?? 0,
+      assist: json['assist'] ?? 0,
+      count: json['count'] ?? 0,
+      dialog: json['dialog'] ?? 0,
+      fansgrade: json['fansgrade'] ?? 0,
+      parentStr: parentStr,
+      rootStr: rootStr,
       user: json['member'] is Map 
           ? UserInfo.fromJson(json['member']) 
           : null,
-      content: json['content'] is Map 
-          ? ContentInfo.fromJson(json['content']) 
+      content: contentData is Map 
+          ? ContentInfo.fromJson(contentData) 
           : null,
       replyControl: json['reply_control'] is Map 
           ? ReplyControl.fromJson(json['reply_control']) 
@@ -90,12 +140,58 @@ class CommentInfo {
       replies: json['replies'] is List
           ? (json['replies'] as List)
               .whereType<Map<String, dynamic>>()
-              .map(CommentInfo.fromJson)
+              .map((replyJson) {
+                // 确保子评论的父子关系正确
+                final reply = CommentInfo.fromJson(replyJson);
+                // 如果子评论没有正确的root，设置为当前评论的rpid
+                if (reply.rootStr.isEmpty) {
+                  return CommentInfo(
+                    rpid: reply.rpid,
+                    rpidStr: reply.rpidStr,
+                    oid: reply.oid,
+                    type: reply.type,
+                    mid: reply.mid,
+                    message: reply.message,
+                    like: reply.like,
+                    dislike: reply.dislike,
+                    replyCount: reply.replyCount,
+                    createTime: reply.createTime,
+                    action: reply.action,
+                    attr: reply.attr,
+                    assist: reply.assist,
+                    count: reply.count,
+                    dialog: reply.dialog,
+                    fansgrade: reply.fansgrade,
+                    parentStr: reply.parentStr.isEmpty ? json['rpid'].toString() : reply.parentStr,
+                    rootStr: reply.rootStr.isEmpty ? json['rpid'].toString() : reply.rootStr,
+                    user: reply.user,
+                    content: reply.content,
+                    replyControl: reply.replyControl,
+                    replies: reply.replies,
+                    medias: reply.medias,
+                    isLiked: reply.isLiked,
+                    isTop: reply.isTop,
+                    isFloorTop: reply.isFloorTop,
+                    isUpSelect: reply.isUpSelect,
+                    location: reply.location,
+                    device: reply.device,
+                  );
+                }
+                return reply;
+              }).toList()
+          : null,
+      medias: json['medias'] is List
+          ? (json['medias'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(MediaInfo.fromJson)
               .toList()
           : null,
       isLiked: json['action'] == 1,
       isTop: json['is_top'] == 1,
       isFloorTop: json['is_floor_top'] == 1,
+      isUpSelect: json['is_up_select'] == 1,
+      location: json['location'],
+      device: contentData is Map ? contentData['device'] : null,
     );
   }
 
@@ -123,15 +219,18 @@ class CommentInfo {
   }
 }
 
-/// 用户信息
+/// 用户信息 - 参考BLVD项目完善
 class UserInfo {
   final String mid; // 用户ID
   final String uname; // 用户名
   final String face; // 头像URL
   final int level; // 用户等级
-  final String? official; // 认证信息
-  final String? vipStatus; // VIP状态
-  final Sign? sign; // 签名信息
+  final OfficialInfo? official; // 认证信息
+  final VipInfo? vip; // VIP信息
+  final String? sign; // 个性签名
+  final PendantInfo? pendant; // 头像挂件
+  final NameplateInfo? nameplate; // 勋章
+  final bool isSenior; // 是否硬核会员
 
   UserInfo({
     required this.mid,
@@ -139,8 +238,11 @@ class UserInfo {
     required this.face,
     required this.level,
     this.official,
-    this.vipStatus,
+    this.vip,
     this.sign,
+    this.pendant,
+    this.nameplate,
+    this.isSenior = false,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
@@ -149,9 +251,20 @@ class UserInfo {
       uname: json['uname'] ?? '',
       face: json['face'] ?? '',
       level: json['level'] ?? 0,
-      official: json['official'] is Map ? json['official']['title'] : null,
-      vipStatus: json['vip'] is Map ? json['vip']['status']?.toString() : null,
-      sign: json['sign'] is Map ? Sign.fromJson(json['sign']) : null,
+      official: json['official'] is Map 
+          ? OfficialInfo.fromJson(json['official']) 
+          : null,
+      vip: json['vip'] is Map 
+          ? VipInfo.fromJson(json['vip']) 
+          : null,
+      sign: json['sign'],
+      pendant: json['pendant'] is Map 
+          ? PendantInfo.fromJson(json['pendant']) 
+          : null,
+      nameplate: json['nameplate'] is Map 
+          ? NameplateInfo.fromJson(json['nameplate']) 
+          : null,
+      isSenior: json['is_senior'] ?? false,
     );
   }
 
@@ -161,31 +274,203 @@ class UserInfo {
       'uname': uname,
       'face': face,
       'level': level,
-      'official': official != null ? {'title': official} : null,
-      'vip': vipStatus != null ? {'status': int.parse(vipStatus!)} : null,
-      'sign': sign?.toJson(),
+      'official': official?.toJson(),
+      'vip': vip?.toJson(),
+      'sign': sign,
+      'pendant': pendant?.toJson(),
+      'nameplate': nameplate?.toJson(),
+      'is_senior': isSenior,
     };
   }
 }
 
-/// 用户签名
-class Sign {
-  final String url; // 签名链接
-  final String text; // 签名文本
+/// 认证信息
+class OfficialInfo {
+  final int role; // 认证角色
+  final String title; // 认证标题
+  final String desc; // 认证描述
+  final int type; // 认证类型
 
-  Sign({required this.url, required this.text});
+  OfficialInfo({
+    required this.role,
+    required this.title,
+    required this.desc,
+    required this.type,
+  });
 
-  factory Sign.fromJson(Map<String, dynamic> json) {
-    return Sign(
-      url: json['url'] ?? '',
-      text: json['text'] ?? '',
+  factory OfficialInfo.fromJson(Map<String, dynamic> json) {
+    return OfficialInfo(
+      role: json['role'] ?? 0,
+      title: json['title'] ?? '',
+      desc: json['desc'] ?? '',
+      type: json['type'] ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'url': url,
+      'role': role,
+      'title': title,
+      'desc': desc,
+      'type': type,
+    };
+  }
+}
+
+/// VIP信息
+class VipInfo {
+  final int type; // VIP类型
+  final int status; // VIP状态
+  final int dueDate; // 到期时间
+  final int vipPayType; // 付费类型
+  final String themeType; // 主题类型
+  final VipLabel? label; // VIP标签
+
+  VipInfo({
+    required this.type,
+    required this.status,
+    required this.dueDate,
+    required this.vipPayType,
+    required this.themeType,
+    this.label,
+  });
+
+  factory VipInfo.fromJson(Map<String, dynamic> json) {
+    return VipInfo(
+      type: json['type'] ?? 0,
+      status: json['status'] ?? 0,
+      dueDate: json['due_date'] ?? 0,
+      vipPayType: json['vip_pay_type'] ?? 0,
+      themeType: json['theme_type'] ?? '',
+      label: json['label'] is Map 
+          ? VipLabel.fromJson(json['label']) 
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'status': status,
+      'due_date': dueDate,
+      'vip_pay_type': vipPayType,
+      'theme_type': themeType,
+      'label': label?.toJson(),
+    };
+  }
+}
+
+/// VIP标签
+class VipLabel {
+  final String path; // 标签路径
+  final String text; // 标签文本
+  final String labelTheme; // 标签主题
+  final String textColor; // 文字颜色
+  final String bgColor; // 背景色
+  final int borderColor; // 边框色
+
+  VipLabel({
+    required this.path,
+    required this.text,
+    required this.labelTheme,
+    required this.textColor,
+    required this.bgColor,
+    required this.borderColor,
+  });
+
+  factory VipLabel.fromJson(Map<String, dynamic> json) {
+    return VipLabel(
+      path: json['path'] ?? '',
+      text: json['text'] ?? '',
+      labelTheme: json['label_theme'] ?? '',
+      textColor: json['text_color'] ?? '',
+      bgColor: json['bg_color'] ?? '',
+      borderColor: json['border_color'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'path': path,
       'text': text,
+      'label_theme': labelTheme,
+      'text_color': textColor,
+      'bg_color': bgColor,
+      'border_color': borderColor,
+    };
+  }
+}
+
+/// 头像挂件信息
+class PendantInfo {
+  final int pid; // 挂件ID
+  final String name; // 挂件名称
+  final String image; // 挂件图片
+  final int expire; // 过期时间
+
+  PendantInfo({
+    required this.pid,
+    required this.name,
+    required this.image,
+    required this.expire,
+  });
+
+  factory PendantInfo.fromJson(Map<String, dynamic> json) {
+    return PendantInfo(
+      pid: json['pid'] ?? 0,
+      name: json['name'] ?? '',
+      image: json['image'] ?? '',
+      expire: json['expire'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'pid': pid,
+      'name': name,
+      'image': image,
+      'expire': expire,
+    };
+  }
+}
+
+/// 勋章信息
+class NameplateInfo {
+  final int nid; // 勋章ID
+  final String name; // 勋章名称
+  final String image; // 勋章图片
+  final String imageSmall; // 小图片
+  final String level; // 等级
+  final String condition; // 获得条件
+
+  NameplateInfo({
+    required this.nid,
+    required this.name,
+    required this.image,
+    required this.imageSmall,
+    required this.level,
+    required this.condition,
+  });
+
+  factory NameplateInfo.fromJson(Map<String, dynamic> json) {
+    return NameplateInfo(
+      nid: json['nid'] ?? 0,
+      name: json['name'] ?? '',
+      image: json['image'] ?? '',
+      imageSmall: json['image_small'] ?? '',
+      level: json['level'] ?? '',
+      condition: json['condition'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'nid': nid,
+      'name': name,
+      'image': image,
+      'image_small': imageSmall,
+      'level': level,
+      'condition': condition,
     };
   }
 }
@@ -529,5 +814,236 @@ class Cursor {
       allCount: json['all_count'] is int ? json['all_count'] : 0,
       isEnd: json['is_end'] is int ? json['is_end'] : 0,
     );
+  }
+}
+
+/// 媒体信息（图片/视频等）
+class MediaInfo {
+  final String type; // 媒体类型 image/video
+  final String url; // 媒体URL
+  final int width; // 宽度
+  final int height; // 高度
+  final String? thumbnail; // 缩略图URL
+  final String? description; // 描述
+  final int size; // 文件大小
+
+  MediaInfo({
+    required this.type,
+    required this.url,
+    required this.width,
+    required this.height,
+    this.thumbnail,
+    this.description,
+    this.size = 0,
+  });
+
+  factory MediaInfo.fromJson(Map<String, dynamic> json) {
+    return MediaInfo(
+      type: json['type'] ?? 'image',
+      url: json['url'] ?? '',
+      width: json['width'] ?? 0,
+      height: json['height'] ?? 0,
+      thumbnail: json['thumbnail'],
+      description: json['description'],
+      size: json['size'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'url': url,
+      'width': width,
+      'height': height,
+      'thumbnail': thumbnail,
+      'description': description,
+      'size': size,
+    };
+  }
+}
+
+/// 用户建议 - 用于@功能
+class UserSuggestion {
+  final String uid;
+  final String name;
+  final String avatar;
+
+  UserSuggestion(this.uid, this.name, this.avatar);
+
+  factory UserSuggestion.fromJson(Map<String, dynamic> json) {
+    return UserSuggestion(
+      json['uid']?.toString() ?? '',
+      json['name'] ?? '',
+      json['avatar'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'uid': uid,
+      'name': name,
+      'avatar': avatar,
+    };
+  }
+}
+
+/// 表情包响应
+class EmoteResponse {
+  final List<EmotePackage> packages;
+  final List<EmoteItem> emotes;
+  final List<EmoteItem> stickies;
+
+  EmoteResponse({
+    required this.packages,
+    required this.emotes,
+    required this.stickies,
+  });
+
+  factory EmoteResponse.fromJson(Map<String, dynamic> json) {
+    final packages = (json['packages'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(EmotePackage.fromJson)
+        .toList();
+
+    final emotes = (json['emote'] as Map? ?? {})
+        .values
+        .whereType<Map<String, dynamic>>()
+        .map(EmoteItem.fromJson)
+        .toList();
+
+    final stickies = (json['stickies'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(EmoteItem.fromJson)
+        .toList();
+
+    return EmoteResponse(
+      packages: packages,
+      emotes: emotes,
+      stickies: stickies,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'packages': packages.map((e) => e.toJson()).toList(),
+      'emote': Map.fromEntries(emotes.map((e) => MapEntry(e.id, e.toJson()))),
+      'stickies': stickies.map((e) => e.toJson()).toList(),
+    };
+  }
+}
+
+/// 表情包
+class EmotePackage {
+  final int id;
+  final String text;
+  final String url;
+  final String msize;
+  final List<EmoteItem> emotes;
+  final int type;
+  final bool active;
+  final int attr;
+  final String packageName;
+  final int packageId;
+
+  EmotePackage({
+    required this.id,
+    required this.text,
+    required this.url,
+    required this.msize,
+    required this.emotes,
+    required this.type,
+    required this.active,
+    required this.attr,
+    required this.packageName,
+    required this.packageId,
+  });
+
+  factory EmotePackage.fromJson(Map<String, dynamic> json) {
+    final emotes = (json['emote'] as Map? ?? {})
+        .values
+        .whereType<Map<String, dynamic>>()
+        .map(EmoteItem.fromJson)
+        .toList();
+
+    return EmotePackage(
+      id: json['id'] ?? 0,
+      text: json['text'] ?? '',
+      url: json['url'] ?? '',
+      msize: json['msize'] ?? '',
+      emotes: emotes,
+      type: json['type'] ?? 0,
+      active: json['active'] ?? false,
+      attr: json['attr'] ?? 0,
+      packageName: json['package_name'] ?? '',
+      packageId: json['package_id'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'url': url,
+      'msize': msize,
+      'emote': Map.fromEntries(emotes.map((e) => MapEntry(e.id, e.toJson()))),
+      'type': type,
+      'active': active,
+      'attr': attr,
+      'package_name': packageName,
+      'package_id': packageId,
+    };
+  }
+}
+
+/// 表情项
+class EmoteItem {
+  final String id;
+  final String text;
+  final String url;
+  final int size;
+  final int width;
+  final int height;
+  final String? mtime;
+  final int type;
+  final bool meta;
+
+  EmoteItem({
+    required this.id,
+    required this.text,
+    required this.url,
+    required this.size,
+    required this.width,
+    required this.height,
+    this.mtime,
+    required this.type,
+    required this.meta,
+  });
+
+  factory EmoteItem.fromJson(Map<String, dynamic> json) {
+    return EmoteItem(
+      id: json['id']?.toString() ?? '',
+      text: json['text'] ?? '',
+      url: json['url'] ?? '',
+      size: json['size'] ?? 1,
+      width: json['width'] ?? 0,
+      height: json['height'] ?? 0,
+      mtime: json['mtime'],
+      type: json['type'] ?? 0,
+      meta: json['meta'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'url': url,
+      'size': size,
+      'width': width,
+      'height': height,
+      'mtime': mtime,
+      'type': type,
+      'meta': meta,
+    };
   }
 }
