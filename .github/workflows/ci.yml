@@ -72,7 +72,7 @@ jobs:
           rm -rf $ANDROID_HOME/platforms/android-35
           
           yes | sdkmanager --licenses
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
