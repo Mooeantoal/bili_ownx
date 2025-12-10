@@ -41,8 +41,8 @@ class _RecommendPageState extends State<RecommendPage>
       
       final demoData = [
         BiliVideoInfo(
-          bvid: 'BV1234567890',
-          aid: '123456789',
+          bvid: 'BV1uS4y1U7UF',
+          aid: '850361975',
           title: '【官方MV】new boy - 房东的猫，陪你从1999唱到2024，经典重现',
           author: '房东的猫',
           cover: 'https://i2.hdslb.com/bfs/archive/b7c6b8e9c3e5d4a8f9a3b2c1d6e5f4a3b2c1d6e5.jpg',
@@ -53,8 +53,8 @@ class _RecommendPageState extends State<RecommendPage>
           cid: 279786,
         ),
         BiliVideoInfo(
-          bvid: 'BV0987654321',
-          aid: '987654321',
+          bvid: 'BV1GJ411x7h7',
+          aid: '948494651',
           title: '【技术分享】Flutter开发技巧：如何构建高性能的应用界面',
           author: 'Flutter开发者',
           cover: 'https://i1.hdslb.com/bfs/archive/c8d7a9f2e4b5d3a9f4b2c1d6e5f4a3b2c1d6e5.jpg',
@@ -65,8 +65,8 @@ class _RecommendPageState extends State<RecommendPage>
           cid: 197726,
         ),
         BiliVideoInfo(
-          bvid: 'BV1357924680',
-          aid: '135792468',
+          bvid: 'BV1qJ41187rp',
+          aid: '892248046',
           title: '【美食制作】超详细的麻婆豆腐做法，正宗川菜教程',
           author: '川菜大师',
           cover: 'https://i3.hdslb.com/bfs/archive/d9e8b0f3c5e6d4a9f5b2c1d6e5f4a3b2c1d6e5.jpg',
@@ -77,8 +77,8 @@ class _RecommendPageState extends State<RecommendPage>
           cid: 345678,
         ),
         BiliVideoInfo(
-          bvid: 'BV2468013579',
-          aid: '246801357',
+          bvid: 'BV1BK4y1C7hb',
+          aid: '801831945',
           title: '【游戏实况】独立游戏新作体验，这剧情让人震撼',
           author: '游戏博主',
           cover: 'https://i0.hdslb.com/bfs/archive/e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f.jpg',
@@ -89,8 +89,8 @@ class _RecommendPageState extends State<RecommendPage>
           cid: 456789,
         ),
         BiliVideoInfo(
-          bvid: 'BV1357924680',
-          aid: '135792468',
+          bvid: 'BV1GJ411x7h7',
+          aid: '948494651',
           title: '【学习笔记】数据结构与算法，面试必备知识点',
           author: '编程老师',
           cover: 'https://i1.hdslb.com/bfs/archive/f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a.jpg',

@@ -83,6 +83,27 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
     super.dispose();
   }
 
+  /// 验证视频ID格式
+  bool _validateVideoIds() {
+    // 验证BVID格式
+    if (widget.bvid.isNotEmpty) {
+      // BVID格式验证: BV + 10位字符
+      if (!RegExp(r'^BV[a-zA-Z0-9]{10}$').hasMatch(widget.bvid)) {
+        return false;
+      }
+    }
+    
+    // 验证AID格式
+    if (widget.aid != null) {
+      // AID应该是正整数且在合理范围内
+      if (widget.aid! <= 0 || widget.aid! > 9999999999) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   /// 加载视频信息
   Future<void> _loadVideoInfo() async {
     // 参数验证
@@ -107,6 +128,32 @@ AID: ${widget.aid}
 3. 视频已被删除或不可访问
 
 请尝试重新搜索或选择其他视频。''',
+        );
+      });
+      return;
+    }
+
+    // 格式验证
+    if (!_validateVideoIds()) {
+      setState(() {
+        _errorMessage = '参数错误: 视频ID格式无效';
+        _isLoading = false;
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ErrorHandler.showErrorDialog(
+          context: context,
+          title: '格式错误',
+          error: '视频ID格式无效',
+          stackTrace: StackTrace.current.toString(),
+          additionalInfo: '''BVID: "${widget.bvid}"
+AID: ${widget.aid}
+
+格式要求:
+- BVID: BV + 10位字母数字组合 (如: BV1GJ411x7h7)
+- AID: 正整数且小于100亿
+
+请检查视频数据来源，可能使用了测试数据。''',
         );
       });
       return;
