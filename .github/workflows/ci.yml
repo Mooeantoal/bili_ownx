@@ -73,15 +73,30 @@ jobs:
           
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: 修复 Android SDK Platform 35 路径
+        run: |
+          echo "检查 Android SDK Platform 35 安装路径..."
+          ls -la $ANDROID_HOME/platforms/ | grep android-35 || true
           
-          echo "Fixing Android SDK Platform 35 directory path..."
+          # 等待安装完成
+          sleep 5
+          
           # 修复Android 35安装路径问题
           if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+            echo "发现 android-35-2 目录，正在重命名为 android-35..."
             mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+            echo "✅ 路径修复完成"
+          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "✅ android-35 目录已存在，无需修复"
+          else
+            echo "❌ 未发现 android-35 或 android-35-2 目录"
+            ls -la $ANDROID_HOME/platforms/
           fi
           
-          echo "Verifying Android 35 installation..."
-          ls -la $ANDROID_HOME/platforms/android-35 || true
+          # 验证修复结果
+          echo "验证 Android 35 安装..."
+          ls -la $ANDROID_HOME/platforms/android-35 && echo "✅ Android 35 路径验证成功" || echo "❌ android-35 目录不存在"
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
