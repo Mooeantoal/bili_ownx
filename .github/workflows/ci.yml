@@ -81,7 +81,7 @@ jobs:
           mkdir -p $ANDROID_HOME/platforms
           mkdir -p $ANDROID_HOME/build-tools
           
- # 确保许可证已确认
+          # 确保许可证已确认
           export ANDROID_SDKMANAGER_ALLOW_PRE25=true
           export ANDROID_SDK_LICENSES_ACCEPTED=true
           sdkmanager --licenses || true
