@@ -15,19 +15,45 @@ class PopularVideoCard extends StatelessWidget {
   final String? heroTag;
   final VoidCallback onTap;
 
+  /// 计算响应式尺寸
+  static double getCardHeight(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return 90;  // 小屏幕
+    if (screenWidth < 400) return 95;  // 中等屏幕
+    return 100; // 大屏幕
+  }
+
+  static double getCoverWidth(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth < 360) return 120;  // 小屏幕
+    if (screenWidth < 400) return 130;  // 中等屏幕
+    return 140; // 大屏幕
+  }
+
+  static double getCoverHeight(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (screenHeight < 640) return 75;  // 小屏幕
+    if (screenHeight < 800) return 82;  // 中等屏幕
+    return 90; // 大屏幕
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cardHeight = getCardHeight(context);
+    final coverWidth = getCoverWidth(context);
+    final coverHeight = getCoverHeight(context);
+    
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: SizedBox(
-        height: 90, // 完全匹配bili_you的高度
+        height: cardHeight,
         child: Row(
           children: [
-            // 封面区域 - 160x100
+            // 封面区域 - 响应式尺寸
             SizedBox(
-              width: 160,
-              height: 100,
+              width: coverWidth,
+              height: coverHeight,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(5),
                 child: Stack(
@@ -63,52 +89,67 @@ class PopularVideoCard extends StatelessWidget {
             // 信息区域
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(left: 8, right: 8),
+                padding: const EdgeInsets.only(left: 8, right: 8, top: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // 防止溢出
                   children: [
-                    // 标题
-                    Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    // 标题 - 使用Flexible防止溢出
+                    Flexible(
+                      child: Text(
+                        video.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13),
+                      ),
                     ),
                     
-                    const Spacer(),
+                    const SizedBox(height: 2), // 减小间距
                     
                     // UP主名称
                     Text(
                       video.author,
                       style: TextStyle(
-                        fontSize: 12, 
+                        fontSize: 11, 
                         color: Theme.of(context).hintColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     
-                    // 播放信息和时间
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.slideshow_rounded,
-                          size: 14, 
-                          color: Theme.of(context).hintColor,
-                        ),
-                        Text(
-                          StringFormatUtils.formatPlayCount(video.play),
-                          style: TextStyle(
-                            fontSize: 12, 
+                    const SizedBox(height: 2),
+                    
+                    // 播放信息和时间 - 使用Expanded防止溢出
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.slideshow_rounded,
+                            size: 12, // 减小图标尺寸
                             color: Theme.of(context).hintColor,
                           ),
-                        ),
-                        const Text("  "),
-                        Text(
-                          StringFormatUtils.formatTimestampToRelative(video.pubdate),
-                          style: TextStyle(
-                            fontSize: 12, 
-                            color: Theme.of(context).hintColor,
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              StringFormatUtils.formatPlayCount(video.play),
+                              style: TextStyle(
+                                fontSize: 11, 
+                                color: Theme.of(context).hintColor,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                          const Text("  "),
+                          Text(
+                            StringFormatUtils.formatTimestampToRelative(video.pubdate),
+                            style: TextStyle(
+                              fontSize: 11, 
+                              color: Theme.of(context).hintColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -121,10 +162,13 @@ class PopularVideoCard extends StatelessWidget {
   }
 
   Widget _buildImageWidget(BuildContext context) {
+    final coverWidth = getCoverWidth(context);
+    final coverHeight = getCoverHeight(context);
+    
     Widget imageWidget = Image.network(
       video.cover,
-      width: 160,
-      height: 100,
+      width: coverWidth,
+      height: coverHeight,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return Container(

@@ -488,6 +488,7 @@ class _SearchPageState extends State<SearchPage> {
         }
 
         return NetworkListView(
+          padding: const EdgeInsets.symmetric(vertical: 4), // 添加垂直内边距
           children: _searchResults.map((video) => _buildVideoCard(video)).toList(),
         );
       },
