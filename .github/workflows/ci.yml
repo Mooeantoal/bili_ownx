@@ -47,17 +47,25 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: 安装 Android SDK 基础组件
+        run: |
+          # 下载并安装 Android SDK 命令行工具
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mkdir -p $PWD/android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* $PWD/android-sdk/cmdline-tools/latest/
+          
+          # 设置环境变量
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_PATH
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
       - name: 配置 Android SDK 许可证
         run: |
           # 使用脚本创建许可证，指向本地 android-sdk 目录
           bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
           
-          # 设置环境变量指向工作目录
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          
-          # 强制自动确认所有许可证（多重保险）
+          # 强制自动确认所有许可证
           export ANDROID_HOME="$PWD/android-sdk"
           export ANDROID_SDK_ROOT="$PWD/android-sdk"
           
@@ -67,14 +75,7 @@ jobs:
           echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
           echo "✅ 许可证自动配置完成"
 
-      - name: 手动设置 Android SDK 路径
-        run: |
-          echo "设置 Android SDK 环境变量..."
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-
-      - name: 安装 Android SDK 组件
+      - name: 安装 Android SDK 平台和构建工具
         run: |
           echo "Debugging: Listing platforms directory before cleanup"
           ls -la $ANDROID_HOME/platforms || true
@@ -176,14 +177,32 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 安装 Android SDK 基础组件
+        run: |
+          # 下载并安装 Android SDK 命令行工具
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mkdir -p $PWD/android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* $PWD/android-sdk/cmdline-tools/latest/
+          
+          # 设置环境变量
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
       - name: 配置 Android SDK 许可证
         run: |
           bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
           
-          # 设置环境变量指向工作目录
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          # 自动确认许可证
+          export ANDROID_HOME="$PWD/android-sdk"
+          export ANDROID_SDK_ROOT="$PWD/android-sdk"
+          echo "y" | sdkmanager --licenses || true
+
+      - name: 安装 Android SDK 组件
+        run: |
+          # 安装所需组件
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: 设置 Java
         uses: actions/setup-java@v4
@@ -258,13 +277,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: 安装 Android SDK 基础组件
+        run: |
+          # 下载并安装 Android SDK 命令行工具
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mkdir -p $PWD/android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* $PWD/android-sdk/cmdline-tools/latest/
+          
+          # 设置环境变量
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
       - name: 配置 Android SDK 许可证
         run: |
           bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
           
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          # 自动确认许可证
+          export ANDROID_HOME="$PWD/android-sdk"
+          export ANDROID_SDK_ROOT="$PWD/android-sdk"
+          echo "y" | sdkmanager --licenses || true
+      
+      - name: 安装 Android SDK 组件
+        run: |
+          # 安装所需组件
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
       
       - uses: actions/setup-java@v4
         with:
@@ -293,13 +331,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: 安装 Android SDK 基础组件
+        run: |
+          # 下载并安装 Android SDK 命令行工具
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q commandlinetools-linux-11076708_latest.zip
+          mkdir -p $PWD/android-sdk/cmdline-tools/latest
+          mv cmdline-tools/* $PWD/android-sdk/cmdline-tools/latest/
+          
+          # 设置环境变量
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+
       - name: 配置 Android SDK 许可证
         run: |
           bash .github/scripts/setup-android-licenses.sh "$PWD/android-sdk"
           
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          # 自动确认许可证
+          export ANDROID_HOME="$PWD/android-sdk"
+          export ANDROID_SDK_ROOT="$PWD/android-sdk"
+          echo "y" | sdkmanager --licenses || true
+      
+      - name: 安装 Android SDK 组件
+        run: |
+          # 安装所需组件
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
       
       - uses: actions/setup-java@v4
         with:
