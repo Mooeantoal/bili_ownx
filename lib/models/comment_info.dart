@@ -129,13 +129,13 @@ class CommentInfo {
       parentStr: parentStr,
       rootStr: rootStr,
       user: json['member'] is Map 
-          ? UserInfo.fromJson(json['member']) 
+          ? UserInfo.fromJson(Map<String, dynamic>.from(json['member'])) 
           : null,
       content: contentData is Map 
-          ? ContentInfo.fromJson(contentData) 
+          ? ContentInfo.fromJson(Map<String, dynamic>.from(contentData)) 
           : null,
       replyControl: json['reply_control'] is Map 
-          ? ReplyControl.fromJson(json['reply_control']) 
+          ? ReplyControl.fromJson(Map<String, dynamic>.from(json['reply_control'])) 
           : null,
       replies: json['replies'] is List
           ? (json['replies'] as List)

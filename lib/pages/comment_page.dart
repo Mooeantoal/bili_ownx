@@ -361,7 +361,7 @@ class _CommentPageState extends State<CommentPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('评论 (${_commentResponse?.totalCount ?? 0})'),
+        title: Text('评论 (${_commentResponse?['total'] ?? _commentResponse?['count'] ?? 0})'),
         bottom: TabBar(
           controller: _tabController,
           onTap: (index) {
