@@ -35,7 +35,7 @@ class _CommentPageState extends State<CommentPage>
   late TabController _tabController;
   late NetworkStatusListener _networkListener;
   
-  CommentResponse? _commentResponse;
+  Map<String, dynamic>? _commentResponse;
   List<CommentInfo> _comments = [];
   int _currentSort = 0; // 0:热门 1:最新 2:最热
   int _currentPage = 1;
@@ -128,15 +128,21 @@ class _CommentPageState extends State<CommentPage>
       );
 
       if (mounted) {
+        final comments = response['replies'] as List<dynamic>? ?? [];
+        final parsedComments = comments
+            .whereType<Map<String, dynamic>>()
+            .map((json) => CommentInfo.fromJson(json))
+            .toList();
+            
         setState(() {
           if (refresh) {
-            _comments = response.comments;
+            _comments = parsedComments;
           } else {
-            _comments.addAll(response.comments);
+            _comments.addAll(parsedComments);
           }
 
           _commentResponse = response;
-          _hasMore = response.comments.length >= 20;
+          _hasMore = parsedComments.length >= 20;
           _currentPage++;
           _isLoading = false;
           _isLoadingMore = false;
@@ -181,8 +187,14 @@ class _CommentPageState extends State<CommentPage>
       );
 
       if (mounted) {
+        final replies = response['replies'] as List<dynamic>? ?? [];
+        final parsedReplies = replies
+            .whereType<Map<String, dynamic>>()
+            .map((json) => CommentInfo.fromJson(json))
+            .toList();
+            
         setState(() {
-          _replyCache[comment.rpid] = response.replies;
+          _replyCache[comment.rpid] = parsedReplies;
           _replyLoading[comment.rpid] = false;
         });
       }
@@ -965,9 +977,15 @@ class _RepliesDialogState extends State<RepliesDialog> {
         pageNum: _currentPage,
       );
 
+      final replies = response['replies'] as List<dynamic>? ?? [];
+      final parsedReplies = replies
+          .whereType<Map<String, dynamic>>()
+          .map((json) => CommentInfo.fromJson(json))
+          .toList();
+          
       setState(() {
-        _replies.addAll(response.replies);
-        _hasMore = response.replies.length >= 10;
+        _replies.addAll(parsedReplies);
+        _hasMore = parsedReplies.length >= 10;
         _currentPage++;
         _isLoading = false;
       });

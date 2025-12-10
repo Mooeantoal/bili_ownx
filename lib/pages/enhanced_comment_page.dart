@@ -377,7 +377,7 @@ class _EnhancedCommentPageState extends State<EnhancedCommentPage>
 
   Widget _buildCommentList(CommentStateService commentState) {
     return RefreshIndicator(
-      onRefresh: _refreshComments,
+      onRefresh: () async => _refreshComments(),
       child: AnimatedList(
         key: _listKey,
         initialItemCount: commentState.comments.length + (commentState.hasMore ? 1 : 0),

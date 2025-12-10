@@ -42,7 +42,7 @@ class CommentService {
 
   /// 保存已点赞的评论列表
   Future<void> saveLikedComment(String commentId, bool isLiked) async {
-    final likedComments = getLikedComments();
+    final likedComments = getLikedComments().toList();
     if (isLiked) {
       likedComments.add(commentId);
     } else {
