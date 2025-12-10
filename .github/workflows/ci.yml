@@ -56,12 +56,23 @@ jobs:
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          
+          # 强制自动确认所有许可证（多重保险）
+          export ANDROID_HOME="$PWD/android-sdk"
+          export ANDROID_SDK_ROOT="$PWD/android-sdk"
+          
+          # 预先确认许可证，避免任何交互
+          mkdir -p "$ANDROID_HOME/licenses"
+          echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
+          echo "y" | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
+          echo "✅ 许可证自动配置完成"
 
-      - name: 使用传统 Android SDK 设置
-        uses: android-actions/setup-android@v3
-        with:
-          # 不使用自动许可证接受，手动处理
-          cmdline-tools-version: '11076708'
+      - name: 手动设置 Android SDK 路径
+        run: |
+          echo "设置 Android SDK 环境变量..."
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
       - name: 安装 Android SDK 组件
         run: |
@@ -71,7 +82,12 @@ jobs:
           echo "Force removing android-35 to ensure clean install..."
           rm -rf $ANDROID_HOME/platforms/android-35*
           
-          yes | sdkmanager --licenses
+          # 自动确认所有许可证，避免交互
+          echo "y" | sdkmanager --licenses || true
+          echo "y" | sdkmanager --licenses || true
+          echo "y" | sdkmanager --licenses || true
+          
+          # 安装所需组件
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: 修复 Android SDK Platform 35 路径
