@@ -66,6 +66,11 @@ jobs:
       - name: 安装 Android SDK 组件
         run: |
           yes | sdkmanager --licenses
+          # Remove existing directory to prevent sdkmanager from installing to android-35-2
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "Deleting existing incompatible android-35..."
+            rm -rf "$ANDROID_HOME/platforms/android-35"
+          fi
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: 设置 Flutter
