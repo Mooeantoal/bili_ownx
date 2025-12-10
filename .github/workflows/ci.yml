@@ -69,10 +69,19 @@ jobs:
           ls -la $ANDROID_HOME/platforms || true
           
           echo "Force removing android-35 to ensure clean install..."
-          rm -rf $ANDROID_HOME/platforms/android-35
+          rm -rf $ANDROID_HOME/platforms/android-35*
           
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          
+          echo "Fixing Android SDK Platform 35 directory path..."
+          # 修复Android 35安装路径问题
+          if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+            mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+          fi
+          
+          echo "Verifying Android 35 installation..."
+          ls -la $ANDROID_HOME/platforms/android-35 || true
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
