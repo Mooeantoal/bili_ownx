@@ -99,7 +99,8 @@ if [ -d "$SDK_PATH/cmdline-tools/latest/bin" ]; then
     
     # 尝试使用 --licenses 命令预先接受许可证
     if command -v sdkmanager >/dev/null 2>&1; then
-        echo "y" | sdkmanager --licenses 2>/dev/null || true
+        # 生成多个 'y' 确保覆盖所有许可证
+        printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --licenses 2>/dev/null || true
         echo "✅ 许可证预接受完成"
     else
         echo "⚠️ sdkmanager 不可用，跳过预接受"

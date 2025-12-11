@@ -54,18 +54,35 @@ jobs:
 
       - name: 安装 Android SDK 组件
         run: |
-          # 使用更简单直接的安装方法
+          # 使用更强制的许可证接受方法
           echo "🚀 开始安装 Android SDK 组件..."
           
-          # 预先接受许可证
-          echo "y" | sdkmanager --licenses 2>/dev/null || true
+          # 多次尝试接受许可证（确保覆盖所有许可证）
+          echo "📋 第1次许可证接受..."
+          printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --licenses 2>/dev/null || true
+          
+          echo "📋 第2次许可证接受..."
+          printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --licenses 2>/dev/null || true
           
           # 尝试直接安装（许可证已预配置）
+          echo "📦 尝试安装 Android SDK 组件..."
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || {
             echo "⚠️ 直接安装失败，尝试备用方法..."
             # 备用方法：使用 yes 命令
             yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || {
-              echo "⚠️ 所有方法失败，检查现有组件..."
+              echo "⚠️ yes方法失败，尝试expect方法..."
+              # 使用 expect 方法
+              expect -c '
+                spawn sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+                expect {
+                  "Accept? (y/N)" { send "y\r"; exp_continue }
+                  "License" { send "y\r"; exp_continue }
+                  "terms and conditions" { send "y\r"; exp_continue }
+                  eof
+                }
+              ' || {
+                echo "⚠️ 所有方法失败，检查现有组件..."
+              }
             }
           }
           
