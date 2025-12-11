@@ -95,7 +95,7 @@ jobs:
           fi
           
           # 生成正确的 local.properties 文件
-          cat > android/local.properties << EOF
+          cat > android/local.properties << 'EOF'
 sdk.dir=$ANDROID_HOME
 flutter.sdk=$FLUTTER_ROOT
 flutter.buildMode=debug
