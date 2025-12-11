@@ -99,8 +99,40 @@ if [ -d "$SDK_PATH/cmdline-tools/latest/bin" ]; then
     
     # 尝试使用 --licenses 命令预先接受许可证
     if command -v sdkmanager >/dev/null 2>&1; then
-        # 生成多个 'y' 确保覆盖所有许可证
-        printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --licenses 2>/dev/null || true
+        # 使用 expect 完全自动化许可证接受过程
+        expect -c '
+            set timeout 60
+            spawn sdkmanager --licenses
+            expect {
+                "Accept? (y/N)" { 
+                    send "y\r"
+                    exp_continue
+                }
+                "Review licenses that have not been accepted" {
+                    send "y\r"
+                    exp_continue
+                }
+                "License" {
+                    send "y\r"
+                    exp_continue
+                }
+                "terms and conditions" {
+                    send "y\r"
+                    exp_continue
+                }
+                eof {
+                    puts "✅ 许可证接受完成"
+                }
+                timeout {
+                    puts "⚠️ 许可证接受超时，继续执行"
+                }
+            }
+        ' || {
+            # 如果 expect 失败，使用 yes 命令
+            echo "⚠️ expect 失败，使用 yes 命令..."
+            yes | timeout 30 sdkmanager --licenses || true
+        }
+        
         echo "✅ 许可证预接受完成"
     else
         echo "⚠️ sdkmanager 不可用，跳过预接受"
