@@ -68,6 +68,50 @@ jobs:
           echo "🔍 检查已安装组件:"
           sdkmanager --list_installed || echo "无法列出已安装组件"
 
+      - name: 验证 Android SDK 安装
+        run: |
+          echo "🔍 验证 Android SDK 安装..."
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+          
+          # 检查平台和构建工具是否存在
+          ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
+          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
+          
+          # 检查 android-35 平台
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "✅ android-35 平台存在"
+          else
+            echo "❌ android-35 平台不存在"
+            exit 1
+          fi
+          
+          # 检查 build-tools 35.0.0
+          if [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            echo "✅ build-tools 35.0.0 存在"
+          else
+            echo "❌ build-tools 35.0.0 不存在"
+            exit 1
+          fi
+          
+          # 生成正确的 local.properties 文件
+          cat > android/local.properties << EOF
+sdk.dir=$ANDROID_HOME
+flutter.sdk=$FLUTTER_ROOT
+flutter.buildMode=debug
+flutter.versionName=1.0.0
+flutter.versionCode=1
+EOF
+          
+          echo "📄 生成的 local.properties 内容:"
+          cat android/local.properties
+          
+          # 设置 Flutter 使用的 Android SDK 环境变量
+          echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          
+          # 验证 sdkmanager 能找到组件
+          sdkmanager --list_installed | grep -E "(platforms|build-tools)" || echo "无法列出已安装组件"
+
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -78,9 +122,29 @@ jobs:
       - name: 构建 APK (Debug)
         run: |
           echo "开始构建 APK..."
+          echo "当前 ANDROID_HOME: $ANDROID_HOME"
+          echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
+          
+          # 验证 Flutter 能找到 Android SDK
+          flutter doctor -v
+          
+          # 设置 Gradle 用户主目录以避免权限问题
+          export GRADLE_USER_HOME=$PWD/.gradle
+          
           flutter clean
           flutter pub get
-          flutter build apk --debug --verbose
+          
+          # 尝试构建，如果失败则使用详细信息调试
+          flutter build apk --debug --verbose || {
+            echo "❌ 构建失败，尝试调试..."
+            echo "Android SDK 内容:"
+            find $ANDROID_HOME -name "*android-35*" -type d
+            echo "Gradle 配置:"
+            cat android/local.properties
+            echo "环境变量:"
+            env | grep -E "(ANDROID|FLUTTER|GRADLE)"
+            exit 1
+          }
 
       - name: 上传 APK 为 Artifact
         if: ${{ always() }}
