@@ -54,13 +54,27 @@ jobs:
 
       - name: 安装 Android SDK 组件
         run: |
-          # 使用专用脚本安装组件
-          chmod +x .github/scripts/install-sdk-components.sh
-          bash .github/scripts/install-sdk-components.sh "platforms;android-35 build-tools;35.0.0"
+          # 使用更简单直接的安装方法
+          echo "🚀 开始安装 Android SDK 组件..."
+          
+          # 预先接受许可证
+          echo "y" | sdkmanager --licenses 2>/dev/null || true
+          
+          # 尝试直接安装（许可证已预配置）
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || {
+            echo "⚠️ 直接安装失败，尝试备用方法..."
+            # 备用方法：使用 yes 命令
+            yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" || {
+              echo "⚠️ 所有方法失败，检查现有组件..."
+            }
+          }
           
           echo "📊 安装完成后的目录结构:"
           ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
           ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
+          
+          echo "🔍 检查已安装组件:"
+          sdkmanager --list_installed || echo "无法列出已安装组件"
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2

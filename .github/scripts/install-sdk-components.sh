@@ -22,8 +22,8 @@ mkdir -p "$ANDROID_HOME/platforms"
 mkdir -p "$ANDROID_HOME/build-tools"
 
 # 多重安装策略
-echo "🔄 尝试安装方法 1: --accept-licenses 标志"
-if sdkmanager --install $COMPONENTS --accept-licenses; then
+echo "🔄 尝试安装方法 1: 直接安装（已配置许可证）"
+if sdkmanager --install $COMPONENTS; then
     echo "✅ 方法 1 成功"
     exit 0
 fi
@@ -34,9 +34,8 @@ if command -v expect >/dev/null 2>&1; then
         spawn sdkmanager --install $COMPONENTS
         expect {
             \"Accept? (y/N)\" { send \"y\r\"; exp_continue }
-            \"License android-sdk-license:\" { send \"y\r\"; exp_continue }
-            \"License android-sdk-build-tools-license:\" { send \"y\r\"; exp_continue }
-            \"License android-sdk-platform-tools-license:\" { send \"y\r\"; exp_continue }
+            \"License\" { send \"y\r\"; exp_continue }
+            \"terms and conditions\" { send \"y\r\"; exp_continue }
             eof
         }
     "; then

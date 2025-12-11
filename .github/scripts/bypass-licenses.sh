@@ -92,6 +92,22 @@ if [ -n "$GITHUB_ENV" ]; then
     echo "GRADLE_OPTS=-Dandroid.acceptLicense=true -Dandroid.sdk.license.accepted=true" >> "$GITHUB_ENV"
 fi
 
+# 预先接受所有许可证
+echo "🔧 预先接受所有许可证..."
+if [ -d "$SDK_PATH/cmdline-tools/latest/bin" ]; then
+    export PATH="$SDK_PATH/cmdline-tools/latest/bin:$PATH"
+    
+    # 尝试使用 --licenses 命令预先接受许可证
+    if command -v sdkmanager >/dev/null 2>&1; then
+        echo "y" | sdkmanager --licenses 2>/dev/null || true
+        echo "✅ 许可证预接受完成"
+    else
+        echo "⚠️ sdkmanager 不可用，跳过预接受"
+    fi
+else
+    echo "⚠️ SDK manager 路径不存在，跳过预接受"
+fi
+
 echo "✅ Android SDK 许可证绕过配置完成！"
 echo "📁 许可证文件数量: $(ls -1 "$SDK_PATH/licenses" | wc -l)"
 echo "🔍 许可证文件列表:"
