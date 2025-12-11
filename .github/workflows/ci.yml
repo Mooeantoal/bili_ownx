@@ -36,24 +36,41 @@ jobs:
           
           # 设置环境变量
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_PATH
+          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
       - name: 配置 Android SDK 许可证
         run: |
-          # 完全绕过许可证交互
-          bash .github/scripts/skip-licenses.sh "$PWD/android-sdk"
+          # 强制创建所有许可证文件
+          mkdir -p $PWD/android-sdk/licenses
+          mkdir -p ~/.android
+          
+          # 创建所有必要的许可证文件
+          echo "24333f8a63b6825ea9c55141383a0746b3326" > $PWD/android-sdk/licenses/android-sdk-license
+          echo "84831b9409646a918e30573bab4c9d966a64d" > $PWD/android-sdk/licenses/android-sdk-preview
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c" > $PWD/android-sdk/licenses/android-sdk-build-tools-license
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c" > $PWD/android-sdk/licenses/android-sdk-platform-tools-license
+          echo "8f4ff02255e750b71392994d1d649be0b947ad1" > $PWD/android-sdk/licenses/google-android-play-auth-license
+          echo "859f317ff2ccae9e4e47567d3db0f379c8c2f3e" > $PWD/android-sdk/licenses/google-android-play-location-license
+          echo "d975f751698a77b6691ed5e903457d56aeac7c" > $PWD/android-sdk/licenses/android-sdk-androidxr-license
+          echo "601085b94cd77d045dc5891f2b9bffa8a385" > $PWD/android-sdk/licenses/android-googletv-license
+          
+          # 设置权限
+          chmod 644 $PWD/android-sdk/licenses/* 2>/dev/null || true
+          
+          # 创建全局配置
+          echo "### User Settings for Android SDK" > ~/.android/repositories.cfg
+          echo "count=0" >> ~/.android/repositories.cfg
           
           # 设置环境变量
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDKMANAGER_ALLOW_PRE25=true" >> $GITHUB_ENV
           echo "ANDROID_SDK_LICENSES_ACCEPTED=true" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "SDKMANAGER_ALLOW_ACCEPT_LICENSES=true" >> $GITHUB_ENV
+          echo "GRADLE_OPTS=-Dandroid.acceptLicense=true" >> $GITHUB_ENV
           
-          echo "✅ 许可证绕过配置完成"
+          echo "✅ 许可证配置完成"
 
-      - name: 安装 Android SDK 平台和构建工具
+      - name: 安装 Android SDK 组件
         run: |
           echo "开始安装 Android SDK 组件..."
           
@@ -61,76 +78,18 @@ jobs:
           mkdir -p $ANDROID_HOME/platforms
           mkdir -p $ANDROID_HOME/build-tools
           
-          # 跳过许可证确认，直接安装组件
-          echo "跳过许可证步骤，直接安装 SDK 组件..."
-          export ANDROID_SDKMANAGER_ALLOW_PRE25=true
-          export ANDROID_SDK_LICENSES_ACCEPTED=true
-          
-          # 强制跳过许可证检查
-          echo "y" | echo "y" | echo "y" | sdkmanager --licenses 2>/dev/null || true
-          echo "y" | echo "y" | echo "y" | sdkmanager --licenses 2>/dev/null || true
-          
-          # 显示 sdkmanager 版本
-          sdkmanager --version || echo "sdkmanager 不可用"
-          
-          # 列出可用包
-          sdkmanager --list | grep -E "(android-35|build-tools;35)" || echo "未找到目标包"
-          
-          # 安装所需组件，添加详细输出
-          echo "正在安装 Android 35 平台..."
-          sdkmanager --install "platforms;android-35" --verbose || {
-            echo "平台安装失败，尝试其他方法..."
-            sdkmanager "platforms;android-35"
-          }
-          
-          echo "正在安装构建工具 35.0.0..."
-          sdkmanager --install "build-tools;35.0.0" --verbose || {
-            echo "构建工具安装失败，尝试其他方法..."
-            sdkmanager "build-tools;35.0.0"
-          }
+          # 使用 expect 或 yes 自动确认
+          if command -v yes >/dev/null 2>&1; then
+            # 使用 yes 命令
+            yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
+          else
+            # 使用 printf 生成多个 y
+            printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
+          fi
           
           echo "安装完成，检查目录结构..."
           ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
           ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
-
-      - name: 修复 Android SDK Platform 35 路径
-        run: |
-          echo "检查 Android SDK Platform 35 安装路径..."
-          
-          # 等待文件系统同步
-          sleep 3
-          
-          # 修复Android 35安装路径问题
-          if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
-            echo "发现 android-35-2 目录，正在重命名为 android-35..."
-            mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
-            echo "✅ 路径修复完成"
-          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "✅ android-35 目录已存在，无需修复"
-          else
-            echo "❌ 未发现 android-35 或 android-35-2 目录"
-            echo "当前 platforms 目录内容："
-            ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
-            echo "尝试查找所有 android-35 相关目录："
-            find $ANDROID_HOME -name "*android-35*" -type d 2>/dev/null || echo "未找到相关目录"
-          fi
-          
-          # 验证修复结果
-          echo "验证 Android 35 安装..."
-          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "✅ Android 35 路径验证成功"
-            ls -la "$ANDROID_HOME/platforms/android-35/"
-          else
-            echo "❌ android-35 目录不存在"
-            echo "尝试手动创建软链接..."
-            find $ANDROID_HOME -name "*android-35*" -type d | head -1 | while read dir; do
-              if [ "$dir" != "$ANDROID_HOME/platforms/android-35" ]; then
-                echo "创建软链接: $dir -> $ANDROID_HOME/platforms/android-35"
-                ln -sf "$dir" "$ANDROID_HOME/platforms/android-35"
-                break
-              fi
-            done
-          fi
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
