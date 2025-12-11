@@ -41,53 +41,24 @@ jobs:
 
       - name: 配置 Android SDK 许可证
         run: |
-          # 强制创建所有许可证文件
-          mkdir -p $PWD/android-sdk/licenses
-          mkdir -p ~/.android
+          # 安装必要的工具
+          sudo apt-get update && sudo apt-get install -y expect || true
           
-          # 创建所有必要的许可证文件
-          echo "24333f8a63b6825ea9c55141383a0746b3326" > $PWD/android-sdk/licenses/android-sdk-license
-          echo "84831b9409646a918e30573bab4c9d966a64d" > $PWD/android-sdk/licenses/android-sdk-preview
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c" > $PWD/android-sdk/licenses/android-sdk-build-tools-license
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c" > $PWD/android-sdk/licenses/android-sdk-platform-tools-license
-          echo "8f4ff02255e750b71392994d1d649be0b947ad1" > $PWD/android-sdk/licenses/google-android-play-auth-license
-          echo "859f317ff2ccae9e4e47567d3db0f379c8c2f3e" > $PWD/android-sdk/licenses/google-android-play-location-license
-          echo "d975f751698a77b6691ed5e903457d56aeac7c" > $PWD/android-sdk/licenses/android-sdk-androidxr-license
-          echo "601085b94cd77d045dc5891f2b9bffa8a385" > $PWD/android-sdk/licenses/android-googletv-license
+          # 使用专用脚本配置许可证绕过
+          chmod +x .github/scripts/bypass-licenses.sh
+          bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk"
           
-          # 设置权限
-          chmod 644 $PWD/android-sdk/licenses/* 2>/dev/null || true
-          
-          # 创建全局配置
-          echo "### User Settings for Android SDK" > ~/.android/repositories.cfg
-          echo "count=0" >> ~/.android/repositories.cfg
-          
-          # 设置环境变量
-          echo "ANDROID_SDKMANAGER_ALLOW_PRE25=true" >> $GITHUB_ENV
-          echo "ANDROID_SDK_LICENSES_ACCEPTED=true" >> $GITHUB_ENV
-          echo "SDKMANAGER_ALLOW_ACCEPT_LICENSES=true" >> $GITHUB_ENV
-          echo "GRADLE_OPTS=-Dandroid.acceptLicense=true" >> $GITHUB_ENV
-          
-          echo "✅ 许可证配置完成"
+          # 额外的环境变量设置
+          echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
+          echo "BUILD_TOOLS_VERSION=35.0.0" >> $GITHUB_ENV
 
       - name: 安装 Android SDK 组件
         run: |
-          echo "开始安装 Android SDK 组件..."
+          # 使用专用脚本安装组件
+          chmod +x .github/scripts/install-sdk-components.sh
+          bash .github/scripts/install-sdk-components.sh "platforms;android-35 build-tools;35.0.0"
           
-          # 创建必要的目录结构
-          mkdir -p $ANDROID_HOME/platforms
-          mkdir -p $ANDROID_HOME/build-tools
-          
-          # 使用 expect 或 yes 自动确认
-          if command -v yes >/dev/null 2>&1; then
-            # 使用 yes 命令
-            yes | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
-          else
-            # 使用 printf 生成多个 y
-            printf "y\ny\ny\ny\ny\ny\ny\ny\ny\ny\ny\n" | sdkmanager --install "platforms;android-35" "build-tools;35.0.0" 2>/dev/null || true
-          fi
-          
-          echo "安装完成，检查目录结构..."
+          echo "📊 安装完成后的目录结构:"
           ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
           ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
 
