@@ -90,15 +90,24 @@ jobs:
         run: |
           echo "🔧 修复 Android SDK 35 路径问题..."
           
-          # 检查是否存在 android-35-2 但缺少 android-35
+          # 如果 android-35 存在但内容不完整，先删除
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "检查现有的 android-35 目录..."
+            if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -f "$ANDROID_HOME/platforms/android-35/build.prop" ]; then
+              echo "❌ android-35 目录存在但关键文件缺失，删除并重新创建..."
+              rm -rf "$ANDROID_HOME/platforms/android-35"
+            else
+              echo "✅ android-35 目录完整，无需修复"
+            fi
+          fi
+          
+          # 检查是否存在 android-35-2 且需要创建 android-35
           if [ -d "$ANDROID_HOME/platforms/android-35-2" ] && [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "发现 android-35-2，创建 android-35 符号链接..."
+            echo "发现 android-35-2，复制到 android-35..."
             # 使用复制而不是符号链接，确保内容完全正确
             cp -r "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
             echo "✓ 成功复制 android-35-2 到 android-35"
-          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "✓ android-35 已存在，无需修复"
-          else
+          elif [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
             echo "❌ 未找到 android-35 或 android-35-2"
             # 尝试重新安装
             sdkmanager "platforms;android-35" || echo "安装 android-35 失败"
@@ -112,9 +121,15 @@ jobs:
             if [ -f "$ANDROID_HOME/platforms/android-35/android.jar" ] && [ -f "$ANDROID_HOME/platforms/android-35/build.prop" ]; then
               echo "✅ android-35 关键文件验证成功"
             else
-              echo "❌ android-35 关键文件缺失"
-              ls -la "$ANDROID_HOME/platforms/android-35/" || true
-              exit 1
+              echo "❌ android-35 关键文件缺失，尝试重新创建..."
+              rm -rf "$ANDROID_HOME/platforms/android-35"
+              if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+                cp -r "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+                echo "✓ 重新复制成功"
+              else
+                echo "❌ 无法重新创建 android-35"
+                exit 1
+              fi
             fi
           else
             echo "❌ android-35 仍然不可用"
