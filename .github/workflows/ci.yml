@@ -13,9 +13,6 @@ jobs:
   standard-build:
     name: Standard Build
     runs-on: ubuntu-latest
-    env:
-      ACTUAL_PLATFORM_VERSION: 'android-35'
-      ACTUAL_BUILD_TOOLS_VERSION: '35.0.0'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -56,7 +53,7 @@ jobs:
             mkdir -p "$ANDROID_HOME/licenses"
             echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
             echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
-            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
+            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-sdk-preview-license"
           fi
           
           # 额外的环境变量设置
@@ -127,12 +124,12 @@ jobs:
           
           # 生成正确的 local.properties 文件
           cat > android/local.properties << EOF
-          sdk.dir=$ANDROID_HOME
-          flutter.sdk=$FLUTTER_ROOT
-          flutter.buildMode=debug
-          flutter.versionName=1.0.0
-          flutter.versionCode=1
-          EOF
+sdk.dir=$ANDROID_HOME
+flutter.sdk=$FLUTTER_ROOT
+flutter.buildMode=debug
+flutter.versionName=1.0.0
+flutter.versionCode=1
+EOF
 
           echo "📄 生成的 local.properties 内容:"
           cat android/local.properties
