@@ -136,8 +136,8 @@ EOF
 
           # 设置 Flutter 使用的 Android SDK 环境变量
           echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ACTUAL_PLATFORM_VERSION=\${SDK_PLATFORM}" >> $GITHUB_ENV
-          echo "ACTUAL_BUILD_TOOLS_VERSION=\${BUILD_TOOLS}" >> $GITHUB_ENV
+          echo "ACTUAL_PLATFORM_VERSION=$SDK_PLATFORM" >> $GITHUB_ENV
+          echo "ACTUAL_BUILD_TOOLS_VERSION=$BUILD_TOOLS" >> $GITHUB_ENV
           
           # 验证 sdkmanager 能找到组件
           sdkmanager --list_installed | grep -E "(platforms|build-tools)" || echo "无法列出已安装组件"
@@ -154,8 +154,8 @@ EOF
           echo "开始构建 APK..."
           echo "当前 ANDROID_HOME: $ANDROID_HOME"
           echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
-          echo "实际使用平台版本: \${ACTUAL_PLATFORM_VERSION}"
-          echo "实际使用构建工具版本: \${ACTUAL_BUILD_TOOLS_VERSION}"
+          echo "实际使用平台版本: $ACTUAL_PLATFORM_VERSION"
+          echo "实际使用构建工具版本: $ACTUAL_BUILD_TOOLS_VERSION"
           
           # 验证 Flutter 能找到 Android SDK
           flutter doctor -v
