@@ -78,8 +78,10 @@ jobs:
           fi
           
           echo "📊 安装完成后的目录结构:"
-          ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
-          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
+          ls -la $ANDROID_HOME/platforms/ $ANDROID_HOME/build-tools/ || {
+            echo "❌ 平台或构建工具目录不存在"
+            exit 1
+          }
           
           echo "🔍 检查已安装组件:"
           sdkmanager --list_installed || echo "无法列出已安装组件"
@@ -120,10 +122,6 @@ jobs:
             exit 1
           fi
           
-          # 将实际的版本信息写入环境变量，供后续步骤使用
-          echo "ACTUAL_PLATFORM_VERSION=${SDK_PLATFORM}" >> $GITHUB_ENV
-          echo "ACTUAL_BUILD_TOOLS_VERSION=${BUILD_TOOLS}" >> $GITHUB_ENV
-          
           # 生成正确的 local.properties 文件
           cat > android/local.properties << EOF
 sdk.dir=$ANDROID_HOME
@@ -132,12 +130,14 @@ flutter.buildMode=debug
 flutter.versionName=1.0.0
 flutter.versionCode=1
 EOF
-          
+
           echo "📄 生成的 local.properties 内容:"
           cat android/local.properties
-          
+
           # 设置 Flutter 使用的 Android SDK 环境变量
           echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ACTUAL_PLATFORM_VERSION=\${SDK_PLATFORM}" >> $GITHUB_ENV
+          echo "ACTUAL_BUILD_TOOLS_VERSION=\${BUILD_TOOLS}" >> $GITHUB_ENV
           
           # 验证 sdkmanager 能找到组件
           sdkmanager --list_installed | grep -E "(platforms|build-tools)" || echo "无法列出已安装组件"
@@ -154,8 +154,8 @@ EOF
           echo "开始构建 APK..."
           echo "当前 ANDROID_HOME: $ANDROID_HOME"
           echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
-          echo "实际使用平台版本: ${ACTUAL_PLATFORM_VERSION}"
-          echo "实际使用构建工具版本: ${ACTUAL_BUILD_TOOLS_VERSION}"
+          echo "实际使用平台版本: \${ACTUAL_PLATFORM_VERSION}"
+          echo "实际使用构建工具版本: \${ACTUAL_BUILD_TOOLS_VERSION}"
           
           # 验证 Flutter 能找到 Android SDK
           flutter doctor -v
@@ -163,7 +163,6 @@ EOF
           # 设置 Gradle 用户主目录以避免权限问题
           export GRADLE_USER_HOME=$PWD/.gradle
           
-          # 清理和获取依赖
           flutter clean
           flutter pub get
           
@@ -191,7 +190,7 @@ EOF
 
       - name: 创建 Release
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
@@ -202,6 +201,8 @@ EOF
             - Commit: ${{ github.sha }}
             - Branch: ${{ github.ref_name }}
             - Run: #${{ github.run_number }}
+            - 平台版本: ${{ env.ACTUAL_PLATFORM_VERSION || 'android-35' }}
+            - 构建工具版本: ${{ env.ACTUAL_BUILD_TOOLS_VERSION || '35.0.0' }}
             
             **APK 说明：**
             此构建已启用 ABI 分割，包含以下架构的 APK：
