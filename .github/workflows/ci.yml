@@ -347,7 +347,7 @@ jobs:
                     exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
                 }
             }
-EOF
+            EOF
             # 备份原文件并使用临时配置
             cp android/app/build.gradle.kts android/app/build.gradle.kts.backup
             mv android/app/build.gradle.tmp android/app/build.gradle.kts
