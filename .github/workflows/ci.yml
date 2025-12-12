@@ -86,6 +86,32 @@ jobs:
           echo "🔍 检查已安装组件:"
           sdkmanager --list_installed || echo "无法列出已安装组件"
 
+      - name: 修复 Android SDK 35 路径
+        run: |
+          echo "🔧 修复 Android SDK 35 路径问题..."
+          
+          # 检查是否存在 android-35-2 但缺少 android-35
+          if [ -d "$ANDROID_HOME/platforms/android-35-2" ] && [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "发现 android-35-2，创建 android-35 符号链接..."
+            ln -sf "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+            echo "✓ 成功创建 android-35 符号链接"
+          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "✓ android-35 已存在，无需修复"
+          else
+            echo "❌ 未找到 android-35 或 android-35-2"
+            # 尝试重新安装
+            sdkmanager "platforms;android-35" || echo "安装 android-35 失败"
+          fi
+          
+          # 验证修复结果
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "✅ android-35 现在可用"
+            ls -la "$ANDROID_HOME/platforms/" | grep android-35
+          else
+            echo "❌ android-35 仍然不可用"
+            exit 1
+          fi
+
       - name: 验证 Android SDK 安装
         run: |
           echo "🔍 验证 Android SDK 安装..."
