@@ -90,6 +90,10 @@ jobs:
         run: |
           echo "🔧 修复 Android SDK 35 路径问题..."
           
+          # 检查 android-35 和 android-35-2 的状态
+          echo "📋 检查现有平台目录："
+          ls -la "$ANDROID_HOME/platforms/" | grep android-35 || true
+          
           # 如果 android-35 存在但内容不完整，先删除
           if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
             echo "检查现有的 android-35 目录..."
@@ -101,16 +105,35 @@ jobs:
             fi
           fi
           
-          # 检查是否存在 android-35-2 且需要创建 android-35
+          # 尝试创建或修复 android-35
           if [ -d "$ANDROID_HOME/platforms/android-35-2" ] && [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
             echo "发现 android-35-2，复制到 android-35..."
             # 使用复制而不是符号链接，确保内容完全正确
             cp -r "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
             echo "✓ 成功复制 android-35-2 到 android-35"
           elif [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "❌ 未找到 android-35 或 android-35-2"
-            # 尝试重新安装
-            sdkmanager "platforms;android-35" || echo "安装 android-35 失败"
+            echo "❌ 未找到 android-35 或 android-35-2，尝试安装 android-35..."
+            sdkmanager "platforms;android-35" || {
+              echo "❌ 安装 android-35 失败，尝试安装 android-34 作为后备..."
+              sdkmanager "platforms;android-34" || echo "安装 android-34 也失败了"
+            }
+          fi
+          
+          # 如果 android-35 仍然不可用，尝试降级到 android-34
+          if [ ! -d "$ANDROID_HOME/platforms/android-35" ] || [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+            echo "⚠️ android-35 不可用，降级使用 android-34..."
+            if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+              echo "✅ 使用现有的 android-34"
+              # 更新环境变量以使用 android-34
+              echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
+              echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
+            else
+              echo "❌ android-34 也不可用，尝试安装..."
+              sdkmanager "platforms;android-34" || {
+                echo "❌ 无法安装任何可用的 Android SDK 平台"
+                exit 1
+              }
+            fi
           fi
           
           # 验证修复结果
@@ -120,21 +143,33 @@ jobs:
             # 检查关键文件是否存在
             if [ -f "$ANDROID_HOME/platforms/android-35/android.jar" ] && [ -f "$ANDROID_HOME/platforms/android-35/build.prop" ]; then
               echo "✅ android-35 关键文件验证成功"
+              # 设置环境变量使用 android-35
+              echo "ACTUAL_PLATFORM_VERSION=android-35" >> $GITHUB_ENV
+              echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
             else
-              echo "❌ android-35 关键文件缺失，尝试重新创建..."
+              echo "❌ android-35 关键文件缺失，尝试降级到 android-34..."
               rm -rf "$ANDROID_HOME/platforms/android-35"
-              if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
-                cp -r "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
-                echo "✓ 重新复制成功"
+              if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+                echo "✅ 降级使用 android-34"
+                echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
+                echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
               else
-                echo "❌ 无法重新创建 android-35"
+                echo "❌ 无法降级，android-34 也不可用"
                 exit 1
               fi
             fi
+          elif [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+            echo "⚠️ 使用 android-34 作为后备方案"
+            echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
+            echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
           else
-            echo "❌ android-35 仍然不可用"
+            echo "❌ 没有任何可用的 Android SDK 平台"
             exit 1
           fi
+          
+          echo "📊 最终平台配置："
+          echo "使用的平台版本: ${ACTUAL_PLATFORM_VERSION:-unknown}"
+          echo "编译 SDK 版本: ${COMPILE_SDK_VERSION:-unknown}"
 
       - name: 验证 Android SDK 安装
         run: |
@@ -204,6 +239,7 @@ jobs:
           echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
           echo "实际使用平台版本: $ACTUAL_PLATFORM_VERSION"
           echo "实际使用构建工具版本: $ACTUAL_BUILD_TOOLS_VERSION"
+          echo "编译 SDK 版本: $COMPILE_SDK_VERSION"
           
           # 验证 Flutter 能找到 Android SDK
           flutter doctor -v
@@ -214,6 +250,109 @@ jobs:
           flutter clean
           flutter pub get
           
+          # 如果降级到 android-34，更新 Gradle 配置
+          if [ "$COMPILE_SDK_VERSION" = "34" ]; then
+            echo "🔄 检测到使用 android-34，更新构建配置..."
+            # 创建临时的构建配置文件
+            cat > android/app/build.gradle.tmp << 'EOF'
+            plugins {
+                id("com.android.application")
+                id("kotlin-android")
+                id("dev.flutter.flutter-gradle-plugin")
+            }
+
+            android {
+                namespace = "com.example.bili_ownx"
+                compileSdk = 34  // 降级到 34
+                ndkVersion = "27.0.12077973"
+                
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_1_8
+                    targetCompatibility = JavaVersion.VERSION_1_8
+                    isCoreLibraryDesugaringEnabled = true
+                }
+                
+                kotlinOptions {
+                    jvmTarget = "1.8"
+                }
+                
+                dependenciesInfo {
+                    includeInApk = false
+                    includeInBundle = false
+                }
+
+                defaultConfig {
+                    applicationId = "com.example.bili_ownx"
+                    minSdk = flutter.minSdkVersion
+                    targetSdk = 34  // 降级到 34
+                    versionCode = flutter.versionCode
+                    versionName = flutter.versionName
+                }
+
+                buildTypes {
+                    release {
+                        isMinifyEnabled = true
+                        isShrinkResources = true
+                        proguardFiles(
+                            getDefaultProguardFile("proguard-android-optimize.txt"),
+                            "proguard-rules.pro"
+                        )
+                        signingConfig = signingConfigs.getByName("debug")
+                    }
+                    
+                    debug {
+                        isMinifyEnabled = false
+                        isShrinkResources = false
+                    }
+                }
+                
+                packaging {
+                    resources {
+                        excludes += listOf(
+                            "META-INF/*.kotlin_module",
+                            "META-INF/LICENSE.md",
+                            "META-INF/LICENSE-notice.md",
+                            "META-INF/AL2.0",
+                            "META-INF/LGPL2.1",
+                            "META-INF/NOTICE.md",
+                            "META-INF/DEPENDENCIES",
+                            "META-INF/gradle/incremental.annotation.processors",
+                            "META-INF/*.properties",
+                            "META-INF/proguard/*",
+                            "META-INF/com.android.tools/annotations"
+                        )
+                    }
+                }
+            }
+
+            flutter {
+                source = "../.."
+            }
+
+            dependencies {
+                coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+            }
+
+            configurations.all {
+                resolutionStrategy {
+                    force("androidx.core:core-ktx:1.13.1")
+                    force("androidx.appcompat:appcompat:1.7.0")
+                    force("androidx.lifecycle:lifecycle-runtime:2.8.7")
+                    force("androidx.lifecycle:lifecycle-common:2.8.7")
+                    force("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+                    force("org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21")
+                    force("androidx.media3:media3-exoplayer:1.5.0")
+                    force("androidx.media3:media3-common:1.5.0")
+                    force("androidx.media3:media3-ui:1.5.0")
+                    exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
+                }
+            }
+EOF
+            # 备份原文件并使用临时配置
+            cp android/app/build.gradle.kts android/app/build.gradle.kts.backup
+            mv android/app/build.gradle.tmp android/app/build.gradle.kts
+          fi
+          
           # 尝试构建，如果失败则使用详细信息调试
           flutter build apk --debug --verbose || {
             echo "❌ 构建失败，尝试调试..."
@@ -223,8 +362,21 @@ jobs:
             cat android/local.properties
             echo "环境变量:"
             env | grep -E "(ANDROID|FLUTTER|GRADLE)"
+            
+            # 如果使用了临时配置，恢复原文件
+            if [ "$COMPILE_SDK_VERSION" = "34" ] && [ -f android/app/build.gradle.kts.backup ]; then
+              echo "恢复原始构建配置..."
+              mv android/app/build.gradle.kts.backup android/app/build.gradle.kts
+            fi
+            
             exit 1
           }
+          
+          # 如果使用了临时配置，恢复原文件
+          if [ "$COMPILE_SDK_VERSION" = "34" ] && [ -f android/app/build.gradle.kts.backup ]; then
+            echo "恢复原始构建配置..."
+            mv android/app/build.gradle.kts.backup android/app/build.gradle.kts
+          fi
 
       - name: 上传 APK 为 Artifact
         if: ${{ always() }}
