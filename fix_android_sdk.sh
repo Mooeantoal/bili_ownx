@@ -25,21 +25,21 @@ if [ -d "$PLATFORMS_DIR" ]; then
     if [ -d "$PLATFORMS_DIR/android-35-2" ] && [ ! -d "$PLATFORMS_DIR/android-35" ]; then
         echo "发现 android-35-2，创建 android-35 符号链接..."
         
-        # 创建符号链接
-        ln -sf "$PLATFORMS_DIR/android-35-2" "$PLATFORMS_DIR/android-35"
-        
-        if [ -L "$PLATFORMS_DIR/android-35" ]; then
-            echo "✓ 成功创建 android-35 符号链接指向 android-35-2"
-            ls -la "$PLATFORMS_DIR/android-35"
-        else
-            echo "❌ 创建符号链接失败，尝试复制..."
-            cp -r "$PLATFORMS_DIR/android-35-2" "$PLATFORMS_DIR/android-35"
-            if [ -d "$PLATFORMS_DIR/android-35" ]; then
-                echo "✓ 成功复制 android-35-2 到 android-35"
+        # 使用复制而不是符号链接，确保内容完全正确
+        cp -r "$PLATFORMS_DIR/android-35-2" "$PLATFORMS_DIR/android-35"
+        if [ -d "$PLATFORMS_DIR/android-35" ]; then
+            echo "✓ 成功复制 android-35-2 到 android-35"
+            # 验证关键文件
+            if [ -f "$PLATFORMS_DIR/android-35/android.jar" ] && [ -f "$PLATFORMS_DIR/android-35/build.prop" ]; then
+                echo "✅ 关键文件验证成功"
             else
-                echo "❌ 复制也失败了"
+                echo "❌ 关键文件缺失"
+                ls -la "$PLATFORMS_DIR/android-35/" || true
                 exit 1
             fi
+        else
+            echo "❌ 复制失败"
+            exit 1
         fi
     elif [ -d "$PLATFORMS_DIR/android-35" ]; then
         echo "✓ android-35 已存在，无需修复"
