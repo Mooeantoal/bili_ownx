@@ -178,7 +178,7 @@ jobs:
 
       - name: 上传 APK 为 Artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: standard-build-${{ github.run_number }}
           path: |
