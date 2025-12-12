@@ -44,9 +44,17 @@ jobs:
           # 安装必要的工具
           sudo apt-get update && sudo apt-get install -y expect || true
           
-          # 使用专用脚本配置许可证绕过
-          chmod +x .github/scripts/bypass-licenses.sh
-          bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk"
+          # 检查许可证脚本是否存在
+          if [ -f ".github/scripts/bypass-licenses.sh" ]; then
+            chmod +x .github/scripts/bypass-licenses.sh
+            bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk"
+          else
+            echo "⚠️ 警告: bypass-licenses.sh 脚本不存在，使用默认许可证配置"
+            mkdir -p "$ANDROID_HOME/licenses"
+            echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+            echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-license"
+          fi
           
           # 额外的环境变量设置
           echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
@@ -57,9 +65,17 @@ jobs:
           # 使用强制安装脚本
           echo "🚀 开始安装 Android SDK 组件..."
           
-          # 使用强制安装脚本
-          chmod +x .github/scripts/install-sdk-components-force.sh
-          bash .github/scripts/install-sdk-components-force.sh "platforms;android-35 build-tools;35.0.0"
+          # 检查安装脚本是否存在
+          if [ -f ".github/scripts/install-sdk-components-force.sh" ]; then
+            chmod +x .github/scripts/install-sdk-components-force.sh
+            bash .github/scripts/install-sdk-components-force.sh "platforms;android-35 build-tools;35.0.0"
+          else
+            echo "⚠️ 警告: install-sdk-components-force.sh 脚本不存在，使用 sdkmanager 直接安装"
+            sdkmanager "platforms;android-35" "build-tools;35.0.0" || {
+              echo "❌ SDK组件安装失败，尝试降级版本..."
+              sdkmanager "platforms;android-34" "build-tools;34.0.0"
+            }
+          fi
           
           echo "📊 安装完成后的目录结构:"
           ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
@@ -74,33 +90,47 @@ jobs:
           echo "ANDROID_HOME: $ANDROID_HOME"
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
           
-          # 检查平台和构建工具是否存在
-          ls -la $ANDROID_HOME/platforms/ || echo "platforms 目录不存在"
-          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools 目录不存在"
+          # 检查平台和构建工具是否存在（合并重复检查）
+          ls -la $ANDROID_HOME/platforms/ $ANDROID_HOME/build-tools/ || {
+            echo "❌ 平台或构建工具目录不存在"
+            exit 1
+          }
           
-          # 检查 android-35 平台
+          # 检查 android-35 平台，如果不存在则尝试使用 android-34
           if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
             echo "✅ android-35 平台存在"
+            export SDK_PLATFORM="android-35"
+          elif [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+            echo "⚠️ 使用 android-34 平台作为后备"
+            export SDK_PLATFORM="android-34"
           else
-            echo "❌ android-35 平台不存在"
+            echo "❌ 没有找到可用的 Android SDK 平台"
             exit 1
           fi
           
-          # 检查 build-tools 35.0.0
+          # 检查 build-tools 35.0.0，如果不存在则尝试使用 34.0.0
           if [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
             echo "✅ build-tools 35.0.0 存在"
+            export BUILD_TOOLS="35.0.0"
+          elif [ -d "$ANDROID_HOME/build-tools/34.0.0" ]; then
+            echo "⚠️ 使用 build-tools 34.0.0 作为后备"
+            export BUILD_TOOLS="34.0.0"
           else
-            echo "❌ build-tools 35.0.0 不存在"
+            echo "❌ 没有找到可用的构建工具"
             exit 1
           fi
+          
+          # 将实际的版本信息写入环境变量，供后续步骤使用
+          echo "ACTUAL_PLATFORM_VERSION=${SDK_PLATFORM}" >> $GITHUB_ENV
+          echo "ACTUAL_BUILD_TOOLS_VERSION=${BUILD_TOOLS}" >> $GITHUB_ENV
           
           # 生成正确的 local.properties 文件
           cat > android/local.properties << EOF
-            sdk.dir=$ANDROID_HOME
-            flutter.sdk=$FLUTTER_ROOT
-            flutter.buildMode=debug
-            flutter.versionName=1.0.0
-            flutter.versionCode=1
+sdk.dir=$ANDROID_HOME
+flutter.sdk=$FLUTTER_ROOT
+flutter.buildMode=debug
+flutter.versionName=1.0.0
+flutter.versionCode=1
 EOF
           
           echo "📄 生成的 local.properties 内容:"
@@ -115,7 +145,7 @@ EOF
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
 
@@ -124,6 +154,8 @@ EOF
           echo "开始构建 APK..."
           echo "当前 ANDROID_HOME: $ANDROID_HOME"
           echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
+          echo "实际使用平台版本: ${ACTUAL_PLATFORM_VERSION}"
+          echo "实际使用构建工具版本: ${ACTUAL_BUILD_TOOLS_VERSION}"
           
           # 验证 Flutter 能找到 Android SDK
           flutter doctor -v
@@ -131,6 +163,7 @@ EOF
           # 设置 Gradle 用户主目录以避免权限问题
           export GRADLE_USER_HOME=$PWD/.gradle
           
+          # 清理和获取依赖
           flutter clean
           flutter pub get
           
@@ -138,7 +171,7 @@ EOF
           flutter build apk --debug --verbose || {
             echo "❌ 构建失败，尝试调试..."
             echo "Android SDK 内容:"
-            find $ANDROID_HOME -name "*android-35*" -type d
+            find $ANDROID_HOME -name "*android*" -type d | head -10
             echo "Gradle 配置:"
             cat android/local.properties
             echo "环境变量:"
