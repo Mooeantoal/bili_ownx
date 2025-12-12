@@ -123,13 +123,11 @@ jobs:
           fi
           
           # 生成正确的 local.properties 文件
-          cat > android/local.properties << EOF
-sdk.dir=$ANDROID_HOME
-flutter.sdk=$FLUTTER_ROOT
-flutter.buildMode=debug
-flutter.versionName=1.0.0
-flutter.versionCode=1
-EOF
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "flutter.sdk=\$FLUTTER_ROOT" >> android/local.properties
+          echo "flutter.buildMode=debug" >> android/local.properties
+          echo "flutter.versionName=1.0.0" >> android/local.properties
+          echo "flutter.versionCode=1" >> android/local.properties
 
           echo "📄 生成的 local.properties 内容:"
           cat android/local.properties
