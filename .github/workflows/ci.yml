@@ -13,6 +13,9 @@ jobs:
   standard-build:
     name: Standard Build
     runs-on: ubuntu-latest
+    env:
+      ACTUAL_PLATFORM_VERSION: 'android-35'
+      ACTUAL_BUILD_TOOLS_VERSION: '35.0.0'
     steps:
       - name: 检出代码
         uses: actions/checkout@v3
@@ -255,99 +258,99 @@ jobs:
             echo "🔄 检测到使用 android-34，更新构建配置..."
             # 创建临时的构建配置文件
             cat > android/app/build.gradle.tmp << 'EOF'
-plugins {
-    id("com.android.application")
-    id("kotlin-android")
-    id("dev.flutter.flutter-gradle-plugin")
-}
+            plugins {
+                id("com.android.application")
+                id("kotlin-android")
+                id("dev.flutter.flutter-gradle-plugin")
+            }
 
-android {
-    namespace = "com.example.bili_ownx"
-    compileSdk = 34  // 降级到 34
-    ndkVersion = "27.0.12077973"
-    
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-        isCoreLibraryDesugaringEnabled = true
-    }
-    
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-    
-    dependenciesInfo {
-        includeInApk = false
-        includeInBundle = false
-    }
+            android {
+                namespace = "com.example.bili_ownx"
+                compileSdk = 34  // 降级到 34
+                ndkVersion = "27.0.12077973"
+                
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_1_8
+                    targetCompatibility = JavaVersion.VERSION_1_8
+                    isCoreLibraryDesugaringEnabled = true
+                }
+                
+                kotlinOptions {
+                    jvmTarget = "1.8"
+                }
+                
+                dependenciesInfo {
+                    includeInApk = false
+                    includeInBundle = false
+                }
 
-    defaultConfig {
-        applicationId = "com.example.bili_ownx"
-        minSdk = flutter.minSdkVersion
-        targetSdk = 34  // 降级到 34
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
+                defaultConfig {
+                    applicationId = "com.example.bili_ownx"
+                    minSdk = flutter.minSdkVersion
+                    targetSdk = 34  // 降级到 34
+                    versionCode = flutter.versionCode
+                    versionName = flutter.versionName
+                }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("debug")
-        }
-        
-        debug {
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }
-    }
-    
-    packaging {
-        resources {
-            excludes += listOf(
-                "META-INF/*.kotlin_module",
-                "META-INF/LICENSE.md",
-                "META-INF/LICENSE-notice.md",
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/NOTICE.md",
-                "META-INF/DEPENDENCIES",
-                "META-INF/gradle/incremental.annotation.processors",
-                "META-INF/*.properties",
-                "META-INF/proguard/*",
-                "META-INF/com.android.tools/annotations"
-            )
-        }
-    }
-}
+                buildTypes {
+                    release {
+                        isMinifyEnabled = true
+                        isShrinkResources = true
+                        proguardFiles(
+                            getDefaultProguardFile("proguard-android-optimize.txt"),
+                            "proguard-rules.pro"
+                        )
+                        signingConfig = signingConfigs.getByName("debug")
+                    }
+                    
+                    debug {
+                        isMinifyEnabled = false
+                        isShrinkResources = false
+                    }
+                }
+                
+                packaging {
+                    resources {
+                        excludes += listOf(
+                            "META-INF/*.kotlin_module",
+                            "META-INF/LICENSE.md",
+                            "META-INF/LICENSE-notice.md",
+                            "META-INF/AL2.0",
+                            "META-INF/LGPL2.1",
+                            "META-INF/NOTICE.md",
+                            "META-INF/DEPENDENCIES",
+                            "META-INF/gradle/incremental.annotation.processors",
+                            "META-INF/*.properties",
+                            "META-INF/proguard/*",
+                            "META-INF/com.android.tools/annotations"
+                        )
+                    }
+                }
+            }
 
-flutter {
-    source = "../.."
-}
+            flutter {
+                source = "../.."
+            }
 
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-}
+            dependencies {
+                coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+            }
 
-configurations.all {
-    resolutionStrategy {
-        force("androidx.core:core-ktx:1.13.1")
-        force("androidx.appcompat:appcompat:1.7.0")
-        force("androidx.lifecycle:lifecycle-runtime:2.8.7")
-        force("androidx.lifecycle:lifecycle-common:2.8.7")
-        force("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
-        force("org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21")
-        force("androidx.media3:media3-exoplayer:1.5.0")
-        force("androidx.media3:media3-common:1.5.0")
-        force("androidx.media3:media3-ui:1.5.0")
-        exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
-    }
-}
-EOF
+            configurations.all {
+                resolutionStrategy {
+                    force("androidx.core:core-ktx:1.13.1")
+                    force("androidx.appcompat:appcompat:1.7.0")
+                    force("androidx.lifecycle:lifecycle-runtime:2.8.7")
+                    force("androidx.lifecycle:lifecycle-common:2.8.7")
+                    force("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+                    force("org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21")
+                    force("androidx.media3:media3-exoplayer:1.5.0")
+                    force("androidx.media3:media3-common:1.5.0")
+                    force("androidx.media3:media3-ui:1.5.0")
+                    exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
+                }
+            }
+          EOF
             # 备份原文件并使用临时配置
             cp android/app/build.gradle.kts android/app/build.gradle.kts.backup
             mv android/app/build.gradle.tmp android/app/build.gradle.kts
