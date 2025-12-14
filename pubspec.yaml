@@ -42,6 +42,11 @@ dependencies:
   provider: ^6.1.2                      # 状态管理 (核心)
   flutter_local_notifications: ^17.2.3  # 通知功能 (必要)
   
+  # 视频播放 (MediaKit - 替代 video_player)
+  media_kit: ^1.1.0
+  media_kit_video: ^1.2.0
+  media_kit_libs_video: ^1.0.0
+  
   # 画中画和功能增强
   # piped_client: ^0.2.0               # 画中画支持 (暂时移除)
   # flutter_pip: ^0.1.1                # 画中画插件 (版本冲突，已移除)

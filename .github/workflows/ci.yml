@@ -65,6 +65,14 @@ jobs:
 
       - name: 安装 Android SDK 组件
         run: |
+          # 预防性清理：如果 android-35 存在但为空或无效，先删除，避免安装到 android-35-2
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+              echo "🧹 [Pre-install] 删除无效的 android-35 目录以防止路径错位..."
+              rm -rf "$ANDROID_HOME/platforms/android-35"
+            fi
+          fi
+
           # 使用强制安装脚本
           echo "🚀 开始安装 Android SDK 组件..."
           
@@ -93,81 +101,72 @@ jobs:
         run: |
           echo "🔧 修复 Android SDK 35 路径问题..."
           
-          # 检查 android-35 和 android-35-2 的状态
-          echo "📋 检查现有平台目录："
-          ls -la "$ANDROID_HOME/platforms/" | grep android-35 || true
+          # STRATEGY: Aggressive Fix
+          # 只要发现 android-35-2，就说明安装错位了。直接用它强制替换 android-35。
           
-          # 如果 android-35 存在但内容不完整，先删除
-          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "检查现有的 android-35 目录..."
-            if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ] || [ ! -f "$ANDROID_HOME/platforms/android-35/build.prop" ]; then
-              echo "❌ android-35 目录存在但关键文件缺失，删除并重新创建..."
-              rm -rf "$ANDROID_HOME/platforms/android-35"
-            else
-              echo "✅ android-35 目录完整，无需修复"
+          if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+            echo "🚨 检测到 android-35-2，触发激进修复策略！"
+            echo "   原因：SDK可能因为 android-35 目录预存在而安装到了 android-35-2"
+            
+            # 无论 android-35 是否存在，直接删除，为重命名让路
+            if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+                echo "🗑️ 强制删除现有的 android-35 目录..."
+                rm -rf "$ANDROID_HOME/platforms/android-35"
             fi
+            
+            echo "🔄 将 android-35-2 重命名为 android-35..."
+            mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+            echo "✅ 路径修复完成"
           fi
           
-          # 尝试创建或修复 android-35
-          if [ -d "$ANDROID_HOME/platforms/android-35-2" ] && [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "发现 android-35-2，复制到 android-35..."
-            # 使用复制而不是符号链接，确保内容完全正确
-            cp -r "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
-            echo "✓ 成功复制 android-35-2 到 android-35"
-          elif [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "❌ 未找到 android-35 或 android-35-2，尝试安装 android-35..."
+          # 二次检查：经过激进修复后，或者如果没有 trigger 激进修复，检查 android-35 状态
+          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+             if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+                echo "❌ android-35 存在但关键文件(android.jar)缺失，视为无效，删除..."
+                rm -rf "$ANDROID_HOME/platforms/android-35"
+             else
+                echo "✅ android-35 检查通过"
+             fi
+          fi
+          
+          # 如果此时 android-35 仍然不存在，说明之前的安装完全失败，尝试补救
+          if [ ! -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "⚠️ 未找到有效的 android-35，尝试使用 sdkmanager 重新安装..."
             sdkmanager "platforms;android-35" || {
-              echo "❌ 安装 android-35 失败，尝试安装 android-34 作为后备..."
-              sdkmanager "platforms;android-34" || echo "安装 android-34 也失败了"
+               echo "❌ sdkmanager 补救安装失败"
             }
-          fi
-          
-          # 如果 android-35 仍然不可用，尝试降级到 android-34
-          if [ ! -d "$ANDROID_HOME/platforms/android-35" ] || [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
-            echo "⚠️ android-35 不可用，降级使用 android-34..."
-            if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
-              echo "✅ 使用现有的 android-34"
-              # 更新环境变量以使用 android-34
-              echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
-              echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
-            else
-              echo "❌ android-34 也不可用，尝试安装..."
-              sdkmanager "platforms;android-34" || {
-                echo "❌ 无法安装任何可用的 Android SDK 平台"
-                exit 1
-              }
+            
+            # 补救安装后再次检查是否有 -2
+            if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+                echo "🚨 补救安装又产生了 android-35-2，再次修复..."
+                rm -rf "$ANDROID_HOME/platforms/android-35"
+                mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
             fi
           fi
           
-          # 验证修复结果
-          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "✅ android-35 现在可用"
-            ls -la "$ANDROID_HOME/platforms/" | grep android-35
-            # 检查关键文件是否存在
-            if [ -f "$ANDROID_HOME/platforms/android-35/android.jar" ] && [ -f "$ANDROID_HOME/platforms/android-35/build.prop" ]; then
-              echo "✅ android-35 关键文件验证成功"
-              # 设置环境变量使用 android-35
-              echo "ACTUAL_PLATFORM_VERSION=android-35" >> $GITHUB_ENV
-              echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
-            else
-              echo "❌ android-35 关键文件缺失，尝试降级到 android-34..."
-              rm -rf "$ANDROID_HOME/platforms/android-35"
-              if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
-                echo "✅ 降级使用 android-34"
-                echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
-                echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
-              else
-                echo "❌ 无法降级，android-34 也不可用"
-                exit 1
-              fi
-            fi
-          elif [ -d "$ANDROID_HOME/platforms/android-34" ]; then
-            echo "⚠️ 使用 android-34 作为后备方案"
-            echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
-            echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
+          # 最终验证与降级决策
+          if [ -d "$ANDROID_HOME/platforms/android-35" ] && [ -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+            echo "🎉 最终确认: android-35 可用"
+            echo "ACTUAL_PLATFORM_VERSION=android-35" >> $GITHUB_ENV
+            echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
           else
-            echo "❌ 没有任何可用的 Android SDK 平台"
-            exit 1
+            echo "❌ android-35 最终不可用，尝试降级到 android-34..."
+            if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+               echo "✅ 降级使用现有的 android-34"
+               echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
+               echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
+            else
+               echo "⚠️ android-34 不存在，尝试安装..."
+               sdkmanager "platforms;android-34"
+               if [ -d "$ANDROID_HOME/platforms/android-34" ]; then
+                  echo "✅ 成功安装并使用 android-34"
+                  echo "ACTUAL_PLATFORM_VERSION=android-34" >> $GITHUB_ENV
+                  echo "COMPILE_SDK_VERSION=34" >> $GITHUB_ENV
+               else
+                  echo "❌ 无法获取任何可用的 Android SDK 平台 (35 or 34)"
+                  exit 1
+               fi
+            fi
           fi
           
           echo "📊 最终平台配置："
