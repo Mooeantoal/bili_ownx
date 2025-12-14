@@ -8,32 +8,48 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   standard-build:
     name: Standard Build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
-      ACTUAL_PLATFORM_VERSION: 'android-36'
-      ACTUAL_BUILD_TOOLS_VERSION: '36.0.0'
+      TARGET_SDK_VERSION: '36'
+      FALLBACK_SDK_VERSION: '35'
+      BUILD_TOOLS_VERSION: '36.0.0'
+      FALLBACK_BUILD_TOOLS_VERSION: '35.0.0'
+      JAVA_VERSION: '11'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: 设置 Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
+          cache-dependency-path: |
+            android/build.gradle
+            android/app/build.gradle.kts
 
       - name: 安装 Android SDK 基础组件
+        timeout-minutes: 10
         run: |
+          set -e
+          
           # 下载并安装 Android SDK 命令行工具
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip -q commandlinetools-linux-11076708_latest.zip
+          TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          wget -q --tries=3 --timeout=30 "$TOOLS_URL" || {
+            echo "❌ 下载失败，尝试备用URL..."
+            wget -q --tries=3 --timeout=30 "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
+          }
+          
+          unzip -q commandlinetools-linux-*.zip
           mkdir -p $PWD/android-sdk/cmdline-tools/latest
           mv cmdline-tools/* $PWD/android-sdk/cmdline-tools/latest/
           
@@ -41,392 +57,246 @@ jobs:
           echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          
+          # 验证安装
+          if [ ! -f "$PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "❌ SDK安装失败"
+            exit 1
+          fi
+          echo "✅ SDK基础组件安装完成"
 
       - name: 配置 Android SDK 许可证
+        timeout-minutes: 5
         run: |
-          # 安装必要的工具
-          sudo apt-get update && sudo apt-get install -y expect || true
+          set -e
           
-          # 检查许可证脚本是否存在
-          if [ -f ".github/scripts/bypass-licenses.sh" ]; then
-            chmod +x .github/scripts/bypass-licenses.sh
-            bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk" || {
-              echo "⚠️ 脚本执行遇到问题，尝试后备方案..."
-              yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
-            }
-          else
-            echo "⚠️ 警告: bypass-licenses.sh 脚本不存在，使用默认许可证配置"
-            mkdir -p "$ANDROID_HOME/licenses"
-            echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
-            echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
-            echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-sdk-preview-license"
+          # 直接使用默认许可证配置（更可靠）
+          mkdir -p "$ANDROID_HOME/licenses"
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-sdk-preview-license"
+          
+          # 自动接受所有许可证
+          yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+          
+          # 验证许可证文件
+          if [ ! -f "$ANDROID_HOME/licenses/android-sdk-license" ]; then
+            echo "❌ 许可证配置失败"
+            exit 1
           fi
-          
-          # 额外的环境变量设置
-          echo "COMPILE_SDK_VERSION=36" >> $GITHUB_ENV
-          echo "BUILD_TOOLS_VERSION=36.0.0" >> $GITHUB_ENV
+          echo "✅ 许可证配置完成"
 
-      - name: 安装 Android SDK 组件
+      - name: 安装和配置 Android SDK
+        timeout-minutes: 15
         run: |
+          set -e
           echo "🚀 开始安装 Android SDK 组件..."
           
-          # ========== 激进预清理策略 ==========
-          echo "🧹 [AGGRESSIVE PRE-CLEAN] 删除所有 android-36 相关目录..."
-          rm -rf "$ANDROID_HOME/platforms/android-36"*
+          # 清理目标版本
+          rm -rf "$ANDROID_HOME/platforms/android-$TARGET_SDK_VERSION"*
           
-          # 确认清理成功
-          if ls "$ANDROID_HOME/platforms/" 2>/dev/null | grep -q "android-36"; then
-              echo "❌ 清理失败,仍然存在 android-36 相关目录"
-              exit 1
-          fi
-          echo "✅ 预清理完成,platforms目录内容:"
-          ls -la "$ANDROID_HOME/platforms/" || echo "platforms目录不存在(正常)"
+          # 增强的安装逻辑
+          SDK_SUCCESS=false
           
-          # ========== 使用修改后的安装脚本 ==========
-          if [ -f ".github/scripts/install-sdk-components-force.sh" ]; then
-            chmod +x .github/scripts/install-sdk-components-force.sh
-            bash .github/scripts/install-sdk-components-force.sh "platforms;android-36 build-tools;36.0.0 build-tools;34.0.0"
+          # 尝试安装主要版本
+          if sdkmanager "platforms;android-$TARGET_SDK_VERSION" "build-tools;$BUILD_TOOLS_VERSION"; then
+            echo "✅ 主要版本安装成功"
+            SDK_SUCCESS=true
           else
-            echo "⚠️ 警告: install-sdk-components-force.sh 脚本不存在"
-            
-            # 直接安装,然后立即处理路径问题
-            sdkmanager "platforms;android-36" "build-tools;36.0.0" "build-tools;34.0.0" || true
-            
-            # 立即检查并修复路径
-            if [ -d "$ANDROID_HOME/platforms/android-36-2" ]; then
-              echo "🚨 检测到 android-36-2,立即修复..."
-              rm -rf "$ANDROID_HOME/platforms/android-36"
-              mv "$ANDROID_HOME/platforms/android-36-2" "$ANDROID_HOME/platforms/android-36"
+            echo "⚠️ 主要版本安装失败，尝试后备版本..."
+            if sdkmanager "platforms;android-$FALLBACK_SDK_VERSION" "build-tools;$FALLBACK_BUILD_TOOLS_VERSION"; then
+              echo "✅ 后备版本安装成功"
+              SDK_SUCCESS=true
             fi
           fi
           
-          # ========== 最终验证 ==========
-          echo "📊 安装完成后的目录结构:"
-          ls -la $ANDROID_HOME/platforms/ $ANDROID_HOME/build-tools/ || {
-            echo "❌ 平台或构建工具目录不存在"
-            exit 1
-          }
-          
-          # 验证android.jar存在
-          if [ ! -f "$ANDROID_HOME/platforms/android-36/android.jar" ]; then
-            echo "❌ 关键文件android.jar缺失"
+          if [ "$SDK_SUCCESS" = false ]; then
+            echo "❌ 所有SDK版本安装失败"
             exit 1
           fi
-          echo "✅ 验证通过: android.jar存在"
           
-          echo "🔍 检查已安装组件:"
-          sdkmanager --list_installed || echo "无法列出已安装组件"
+          # 修复可能的路径问题
+          for version in $TARGET_SDK_VERSION $FALLBACK_SDK_VERSION; do
+            if [ -d "$ANDROID_HOME/platforms/android-$version-2" ]; then
+              echo "🔧 修复 android-$version-2 路径..."
+              rm -rf "$ANDROID_HOME/platforms/android-$version"
+              mv "$ANDROID_HOME/platforms/android-$version-2" "$ANDROID_HOME/platforms/android-$version"
+            fi
+          done
+          
+          # 验证安装结果
+          if [ -f "$ANDROID_HOME/platforms/android-$TARGET_SDK_VERSION/android.jar" ]; then
+            echo "ACTUAL_PLATFORM_VERSION=android-$TARGET_SDK_VERSION" >> $GITHUB_ENV
+            echo "COMPILE_SDK_VERSION=$TARGET_SDK_VERSION" >> $GITHUB_ENV
+            echo "✅ 使用目标版本 android-$TARGET_SDK_VERSION"
+          elif [ -f "$ANDROID_HOME/platforms/android-$FALLBACK_SDK_VERSION/android.jar" ]; then
+            echo "ACTUAL_PLATFORM_VERSION=android-$FALLBACK_SDK_VERSION" >> $GITHUB_ENV
+            echo "COMPILE_SDK_VERSION=$FALLBACK_SDK_VERSION" >> $GITHUB_ENV
+            echo "✅ 使用后备版本 android-$FALLBACK_SDK_VERSION"
+          else
+            echo "❌ 所有SDK版本验证失败"
+            exit 1
+          fi
+          
+          # 设置build-tools版本
+          if [ -d "$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION" ]; then
+            echo "ACTUAL_BUILD_TOOLS_VERSION=$BUILD_TOOLS_VERSION" >> $GITHUB_ENV
+          else
+            echo "ACTUAL_BUILD_TOOLS_VERSION=$FALLBACK_BUILD_TOOLS_VERSION" >> $GITHUB_ENV
+          fi
+          
+          echo "✅ SDK配置完成"
 
-      - name: 验证 Android SDK 36 路径
+      - name: 配置构建环境
+        timeout-minutes: 5
         run: |
-          echo "🔧 验证 Android SDK 36 路径..."
+          set -e
+          echo "🔒 配置 Gradle 和 Flutter 环境..."
           
-          # STRATEGY: Aggressive Fix
-          # 只要发现 android-36-2，就说明安装错位了。直接用它强制替换 android-36。
-          
-          if [ -d "$ANDROID_HOME/platforms/android-36-2" ]; then
-            echo "🚨 检测到 android-36-2，触发激进修复策略！"
-            echo "   原因：SDK可能因为 android-36 目录预存在而安装到了 android-36-2"
-            
-            # 无论 android-36 是否存在，直接删除，为重命名让路
-            if [ -d "$ANDROID_HOME/platforms/android-36" ]; then
-                echo "🗑️ 强制删除现有的 android-36 目录..."
-                rm -rf "$ANDROID_HOME/platforms/android-36"
-            fi
-            
-            echo "🔄 将 android-36-2 重命名为 android-36..."
-            mv "$ANDROID_HOME/platforms/android-36-2" "$ANDROID_HOME/platforms/android-36"
-            echo "✅ 路径修复完成"
-          fi
-          
-          # 二次检查：经过激进修复后，或者如果没有 trigger 激进修复，检查 android-36 状态
-          if [ -d "$ANDROID_HOME/platforms/android-36" ]; then
-             if [ ! -f "$ANDROID_HOME/platforms/android-36/android.jar" ]; then
-                echo "❌ android-36 存在但关键文件(android.jar)缺失，视为无效，删除..."
-                rm -rf "$ANDROID_HOME/platforms/android-36"
-             else
-                echo "✅ android-36 检查通过"
-             fi
-          fi
-          
-          # 如果此时 android-36 仍然不存在，说明之前的安装完全失败，尝试补救
-          if [ ! -d "$ANDROID_HOME/platforms/android-36" ]; then
-            echo "⚠️ 未找到有效的 android-36，尝试使用 sdkmanager 重新安装..."
-            sdkmanager "platforms;android-36" || {
-               echo "❌ sdkmanager 补救安装失败"
-            }
-            
-            # 补救安装后再次检查是否有 -2
-            if [ -d "$ANDROID_HOME/platforms/android-36-2" ]; then
-                echo "🚨 补救安装又产生了 android-36-2，再次修复..."
-                rm -rf "$ANDROID_HOME/platforms/android-36"
-                mv "$ANDROID_HOME/platforms/android-36-2" "$ANDROID_HOME/platforms/android-36"
-            fi
-          fi
-          
-          # 最终验证与降级决策
-          if [ -d "$ANDROID_HOME/platforms/android-36" ] && [ -f "$ANDROID_HOME/platforms/android-36/android.jar" ]; then
-            echo "🎉 最终确认: android-36 可用"
-            echo "ACTUAL_PLATFORM_VERSION=android-36" >> $GITHUB_ENV
-            echo "COMPILE_SDK_VERSION=36" >> $GITHUB_ENV
-          else
-            echo "❌ android-36 最终不可用，尝试降级到 android-35..."
-            if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-               echo "✅ 降级使用现有的 android-35"
-               echo "ACTUAL_PLATFORM_VERSION=android-35" >> $GITHUB_ENV
-               echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
-            else
-               echo "⚠️ android-35 不存在，尝试安装..."
-               sdkmanager "platforms;android-35"
-               if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-                  echo "✅ 成功安装并使用 android-35"
-                  echo "ACTUAL_PLATFORM_VERSION=android-35" >> $GITHUB_ENV
-                  echo "COMPILE_SDK_VERSION=35" >> $GITHUB_ENV
-               else
-                  echo "❌ 无法获取任何可用的 Android SDK 平台 (36 or 35)"
-                  exit 1
-               fi
-            fi
-          fi
-          
-          echo "📊 最终平台配置："
-          echo "使用的平台版本: ${ACTUAL_PLATFORM_VERSION:-unknown}"
-          echo "编译 SDK 版本: ${COMPILE_SDK_VERSION:-unknown}"
-
-      - name: 验证 Android SDK 安装
-        run: |
-          echo "🔍 验证 Android SDK 安装..."
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-          
-          # 检查平台和构建工具是否存在（合并重复检查）
-          ls -la $ANDROID_HOME/platforms/ $ANDROID_HOME/build-tools/ || {
-            echo "❌ 平台或构建工具目录不存在"
-            exit 1
-          }
-          
-          # 检查 android-36 平台，如果不存在则尝试使用 android-35
-          if [ -d "$ANDROID_HOME/platforms/android-36" ]; then
-            echo "✅ android-36 平台存在"
-            export SDK_PLATFORM="android-36"
-          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "⚠️ 使用 android-35 平台作为后备"
-            export SDK_PLATFORM="android-35"
-          else
-            echo "❌ 没有找到可用的 Android SDK 平台"
+          # 验证环境变量
+          if [ -z "$ANDROID_HOME" ]; then
+            echo "❌ ANDROID_HOME 未设置"
             exit 1
           fi
           
-          # 检查 build-tools 36.0.0
-          if [ -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
-            echo "✅ build-tools 36.0.0 存在"
-            export BUILD_TOOLS="36.0.0"
-          elif [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
-            echo "⚠️ 使用 build-tools 35.0.0 作为后备"
-            export BUILD_TOOLS="35.0.0"
-          else
-            echo "❌ 没有找到可用的构建工具"
-            exit 1
-          fi
-          
-          # 🚫 核心修复: 禁止 Gradle 自动下载 SDK
-          # 这样可以防止 Gradle 重新安装 SDK 并将其放错位置 (android-36-2)
-          echo "🔒 禁止 Gradle 自动下载 SDK..."
+          # 禁止 Gradle 自动下载 SDK
           mkdir -p android
           echo "android.builder.sdkDownload=false" >> android/gradle.properties
-          echo "✅ 已添加 android.builder.sdkDownload=false 到 gradle.properties"
+          echo "org.gradle.daemon=false" >> android/gradle.properties
+          echo "org.gradle.configureondemand=true" >> android/gradle.properties
           
-          # 生成正确的 local.properties 文件
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "flutter.sdk=\$FLUTTER_ROOT" >> android/local.properties
-          echo "flutter.buildMode=debug" >> android/local.properties
-          echo "flutter.versionName=1.0.0" >> android/local.properties
-          echo "flutter.versionCode=1" >> android/local.properties
-
-          echo "📄 生成的 local.properties 内容:"
-          cat android/local.properties
-
-          # 设置 Flutter 使用的 Android SDK 环境变量
+          # 生成 local.properties
+          cat > android/local.properties << EOF
+sdk.dir=$ANDROID_HOME
+flutter.sdk=\$FLUTTER_ROOT
+flutter.buildMode=debug
+flutter.versionName=1.0.0
+flutter.versionCode=1
+EOF
+          
+          # 设置 Flutter 环境变量
           echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ACTUAL_PLATFORM_VERSION=$SDK_PLATFORM" >> $GITHUB_ENV
-          echo "ACTUAL_BUILD_TOOLS_VERSION=$BUILD_TOOLS" >> $GITHUB_ENV
+          echo "GRADLE_USER_HOME=$PWD/.gradle" >> $GITHUB_ENV
           
-          # 验证 sdkmanager 能找到组件
-          sdkmanager --list_installed | grep -E "(platforms|build-tools)" || echo "无法列出已安装组件"
+          echo "✅ 构建环境配置完成"
+
+      - name: 缓存 Gradle 依赖
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            .gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: 设置 Flutter
-        uses: subosito/flutter-action@v2.10.0
+        timeout-minutes: 10
+        uses: subosito/flutter-action@v2.15.0
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
           cache: true
+          cache-key: 'flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}'
 
       - name: 构建 APK (Debug)
+        timeout-minutes: 20
         run: |
-          echo "开始构建 APK..."
-          echo "当前 ANDROID_HOME: $ANDROID_HOME"
-          echo "当前 FLUTTER_ANDROID_SDK_ROOT: $FLUTTER_ANDROID_SDK_ROOT"
-          echo "实际使用平台版本: $ACTUAL_PLATFORM_VERSION"
-          echo "实际使用构建工具版本: $ACTUAL_BUILD_TOOLS_VERSION"
+          set -e
+          echo "🚀 开始构建 APK..."
+          
+          # 验证环境变量
+          if [ -z "$COMPILE_SDK_VERSION" ]; then
+            echo "❌ COMPILE_SDK_VERSION 未设置"
+            exit 1
+          fi
+          
+          if [ -z "$ACTUAL_PLATFORM_VERSION" ]; then
+            echo "❌ ACTUAL_PLATFORM_VERSION 未设置"
+            exit 1
+          fi
+          
+          echo "使用的平台版本: $ACTUAL_PLATFORM_VERSION"
           echo "编译 SDK 版本: $COMPILE_SDK_VERSION"
           
-          # 验证 Flutter 能找到 Android SDK
-          flutter doctor -v
-          
-          # 设置 Gradle 用户主目录以避免权限问题
-          export GRADLE_USER_HOME=$PWD/.gradle
-          
+          # 清理并准备
           flutter clean
           flutter pub get
           
-          # 如果降级到 android-35，更新 Gradle 配置
-          if [ "$COMPILE_SDK_VERSION" = "35" ]; then
-            echo "🔄 检测到使用 android-35，更新构建配置..."
-            # 创建临时的构建配置文件
-            cat > android/app/build.gradle.kts.tmp << 'EOF'
-# This is a temporary file created for android-35 compatibility. Do not edit.
-plugins {
-    id("com.android.application")
-    id("kotlin-android")
-    id("dev.flutter.flutter-gradle-plugin")
-}
-
-android {
-    namespace = "com.example.bili_ownx"
-    compileSdk = 35
-    ndkVersion = "27.0.12077973"
-    
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-        isCoreLibraryDesugaringEnabled = true
-    }
-    
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-    
-    dependenciesInfo {
-        includeInApk = false
-        includeInBundle = false
-    }
-
-    defaultConfig {
-        applicationId = "com.example.bili_ownx"
-        minSdk = flutter.minSdkVersion
-        targetSdk = 35
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            signingConfig = signingConfigs.getByName("debug")
-        }
-        
-        debug {
-            isMinifyEnabled = false
-            isShrinkResources = false
-        }
-    }
-    
-    packaging {
-        resources {
-            excludes += listOf(
-                "META-INF/*.kotlin_module",
-                "META-INF/LICENSE.md",
-                "META-INF/LICENSE-notice.md",
-                "META-INF/AL2.0",
-                "META-INF/LGPL2.1",
-                "META-INF/NOTICE.md",
-                "META-INF/DEPENDENCIES",
-                "META-INF/gradle/incremental.annotation.processors",
-                "META-INF/*.properties",
-                "META-INF/proguard/*",
-                "META-INF/com.android.tools/annotations"
-            )
-        }
-    }
-}
-
-flutter {
-    source = "../.."
-}
-
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-}
-
-configurations.all {
-    resolutionStrategy {
-        force("androidx.core:core-ktx:1.13.1")
-        force("androidx.appcompat:appcompat:1.7.0")
-        force("androidx.lifecycle:lifecycle-runtime:2.8.7")
-        force("androidx.lifecycle:lifecycle-common:2.8.7")
-        force("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
-        force("org.jetbrains.kotlin:kotlin-stdlib-common:2.0.21")
-        force("androidx.media3:media3-exoplayer:1.5.0")
-        force("androidx.media3:media3-common:1.5.0")
-        force("androidx.media3:media3-ui:1.5.0")
-        exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
-    }
-}
-EOF
-            # 备份原文件并使用临时配置
-            cp android/app/build.gradle.kts android/app/build.gradle.kts.bak
-            mv android/app/build.gradle.kts.tmp android/app/build.gradle.kts
+          # 如果需要降级版本，使用 sed 高效更新配置
+          if [ "$COMPILE_SDK_VERSION" = "$FALLBACK_SDK_VERSION" ]; then
+            echo "🔄 更新构建配置为 android-$FALLBACK_SDK_VERSION..."
+            sed -i.tmp \
+              -e "s/^[[:space:]]*compileSdk[[:space:]]*=[[:space:]]*[0-9].*/    compileSdk = $FALLBACK_SDK_VERSION/" \
+              -e "s/^[[:space:]]*targetSdk[[:space:]]*=[[:space:]]*[0-9].*/    targetSdk = $FALLBACK_SDK_VERSION/" \
+              android/app/build.gradle.kts
+            
+            # 清理临时文件
+            rm -f android/app/build.gradle.kts.tmp
           fi
           
-          # 尝试构建，如果失败则使用详细信息调试
-          flutter build apk --debug --verbose || {
-            echo "❌ 构建失败，尝试调试..."
-            echo "Android SDK 内容:"
-            find $ANDROID_HOME -name "*android*" -type d | head -10
+          # 执行构建
+          flutter build apk --debug || {
+            echo "❌ 构建失败，开始诊断..."
+            flutter doctor -v
             echo "Gradle 配置:"
             cat android/local.properties
-            echo "环境变量:"
-            env | grep -E "(ANDROID|FLUTTER|GRADLE)"
-            
-            # 如果使用了临时配置，恢复原文件
-            if [ "$COMPILE_SDK_VERSION" = "35" ] && [ -f android/app/build.gradle.kts.bak ]; then
-              echo "恢复原始构建配置..."
-              mv android/app/build.gradle.kts.bak android/app/build.gradle.kts
-            fi
-            
             exit 1
           }
-          
-          # 如果使用了临时配置，恢复原文件
-          if [ "$COMPILE_SDK_VERSION" = "35" ] && [ -f android/app/build.gradle.kts.bak ]; then
-            echo "恢复原始构建配置..."
-            mv android/app/build.gradle.kts.bak android/app/build.gradle.kts
-          fi
 
+      - name: 验证构建结果
+        run: |
+          set -e
+          echo "🔍 查找并验证生成的 APK 文件..."
+          
+          # 查找APK文件
+          APK_FILES=$(find . -name "*.apk" -type f 2>/dev/null || true)
+          
+          if [ -z "$APK_FILES" ]; then
+            echo "❌ 未找到 APK 文件"
+            exit 1
+          fi
+          
+          echo "✅ 找到以下 APK 文件:"
+          echo "$APK_FILES" | while read -r apk; do
+            if [ -f "$apk" ]; then
+              SIZE=$(ls -la "$apk" | awk '{print $5}')
+              echo "- $(basename "$apk") ($SIZE bytes)"
+            fi
+          done
+          
       - name: 上传 APK 为 Artifact
-        if: ${{ always() }}
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: standard-build-${{ github.run_number }}
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+          name: build-${{ github.run_number }}
+          path: build/**/*.apk
           retention-days: 30
+          if-no-files-found: warn
 
       - name: 创建 Release
         if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
+        timeout-minutes: 5
         with:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
-          body: "## 自动构建的 Debug 版本\n\n**构建信息：**\n- Commit: ${{ github.sha }}\n- Branch: ${{ github.ref_name }}\n- Run: #${{ github.run_number }}\n- 平台版本: ${{ env.ACTUAL_PLATFORM_VERSION || 'android-35' }}\n- 构建工具版本: ${{ env.ACTUAL_BUILD_TOOLS_VERSION || '35.0.0' }}\n\n**APK 说明：**\n此构建已启用 ABI 分割，包含以下架构的 APK：\n- `app-arm64-v8a-debug.apk`: 适用于 64 位 ARM 设备（现代手机，推荐）\n- `app-armeabi-v7a-debug.apk`: 适用于 32 位 ARM 设备\n- `app-universal-debug.apk`: 通用版本（兼容所有架构，体积较大）\n\n请根据您的设备选择对应架构的 APK 下载安装。"
-          files: |
-            build/app/outputs/flutter-apk/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+          body: |
+            ## 自动构建的 Debug 版本
+            
+            **构建信息：**
+            - Commit: ${{ github.sha }}
+            - Branch: ${{ github.ref_name }}
+            - Run: #${{ github.run_number }}
+            - 平台版本: ${{ env.ACTUAL_PLATFORM_VERSION || 'unknown' }}
+            - 编译版本: ${{ env.COMPILE_SDK_VERSION || 'unknown' }}
+            - 构建工具版本: ${{ env.ACTUAL_BUILD_TOOLS_VERSION || 'unknown' }}
+            
+            **APK 说明：**
+            此构建包含 Debug 版本的 APK 文件。
+          files: build/**/*.apk
+          draft: false
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
