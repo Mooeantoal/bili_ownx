@@ -283,7 +283,7 @@ jobs:
           if [ "$COMPILE_SDK_VERSION" = "35" ]; then
             echo "🔄 检测到使用 android-35，更新构建配置..."
             # 创建临时的构建配置文件
-            cat > android/app/build.gradle.tmp << 'EOF'
+            cat > android/app/build.gradle.kts.tmp << 'EOF'
             plugins {
                 id("com.android.application")
                 id("kotlin-android")
@@ -376,10 +376,10 @@ jobs:
                     exclude(mapOf("group" to "com.google.guava", "module" to "listenablefuture"))
                 }
             }
-          EOF
+            EOF
             # 备份原文件并使用临时配置
             cp android/app/build.gradle.kts android/app/build.gradle.kts.backup
-            mv android/app/build.gradle.tmp android/app/build.gradle.kts
+            mv android/app/build.gradle.kts.tmp android/app/build.gradle.kts
           fi
           
           # 尝试构建，如果失败则使用详细信息调试
