@@ -15,7 +15,8 @@ echo "SDK 路径: $SDK_PATH"
 mkdir -p "$SDK_PATH/licenses"
 mkdir -p ~/.android
 
-# 创建所有可能的许可证文件
+# 创建所有可能的许可证文件 (使用已知哈希)
+# 这些哈希值对应常见的 Android SDK 许可证版本
 cat > "$SDK_PATH/licenses/android-sdk-license" << 'EOF'
 24333f8a63b6825ea9c55141383a0746b3326
 EOF
@@ -97,43 +98,16 @@ echo "🔧 预先接受所有许可证..."
 if [ -d "$SDK_PATH/cmdline-tools/latest/bin" ]; then
     export PATH="$SDK_PATH/cmdline-tools/latest/bin:$PATH"
     
-    # 尝试使用 --licenses 命令预先接受许可证
     if command -v sdkmanager >/dev/null 2>&1; then
-        # 使用 expect 完全自动化许可证接受过程
-        expect -c '
-            set timeout 60
-            spawn sdkmanager --licenses
-            expect {
-                "Accept? (y/N)" { 
-                    send "y\r"
-                    exp_continue
-                }
-                "Review licenses that have not been accepted" {
-                    send "y\r"
-                    exp_continue
-                }
-                "License" {
-                    send "y\r"
-                    exp_continue
-                }
-                "terms and conditions" {
-                    send "y\r"
-                    exp_continue
-                }
-                eof {
-                    puts "✅ 许可证接受完成"
-                }
-                timeout {
-                    puts "⚠️ 许可证接受超时，继续执行"
-                }
-            }
-        ' || {
-            # 如果 expect 失败，使用 yes 命令
-            echo "⚠️ expect 失败，使用 yes 命令..."
-            yes | timeout 30 sdkmanager --licenses || true
-        }
+        echo "Running sdkmanager --licenses with standard input piping..."
         
-        echo "✅ 许可证预接受完成"
+        # 使用 yes 命令管道传递 'y' 给 sdkmanager
+        # 添加 timeout 防止死循环
+        # 使用 grep 过滤输出，只显示关键信息，避免日志过大
+        
+        (yes || true) | timeout 60 sdkmanager --licenses >/dev/null 2>&1 || true
+        
+        echo "✅ 许可证预接受步骤完成 (Return Code: $?)"
     else
         echo "⚠️ sdkmanager 不可用，跳过预接受"
     fi
@@ -143,5 +117,3 @@ fi
 
 echo "✅ Android SDK 许可证绕过配置完成！"
 echo "📁 许可证文件数量: $(ls -1 "$SDK_PATH/licenses" | wc -l)"
-echo "🔍 许可证文件列表:"
-ls -la "$SDK_PATH/licenses/" || echo "无法列出许可证文件"

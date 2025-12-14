@@ -50,7 +50,10 @@ jobs:
           # 检查许可证脚本是否存在
           if [ -f ".github/scripts/bypass-licenses.sh" ]; then
             chmod +x .github/scripts/bypass-licenses.sh
-            bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk"
+            bash .github/scripts/bypass-licenses.sh "$PWD/android-sdk" || {
+              echo "⚠️ 脚本执行遇到问题，尝试后备方案..."
+              yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+            }
           else
             echo "⚠️ 警告: bypass-licenses.sh 脚本不存在，使用默认许可证配置"
             mkdir -p "$ANDROID_HOME/licenses"
