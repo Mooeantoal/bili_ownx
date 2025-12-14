@@ -85,12 +85,12 @@ jobs:
           # ========== 使用修改后的安装脚本 ==========
           if [ -f ".github/scripts/install-sdk-components-force.sh" ]; then
             chmod +x .github/scripts/install-sdk-components-force.sh
-            bash .github/scripts/install-sdk-components-force.sh "platforms;android-36 build-tools;36.0.0"
+            bash .github/scripts/install-sdk-components-force.sh "platforms;android-36 build-tools;36.0.0 build-tools;34.0.0"
           else
             echo "⚠️ 警告: install-sdk-components-force.sh 脚本不存在"
             
             # 直接安装,然后立即处理路径问题
-            sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+            sdkmanager "platforms;android-36" "build-tools;36.0.0" "build-tools;34.0.0" || true
             
             # 立即检查并修复路径
             if [ -d "$ANDROID_HOME/platforms/android-36-2" ]; then
@@ -217,7 +217,7 @@ jobs:
             exit 1
           fi
           
-          # 检查 build-tools 36.0.0，如果不存在则尝试使用 35.0.0
+          # 检查 build-tools 36.0.0
           if [ -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
             echo "✅ build-tools 36.0.0 存在"
             export BUILD_TOOLS="36.0.0"
@@ -228,6 +228,13 @@ jobs:
             echo "❌ 没有找到可用的构建工具"
             exit 1
           fi
+          
+          # 🚫 核心修复: 禁止 Gradle 自动下载 SDK
+          # 这样可以防止 Gradle 重新安装 SDK 并将其放错位置 (android-36-2)
+          echo "🔒 禁止 Gradle 自动下载 SDK..."
+          mkdir -p android
+          echo "android.builder.sdkDownload=false" >> android/gradle.properties
+          echo "✅ 已添加 android.builder.sdkDownload=false 到 gradle.properties"
           
           # 生成正确的 local.properties 文件
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
