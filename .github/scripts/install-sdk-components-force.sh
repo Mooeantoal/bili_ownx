@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # 完全绕过许可证交互的 Android SDK 组件安装脚本
-# 参数: $1 = 组件列表 (例如: "platforms;android-35 build-tools;35.0.0")
+# 参数: $1 = 组件列表 (例如: "platforms;android-36 build-tools;36.0.0")
 
 COMPONENTS="$1"
 
 if [ -z "$COMPONENTS" ]; then
     echo "❌ 错误: 请提供要安装的组件列表"
-    echo "用法: $0 \"platforms;android-35 build-tools;35.0.0\""
+    echo "用法: $0 \"platforms;android-36 build-tools;36.0.0\""
     exit 1
 fi
 
@@ -15,12 +15,12 @@ echo "🚀 开始安装 Android SDK 组件..."
 echo "📦 组件列表: $COMPONENTS"
 
 # ========== 激进预清理策略 ==========
-echo "🧹 [AGGRESSIVE PRE-CLEAN] 预清理可能冲突的android-35目录..."
+echo "🧹 [AGGRESSIVE PRE-CLEAN] 预清理可能冲突的android-36目录..."
 SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
 
 if [ -d "$SDK_ROOT/platforms" ]; then
-    # 删除所有android-35相关目录(包括android-35, android-35-2等)
-    find "$SDK_ROOT/platforms" -maxdepth 1 -name "android-35*" -type d -exec rm -rf {} + 2>/dev/null || true
+    # 删除所有android-36相关目录(包括android-36, android-36-2等)
+    find "$SDK_ROOT/platforms" -maxdepth 1 -name "android-36*" -type d -exec rm -rf {} + 2>/dev/null || true
     echo "✅ 预清理完成"
     echo "📁 platforms目录内容:"
     ls -la "$SDK_ROOT/platforms/" || echo "platforms目录为空(正常)"
@@ -40,16 +40,16 @@ export GRADLE_OPTS="-Dandroid.acceptLicense=true -Dandroid.sdk.license.accepted=
 verify_and_fix_sdk_path() {
     echo "🔍 验证安装路径..."
     
-    if [ -d "$SDK_ROOT/platforms/android-35-2" ]; then
-        echo "🚨 检测到SDK安装器创建了 android-35-2,立即重命名..."
-        rm -rf "$SDK_ROOT/platforms/android-35"
-        mv "$SDK_ROOT/platforms/android-35-2" "$SDK_ROOT/platforms/android-35"
+    if [ -d "$SDK_ROOT/platforms/android-36-2" ]; then
+        echo "🚨 检测到SDK安装器创建了 android-36-2,立即重命名..."
+        rm -rf "$SDK_ROOT/platforms/android-36"
+        mv "$SDK_ROOT/platforms/android-36-2" "$SDK_ROOT/platforms/android-36"
         echo "✅ 路径修复完成"
     fi
     
     # 验证关键文件存在
-    if [ -f "$SDK_ROOT/platforms/android-35/android.jar" ]; then
-        echo "✅ 最终验证通过: android-35 已正确安装"
+    if [ -f "$SDK_ROOT/platforms/android-36/android.jar" ]; then
+        echo "✅ 最终验证通过: android-36 已正确安装"
         return 0
     else
         echo "⚠️ 警告: android.jar未找到"

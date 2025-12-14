@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.bili_ownx"
-    compileSdk = 35
+    compileSdk = 36  // 升级到36以满足media_kit插件要求
     ndkVersion = "27.0.12077973"
     
     // 启用核心库脱糖以支持 Java 8+ 特性
@@ -35,7 +35,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36  // 升级到36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
