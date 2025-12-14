@@ -205,25 +205,25 @@ jobs:
             exit 1
           }
           
-          # 检查 android-35 平台，如果不存在则尝试使用 android-34
-          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            echo "✅ android-35 平台存在"
+          # 检查 android-36 平台，如果不存在则尝试使用 android-35
+          if [ -d "$ANDROID_HOME/platforms/android-36" ]; then
+            echo "✅ android-36 平台存在"
+            export SDK_PLATFORM="android-36"
+          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "⚠️ 使用 android-35 平台作为后备"
             export SDK_PLATFORM="android-35"
-          elif [ -d "$ANDROID_HOME/platforms/android-34" ]; then
-            echo "⚠️ 使用 android-34 平台作为后备"
-            export SDK_PLATFORM="android-34"
           else
             echo "❌ 没有找到可用的 Android SDK 平台"
             exit 1
           fi
           
-          # 检查 build-tools 35.0.0，如果不存在则尝试使用 34.0.0
-          if [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
-            echo "✅ build-tools 35.0.0 存在"
+          # 检查 build-tools 36.0.0，如果不存在则尝试使用 35.0.0
+          if [ -d "$ANDROID_HOME/build-tools/36.0.0" ]; then
+            echo "✅ build-tools 36.0.0 存在"
+            export BUILD_TOOLS="36.0.0"
+          elif [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
+            echo "⚠️ 使用 build-tools 35.0.0 作为后备"
             export BUILD_TOOLS="35.0.0"
-          elif [ -d "$ANDROID_HOME/build-tools/34.0.0" ]; then
-            echo "⚠️ 使用 build-tools 34.0.0 作为后备"
-            export BUILD_TOOLS="34.0.0"
           else
             echo "❌ 没有找到可用的构建工具"
             exit 1
@@ -272,9 +272,9 @@ jobs:
           flutter clean
           flutter pub get
           
-          # 如果降级到 android-34，更新 Gradle 配置
-          if [ "$COMPILE_SDK_VERSION" = "34" ]; then
-            echo "🔄 检测到使用 android-34，更新构建配置..."
+          # 如果降级到 android-35，更新 Gradle 配置
+          if [ "$COMPILE_SDK_VERSION" = "35" ]; then
+            echo "🔄 检测到使用 android-35，更新构建配置..."
             # 创建临时的构建配置文件
             cat > android/app/build.gradle.tmp << 'EOF'
             plugins {
@@ -285,7 +285,7 @@ jobs:
 
             android {
                 namespace = "com.example.bili_ownx"
-                compileSdk = 34  // 降级到 34
+                compileSdk = 35  // 降级到 35
                 ndkVersion = "27.0.12077973"
                 
                 compileOptions {
@@ -306,7 +306,7 @@ jobs:
                 defaultConfig {
                     applicationId = "com.example.bili_ownx"
                     minSdk = flutter.minSdkVersion
-                    targetSdk = 34  // 降级到 34
+                    targetSdk = 35  // 降级到 35
                     versionCode = flutter.versionCode
                     versionName = flutter.versionName
                 }
@@ -386,7 +386,7 @@ jobs:
             env | grep -E "(ANDROID|FLUTTER|GRADLE)"
             
             # 如果使用了临时配置，恢复原文件
-            if [ "$COMPILE_SDK_VERSION" = "34" ] && [ -f android/app/build.gradle.kts.backup ]; then
+            if [ "$COMPILE_SDK_VERSION" = "35" ] && [ -f android/app/build.gradle.kts.backup ]; then
               echo "恢复原始构建配置..."
               mv android/app/build.gradle.kts.backup android/app/build.gradle.kts
             fi
@@ -395,7 +395,7 @@ jobs:
           }
           
           # 如果使用了临时配置，恢复原文件
-          if [ "$COMPILE_SDK_VERSION" = "34" ] && [ -f android/app/build.gradle.kts.backup ]; then
+          if [ "$COMPILE_SDK_VERSION" = "35" ] && [ -f android/app/build.gradle.kts.backup ]; then
             echo "恢复原始构建配置..."
             mv android/app/build.gradle.kts.backup android/app/build.gradle.kts
           fi
