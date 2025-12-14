@@ -68,34 +68,51 @@ jobs:
 
       - name: 安装 Android SDK 组件
         run: |
-          # 预防性清理：如果 android-35 存在但为空或无效，先删除，避免安装到 android-35-2
-          if [ -d "$ANDROID_HOME/platforms/android-35" ]; then
-            if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
-              echo "🧹 [Pre-install] 删除无效的 android-35 目录以防止路径错位..."
-              rm -rf "$ANDROID_HOME/platforms/android-35"
-            fi
-          fi
-
-          # 使用强制安装脚本
           echo "🚀 开始安装 Android SDK 组件..."
           
-          # 检查安装脚本是否存在
+          # ========== 激进预清理策略 ==========
+          echo "🧹 [AGGRESSIVE PRE-CLEAN] 删除所有 android-35 相关目录..."
+          rm -rf "$ANDROID_HOME/platforms/android-35"*
+          
+          # 确认清理成功
+          if ls "$ANDROID_HOME/platforms/" 2>/dev/null | grep -q "android-35"; then
+              echo "❌ 清理失败,仍然存在 android-35 相关目录"
+              exit 1
+          fi
+          echo "✅ 预清理完成,platforms目录内容:"
+          ls -la "$ANDROID_HOME/platforms/" || echo "platforms目录不存在(正常)"
+          
+          # ========== 使用修改后的安装脚本 ==========
           if [ -f ".github/scripts/install-sdk-components-force.sh" ]; then
             chmod +x .github/scripts/install-sdk-components-force.sh
             bash .github/scripts/install-sdk-components-force.sh "platforms;android-35 build-tools;35.0.0"
           else
-            echo "⚠️ 警告: install-sdk-components-force.sh 脚本不存在，使用 sdkmanager 直接安装"
-            sdkmanager "platforms;android-35" "build-tools;35.0.0" || {
-              echo "❌ SDK组件安装失败，尝试降级版本..."
-              sdkmanager "platforms;android-34" "build-tools;34.0.0"
-            }
+            echo "⚠️ 警告: install-sdk-components-force.sh 脚本不存在"
+            
+            # 直接安装,然后立即处理路径问题
+            sdkmanager "platforms;android-35" "build-tools;35.0.0" || true
+            
+            # 立即检查并修复路径
+            if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+              echo "🚨 检测到 android-35-2,立即修复..."
+              rm -rf "$ANDROID_HOME/platforms/android-35"
+              mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+            fi
           fi
           
+          # ========== 最终验证 ==========
           echo "📊 安装完成后的目录结构:"
           ls -la $ANDROID_HOME/platforms/ $ANDROID_HOME/build-tools/ || {
             echo "❌ 平台或构建工具目录不存在"
             exit 1
           }
+          
+          # 验证android.jar存在
+          if [ ! -f "$ANDROID_HOME/platforms/android-35/android.jar" ]; then
+            echo "❌ 关键文件android.jar缺失"
+            exit 1
+          fi
+          echo "✅ 验证通过: android.jar存在"
           
           echo "🔍 检查已安装组件:"
           sdkmanager --list_installed || echo "无法列出已安装组件"
