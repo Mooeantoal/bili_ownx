@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TARGET_SDK_VERSION: '36'
-      FALLBACK_SDK_VERSION: '35'
-      BUILD_TOOLS_VERSION: '36.0.0'
-      FALLBACK_BUILD_TOOLS_VERSION: '35.0.0'
+      TARGET_SDK_VERSION: '35'
+      FALLBACK_SDK_VERSION: '34'
+      BUILD_TOOLS_VERSION: '35.0.0'
+      FALLBACK_BUILD_TOOLS_VERSION: '34.0.0'
       JAVA_VERSION: '17'
       # Dynamic variables set during the job
       ACTUAL_PLATFORM_VERSION: ''
@@ -145,7 +145,7 @@ jobs:
           
           echo "✅ SDK配置完成"
 
-      - name: 修复 Android SDK Platform 35/36 路径
+      - name: 修复 Android SDK Platform 35 路径
         timeout-minutes: 5
         run: |
           echo "检查 Android SDK Platform 安装路径..."
@@ -154,29 +154,29 @@ jobs:
           # 等待安装完成
           sleep 5
           
-          for version in 35 36; do
-            echo "----------------------------------------"
-            echo "正在按照 Android $version..."
-            
-            if [ -d "$ANDROID_HOME/platforms/android-$version-2" ]; then
-              echo "发现 android-$version-2 目录，正在重命名为 android-$version..."
-              # 防止目标目录已存在导致mv失败（例如空目录）
-              rm -rf "$ANDROID_HOME/platforms/android-$version"
-              mv "$ANDROID_HOME/platforms/android-$version-2" "$ANDROID_HOME/platforms/android-$version"
-              echo "✅ Android $version 路径修复完成"
-            elif [ -d "$ANDROID_HOME/platforms/android-$version" ]; then
-              echo "✅ android-$version 目录已存在，无需修复"
-            else
-              echo "⚠️ 未发现 android-$version 或 android-$version-2 目录"
-            fi
-            
-            # 验证修复结果
-            if [ -d "$ANDROID_HOME/platforms/android-$version" ]; then
-               echo "✅ Android $version 路径已确认"
-            else
-               echo "⚠️ Android $version 最终未找到 (如果这不是目标版本，可忽略)"
-            fi
-          done
+          version=35
+          echo "----------------------------------------"
+          echo "正在检查 Android $version..."
+          
+          if [ -d "$ANDROID_HOME/platforms/android-$version-2" ]; then
+            echo "发现 android-$version-2 目录，正在重命名为 android-$version..."
+            rm -rf "$ANDROID_HOME/platforms/android-$version"
+            mv "$ANDROID_HOME/platforms/android-$version-2" "$ANDROID_HOME/platforms/android-$version"
+            echo "✅ Android $version 路径修复完成"
+          elif [ -d "$ANDROID_HOME/platforms/android-$version" ]; then
+            echo "✅ android-$version 目录已存在，无需修复"
+          else
+            echo "⚠️ 未发现 android-$version 或 android-$version-2 目录"
+            ls -la $ANDROID_HOME/platforms/ || true
+          fi
+          
+          # 验证修复结果
+          if [ -d "$ANDROID_HOME/platforms/android-$version" ]; then
+             echo "✅ Android $version 路径已确认"
+          else
+             echo "❌ Android $version 未找到"
+             exit 1
+          fi
 
       - name: 配置构建环境
         timeout-minutes: 5
@@ -259,16 +259,15 @@ jobs:
           flutter doctor -v
           
           # 如果需要降级版本，使用 sed 高效更新配置
-          if [ "$COMPILE_SDK_VERSION" = "$FALLBACK_SDK_VERSION" ]; then
-            echo "🔄 更新构建配置为 android-$FALLBACK_SDK_VERSION..."
-            sed -i.tmp \
-              -e "s/^[[:space:]]*compileSdk[[:space:]]*=[[:space:]]*[0-9].*/    compileSdk = $FALLBACK_SDK_VERSION/" \
-              -e "s/^[[:space:]]*targetSdk[[:space:]]*=[[:space:]]*[0-9].*/    targetSdk = $FALLBACK_SDK_VERSION/" \
-              android/app/build.gradle.kts
-            
-            # 清理临时文件
-            rm -f android/app/build.gradle.kts.tmp
-          fi
+          # 强制更新构建配置以匹配当前环境SDK
+          echo "🔄 强制更新构建配置为 android-$COMPILE_SDK_VERSION..."
+          sed -i.tmp \
+            -e "s/^[[:space:]]*compileSdk[[:space:]]*=[[:space:]]*[0-9].*/    compileSdk = $COMPILE_SDK_VERSION/" \
+            -e "s/^[[:space:]]*targetSdk[[:space:]]*=[[:space:]]*[0-9].*/    targetSdk = $COMPILE_SDK_VERSION/" \
+            android/app/build.gradle.kts
+          
+          # 清理临时文件
+          rm -f android/app/build.gradle.kts.tmp
           
           # 执行构建
           flutter build apk --debug || {
