@@ -21,6 +21,10 @@ jobs:
       BUILD_TOOLS_VERSION: '36.0.0'
       FALLBACK_BUILD_TOOLS_VERSION: '35.0.0'
       JAVA_VERSION: '11'
+      # Dynamic variables set during the job
+      ACTUAL_PLATFORM_VERSION: ''
+      COMPILE_SDK_VERSION: ''
+      ACTUAL_BUILD_TOOLS_VERSION: ''
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -44,9 +48,10 @@ jobs:
           
           # 下载并安装 Android SDK 命令行工具
           TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          FALLBACK_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
           wget -q --tries=3 --timeout=30 "$TOOLS_URL" || {
             echo "❌ 下载失败，尝试备用URL..."
-            wget -q --tries=3 --timeout=30 "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
+            wget -q --tries=3 --timeout=30 "$FALLBACK_TOOLS_URL"
           }
           
           unzip -q commandlinetools-linux-*.zip
@@ -77,7 +82,7 @@ jobs:
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-sdk-preview-license"
           
           # 自动接受所有许可证
-          yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
+          yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses 2>&1 | grep -v "Warning" || true
           
           # 验证许可证文件
           if [ ! -f "$ANDROID_HOME/licenses/android-sdk-license" ]; then
@@ -166,22 +171,24 @@ jobs:
           echo "org.gradle.configureondemand=true" >> android/gradle.properties
           
           # 生成 local.properties
-          cat > android/local.properties << EOF
-sdk.dir=$ANDROID_HOME
-flutter.sdk=\$FLUTTER_ROOT
-flutter.buildMode=debug
-flutter.versionName=1.0.0
-flutter.versionCode=1
+          cat > android/local.properties << 'EOF'
+          sdk.dir=$ANDROID_HOME
+          flutter.sdk=\$FLUTTER_ROOT
+          flutter.buildMode=debug
+          flutter.versionName=1.0.0
+          flutter.versionCode=1
           EOF
           
           # 设置 Flutter 环境变量
           echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           echo "GRADLE_USER_HOME=$PWD/.gradle" >> $GITHUB_ENV
+          echo "FLUTTER_ROOT=/opt/hostedtoolcache/flutter/stable-3.27.5-x64" >> $GITHUB_ENV
           
           echo "✅ 构建环境配置完成"
 
       - name: 缓存 Gradle 依赖
-        uses: actions/cache@v3
+        uses: actions/cache@v4
+        timeout-minutes: 5
         with:
           path: |
             ~/.gradle/caches
@@ -192,13 +199,13 @@ flutter.versionCode=1
             ${{ runner.os }}-gradle-
 
       - name: 设置 Flutter
+        uses: subosito/flutter-action@v2.16.0
         timeout-minutes: 10
-        uses: subosito/flutter-action@v2.15.0
         with:
-          flutter-version: '3.24.5'
+          flutter-version: '3.27.5'
           channel: 'stable'
           cache: true
-          cache-key: 'flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}'
+          cache-key: "flutter-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}"
 
       - name: 构建 APK (Debug)
         timeout-minutes: 20
@@ -223,6 +230,7 @@ flutter.versionCode=1
           # 清理并准备
           flutter clean
           flutter pub get
+          flutter doctor -v
           
           # 如果需要降级版本，使用 sed 高效更新配置
           if [ "$COMPILE_SDK_VERSION" = "$FALLBACK_SDK_VERSION" ]; then
@@ -246,6 +254,7 @@ flutter.versionCode=1
           }
 
       - name: 验证构建结果
+        timeout-minutes: 5
         run: |
           set -e
           echo "🔍 查找并验证生成的 APK 文件..."
@@ -259,9 +268,9 @@ flutter.versionCode=1
           fi
           
           echo "✅ 找到以下 APK 文件:"
-          echo "$APK_FILES" | while read -r apk; do
+          for apk in $APK_FILES; do
             if [ -f "$apk" ]; then
-              SIZE=$(ls -la "$apk" | awk '{print $5}')
+              SIZE=$(stat -c%s "$apk")
               echo "- $(basename "$apk") ($SIZE bytes)"
             fi
           done
