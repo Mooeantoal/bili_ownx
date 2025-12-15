@@ -82,7 +82,7 @@ jobs:
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > "$ANDROID_HOME/licenses/android-sdk-sdk-preview-license"
           
           # 自动接受所有许可证
-          yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses 2>&1 | grep -v "Warning" || true
+          yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null 2>&1 || true
           
           # 验证许可证文件
           if [ ! -f "$ANDROID_HOME/licenses/android-sdk-license" ]; then
@@ -120,14 +120,7 @@ jobs:
             exit 1
           fi
           
-          # 修复可能的路径问题
-          for version in $TARGET_SDK_VERSION $FALLBACK_SDK_VERSION; do
-            if [ -d "$ANDROID_HOME/platforms/android-$version-2" ]; then
-              echo "🔧 修复 android-$version-2 路径..."
-              rm -rf "$ANDROID_HOME/platforms/android-$version"
-              mv "$ANDROID_HOME/platforms/android-$version-2" "$ANDROID_HOME/platforms/android-$version"
-            fi
-          done
+
           
           # 验证安装结果
           if [ -f "$ANDROID_HOME/platforms/android-$TARGET_SDK_VERSION/android.jar" ]; then
@@ -151,6 +144,31 @@ jobs:
           fi
           
           echo "✅ SDK配置完成"
+
+      - name: 修复 Android SDK Platform 35 路径
+        timeout-minutes: 5
+        run: |
+          echo "检查 Android SDK Platform 35 安装路径..."
+          ls -la $ANDROID_HOME/platforms/ | grep android-35 || true
+          
+          # 等待安装完成
+          sleep 5
+          
+          # 修复Android 35安装路径问题
+          if [ -d "$ANDROID_HOME/platforms/android-35-2" ]; then
+            echo "发现 android-35-2 目录，正在重命名为 android-35..."
+            mv "$ANDROID_HOME/platforms/android-35-2" "$ANDROID_HOME/platforms/android-35"
+            echo "✅ 路径修复完成"
+          elif [ -d "$ANDROID_HOME/platforms/android-35" ]; then
+            echo "✅ android-35 目录已存在，无需修复"
+          else
+            echo "❌ 未发现 android-35 或 android-35-2 目录"
+            ls -la $ANDROID_HOME/platforms/
+          fi
+          
+          # 验证修复结果
+          echo "验证 Android 35 安装..."
+          ls -la $ANDROID_HOME/platforms/android-35 && echo "✅ Android 35 路径验证成功" || echo "❌ android-35 目录不存在"
 
       - name: 配置构建环境
         timeout-minutes: 5
