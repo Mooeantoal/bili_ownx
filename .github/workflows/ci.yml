@@ -20,7 +20,7 @@ jobs:
       FALLBACK_SDK_VERSION: '35'
       BUILD_TOOLS_VERSION: '36.0.0'
       FALLBACK_BUILD_TOOLS_VERSION: '35.0.0'
-      JAVA_VERSION: '11'
+      JAVA_VERSION: '17'
       # Dynamic variables set during the job
       ACTUAL_PLATFORM_VERSION: ''
       COMPILE_SDK_VERSION: ''
