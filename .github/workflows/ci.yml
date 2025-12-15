@@ -167,12 +167,12 @@ jobs:
           
           # 生成 local.properties
           cat > android/local.properties << EOF
-            sdk.dir=$ANDROID_HOME
-            flutter.sdk=\$FLUTTER_ROOT
-            flutter.buildMode=debug
-            flutter.versionName=1.0.0
-            flutter.versionCode=1
-EOF
+sdk.dir=$ANDROID_HOME
+flutter.sdk=\$FLUTTER_ROOT
+flutter.buildMode=debug
+flutter.versionName=1.0.0
+flutter.versionCode=1
+          EOF
           
           # 设置 Flutter 环境变量
           echo "FLUTTER_ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
