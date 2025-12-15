@@ -104,12 +104,12 @@ jobs:
           SDK_SUCCESS=false
           
           # 尝试安装主要版本
-          if sdkmanager "platforms;android-$TARGET_SDK_VERSION" "build-tools;$BUILD_TOOLS_VERSION"; then
+          if sdkmanager "platform-tools" "platforms;android-$TARGET_SDK_VERSION" "build-tools;$BUILD_TOOLS_VERSION"; then
             echo "✅ 主要版本安装成功"
             SDK_SUCCESS=true
           else
             echo "⚠️ 主要版本安装失败，尝试后备版本..."
-            if sdkmanager "platforms;android-$FALLBACK_SDK_VERSION" "build-tools;$FALLBACK_BUILD_TOOLS_VERSION"; then
+            if sdkmanager "platform-tools" "platforms;android-$FALLBACK_SDK_VERSION" "build-tools;$FALLBACK_BUILD_TOOLS_VERSION"; then
               echo "✅ 后备版本安装成功"
               SDK_SUCCESS=true
             fi
