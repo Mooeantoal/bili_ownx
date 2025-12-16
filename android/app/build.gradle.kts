@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.bili_ownx"
-    compileSdk = 36  // 升级到36以满足media_kit插件要求
+    compileSdk = 36  // 使用最新的 Android SDK
     ndkVersion = "27.0.12077973"
     
     // 启用核心库脱糖以支持 Java 8+ 特性

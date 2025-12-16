@@ -31,9 +31,9 @@
 # Dart specific rules
 -keep class androidx.lifecycle.** { *; }
 
-# MediaKit player rules (if using media_kit)
--keep class com.github.alexmercerind.media_kit.** { *; }
--keep class com.github.alexmercerind.** { *; }
+# MediaKit player rules - removed due to compilation issues
+# -keep class com.github.alexmercerind.media_kit.** { *; }
+# -keep class com.github.alexmercerind.** { *; }
 
 # Dio network library rules
 -keep class okhttp3.** { *; }
