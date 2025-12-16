@@ -194,6 +194,7 @@ class CommentStateService extends ChangeNotifier {
   Future<List<CommentInfo>> loadCommentReplies({
     required String oid,
     required String rootRpid,
+    String? currentRpid, // 当前评论的rpid，用于调试
     int pageNum = 1,
     int pageSize = 10,
   }) async {
@@ -202,48 +203,66 @@ class CommentStateService extends ChangeNotifier {
     }
 
     try {
+      print('CommentStateService加载回复: rootRpid=$rootRpid, currentRpid=$currentRpid');
+      
       final response = await _commentApi.getCommentReplies(
         oid: oid,
-        rpid: rootRpid,
+        rpid: currentRpid ?? rootRpid,
+        rootRpid: rootRpid, // 确保使用根评论ID
         pageNum: pageNum,
         pageSize: pageSize,
       );
       
+      final repliesList = response['replies'] as List<dynamic>? ?? [];
+      
       // 为每个回复设置正确的父子关系
-      final replies = response.replies.map((reply) {
-        // 确保回复的root和parent字段正确设置
-        return CommentInfo(
-          rpid: reply.rpid,
-          rpidStr: reply.rpidStr,
-          oid: reply.oid,
-          type: reply.type,
-          mid: reply.mid,
-          message: reply.message,
-          like: reply.like,
-          dislike: reply.dislike,
-          replyCount: reply.replyCount,
-          createTime: reply.createTime,
-          action: reply.action,
-          attr: reply.attr,
-          assist: reply.assist,
-          count: reply.count,
-          dialog: reply.dialog,
-          fansgrade: reply.fansgrade,
-          parentStr: reply.parentStr.isEmpty ? rootRpid : reply.parentStr,
-          rootStr: reply.rootStr.isEmpty ? rootRpid : reply.rootStr,
-          user: reply.user,
-          content: reply.content,
-          replyControl: reply.replyControl,
-          replies: reply.replies,
-          medias: reply.medias,
-          isLiked: reply.isLiked,
-          isTop: reply.isTop,
-          isFloorTop: reply.isFloorTop,
-          isUpSelect: reply.isUpSelect,
-          location: reply.location,
-          device: reply.device,
-        );
-      }).toList();
+      final replies = repliesList
+          .whereType<Map<String, dynamic>>()
+          .map((json) => CommentInfo.fromJson(json))
+          .where((reply) {
+            // 过滤掉根评论本身，确保只显示二级评论
+            if (reply.rpid == rootRpid) {
+              print('过滤掉根评论: rpid=${reply.rpid}');
+              return false;
+            }
+            return true;
+          })
+          .map((reply) {
+            // 确保回复的root和parent字段正确设置
+            print('处理回复: rpid=${reply.rpid}, parent=${reply.parentStr}, root=${reply.rootStr}');
+            
+            return CommentInfo(
+              rpid: reply.rpid,
+              rpidStr: reply.rpidStr,
+              oid: reply.oid,
+              type: reply.type,
+              mid: reply.mid,
+              message: reply.message,
+              like: reply.like,
+              dislike: reply.dislike,
+              replyCount: reply.replyCount,
+              createTime: reply.createTime,
+              action: reply.action,
+              attr: reply.attr,
+              assist: reply.assist,
+              count: reply.count,
+              dialog: reply.dialog,
+              fansgrade: reply.fansgrade,
+              parentStr: reply.parentStr.isEmpty ? rootRpid : reply.parentStr,
+              rootStr: reply.rootStr.isEmpty ? rootRpid : reply.rootStr,
+              user: reply.user,
+              content: reply.content,
+              replyControl: reply.replyControl,
+              replies: reply.replies,
+              medias: reply.medias,
+              isLiked: reply.isLiked,
+              isTop: reply.isTop,
+              isFloorTop: reply.isFloorTop,
+              isUpSelect: reply.isUpSelect,
+              location: reply.location,
+              device: reply.device,
+            );
+          }).toList();
       
       return replies;
     } catch (e) {

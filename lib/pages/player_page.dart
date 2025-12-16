@@ -236,10 +236,52 @@ AID: ${widget.aid}
         aid: widget.aid,
       );
 
+      // 调试：打印API响应数据
+      print('视频详情API响应: ${response['code']}');
+      if (response['data'] != null) {
+        final data = response['data'];
+        print('BVID: ${data['bvid']}');
+        print('AID: ${data['aid']}');
+        print('CID: ${data['cid']}');
+        print('Pages: ${data['pages']}');
+      }
+
       if (response['code'] == 0 && response['data'] != null) {
         setState(() {
           _videoInfo = VideoInfo.fromJson(response['data']);
         });
+
+        // 验证CID是否有效
+        if (_videoInfo!.cid <= 0) {
+          setState(() {
+            _errorMessage = '视频信息无效: CID为0，可能视频已被删除或不可访问';
+            _isLoading = false;
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ErrorHandler.showErrorDialog(
+              context: context,
+              title: '视频信息无效',
+              error: 'CID为0，无法获取播放地址',
+              stackTrace: StackTrace.current.toString(),
+              additionalInfo: '''BVID: ${_videoInfo!.bvid}
+AID: ${_videoInfo!.aid}
+CID: ${_videoInfo!.cid}
+
+可能的原因:
+1. 视频已被删除
+2. 视频正在审核中
+3. 视频为付费内容但未登录
+4. API返回数据异常
+
+请尝试:
+- 重新搜索该视频
+- 选择其他视频
+- 检查网络连接''',
+            );
+          });
+          return;
+        }
 
         // 先获取可用画质列表
         await _loadAvailableQualities(_videoInfo!.cid);

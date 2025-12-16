@@ -170,7 +170,7 @@ class VideoApi {
     }
     
     if (cid <= 0) {
-      throw ArgumentError('CID 必须大于 0');
+      throw ArgumentError('CID 必须大于 0，当前值: $cid。可能原因：视频已被删除、正在审核中或API返回数据异常。');
     }
     
     print('请求播放地址: bvid=$bvid, cid=$cid, qn=$qn, fnval=$fnval');

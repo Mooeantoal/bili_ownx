@@ -232,9 +232,12 @@ class _CommentReplyPageState extends State<CommentReplyPage>
       final newReplies = await commentStateService.loadCommentReplies(
         oid: widget.oid,
         rootRpid: widget.rootRpid,
+        currentRpid: widget.rootRpid, // 添加当前评论ID用于调试
         pageNum: _currentPage,
         pageSize: 20,
       );
+
+      print('CommentReplyPage加载到${newReplies.length}条回复');
 
       setState(() {
         if (refresh) {

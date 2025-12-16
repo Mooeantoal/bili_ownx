@@ -78,24 +78,32 @@ class CommentApi {
 
   /// 获取评论回复列表
   /// [oid] 视频 avid
-  /// [rpid] 根评论 rpid
+  /// [rpid] 当前评论 rpid
+  /// [rootRpid] 根评论 rpid（用于确保获取正确的回复列表）
   /// [pageNum] 页码
   /// [pageSize] 每页数量
   Future<Map<String, dynamic>> getCommentReplies({
     required String oid,
     required String rpid,
+    String? rootRpid,
     int pageNum = 1,
     int pageSize = 10,
   }) async {
     try {
+      // 使用真正的根评论ID，避免显示一级评论
+      final actualRoot = rootRpid ?? rpid;
+      
       final params = {
         'type': '1',
         'oid': oid,
-        'root': rpid,
+        'root': actualRoot,
         'sort': '0',
         'pn': pageNum.toString(),
         'ps': pageSize.toString(),
       };
+
+      // 添加调试日志
+      _debugLog('获取回复参数: oid=$oid, rpid=$rpid, rootRpid=$actualRoot, pageNum=$pageNum');
 
       final response = await _dio.get(
         'https://api.bilibili.com/x/v2/reply/main',

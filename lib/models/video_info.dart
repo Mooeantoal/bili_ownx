@@ -74,6 +74,23 @@ class VideoInfo {
       ]);
     }
 
+    // 尝试多种方式获取CID
+    int cid = 0;
+    if (json['cid'] != null && json['cid'] is int && json['cid'] > 0) {
+      cid = json['cid'];
+    } else if (pages.isNotEmpty && pages[0].cid > 0) {
+      cid = pages[0].cid;
+    } else if (json['pages'] != null && json['pages'] is List && (json['pages'] as List).isNotEmpty) {
+      // 直接从pages数组获取第一个有效CID
+      final pagesList = json['pages'] as List;
+      for (final page in pagesList) {
+        if (page is Map && page['cid'] != null && page['cid'] is int && page['cid'] > 0) {
+          cid = page['cid'];
+          break;
+        }
+      }
+    }
+
     return VideoInfo(
       bvid: json['bvid'] ?? '',
       aid: json['aid']?.toString() ?? '0',
@@ -82,7 +99,7 @@ class VideoInfo {
       cover: json['pic'] ?? '',
       author: json['owner']?['name'] ?? '',
       duration: json['duration'] ?? 0,
-      cid: json['cid'] ?? (pages.isNotEmpty ? pages[0].cid : 0),
+      cid: cid,
       parts: pages,
       description: json['desc'] ?? json['description'] ?? '',
       tags: json['tags'] != null ? List<String>.from(json['tags']) : [],

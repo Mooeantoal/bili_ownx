@@ -178,25 +178,44 @@ class _CommentPageState extends State<CommentPage>
     });
 
     try {
+      // 确定真正的根评论ID
+      String rootRpid = comment.rpid;
+      if (comment.rootStr.isNotEmpty && comment.rootStr != comment.rpid) {
+        rootRpid = comment.rootStr;
+      }
+
       final response = await _networkService.executeWithNetworkCheck(
         () => _commentApi.getCommentReplies(
           oid: widget.aid?.toString() ?? widget.bvid,
           rpid: comment.rpid,
+          rootRpid: rootRpid,
         ),
         timeout: const Duration(seconds: 10),
       );
 
+      // 调试日志
+      print('加载回复: comment.rpid=${comment.rpid}, comment.rootStr=${comment.rootStr}, actualRoot=$rootRpid');
+
       if (mounted) {
-        final replies = response['replies'] as List<dynamic>? ?? [];
-        final parsedReplies = replies
-            .whereType<Map<String, dynamic>>()
-            .map((json) => CommentInfo.fromJson(json))
-            .toList();
-            
-        setState(() {
-          _replyCache[comment.rpid] = parsedReplies;
-          _replyLoading[comment.rpid] = false;
-        });
+      final replies = response['replies'] as List<dynamic>? ?? [];
+      final parsedReplies = replies
+          .whereType<Map<String, dynamic>>()
+          .map((json) => CommentInfo.fromJson(json))
+          .where((reply) {
+            // 过滤掉根评论本身，确保只显示二级评论
+            return reply.rpid != rootRpid;
+          })
+          .toList();
+          
+      print('解析到的回复数量: ${parsedReplies.length}');
+      for (final reply in parsedReplies) {
+        print('回复: rpid=${reply.rpid}, parent=${reply.parentStr}, root=${reply.rootStr}');
+      }
+          
+      setState(() {
+        _replyCache[comment.rpid] = parsedReplies;
+        _replyLoading[comment.rpid] = false;
+      });
       }
     } catch (e) {
       if (mounted) {
@@ -971,17 +990,33 @@ class _RepliesDialogState extends State<RepliesDialog> {
     setState(() => _isLoading = true);
 
     try {
+      // 确定真正的根评论ID
+      String rootRpid = widget.comment.rpid;
+      if (widget.comment.rootStr.isNotEmpty && 
+          widget.comment.rootStr != widget.comment.rpid) {
+        rootRpid = widget.comment.rootStr;
+      }
+
       final response = await _commentApi.getCommentReplies(
         oid: widget.aid,
         rpid: widget.comment.rpid,
+        rootRpid: rootRpid,
         pageNum: _currentPage,
       );
+
+      print('Dialog加载回复: comment.rpid=${widget.comment.rpid}, comment.rootStr=${widget.comment.rootStr}, actualRoot=$rootRpid');
 
       final replies = response['replies'] as List<dynamic>? ?? [];
       final parsedReplies = replies
           .whereType<Map<String, dynamic>>()
           .map((json) => CommentInfo.fromJson(json))
+          .where((reply) {
+            // 过滤掉根评论本身
+            return reply.rpid != rootRpid;
+          })
           .toList();
+          
+      print('Dialog解析到的回复数量: ${parsedReplies.length}');
           
       setState(() {
         _replies.addAll(parsedReplies);
