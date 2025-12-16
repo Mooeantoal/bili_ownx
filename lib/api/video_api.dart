@@ -36,9 +36,9 @@ class VideoApi {
   /// - bvid: BV号 或 aid: AV号
   static Future<Map<String, dynamic>> getVideoDetail({
     String? bvid,
-    int? aid,
+    String? aid, // 改为字符串类型以支持大数值
   }) async {
-    if (bvid == null && aid == null) {
+    if ((bvid == null || bvid.isEmpty) && (aid == null || aid.isEmpty)) {
       throw ArgumentError('bvid 和 aid 必须提供其中一个');
     }
 
@@ -47,16 +47,23 @@ class VideoApi {
       bvid = null;
     }
 
+    // 检查 aid 是否为空字符串
+    if (aid != null && aid.isEmpty) {
+      aid = null;
+    }
+
     // 确保至少有一个有效的 ID
-    if ((bvid == null || bvid.isEmpty) && (aid == null || aid == 0)) {
+    if ((bvid == null || bvid.isEmpty) && (aid == null || aid.isEmpty)) {
       throw ArgumentError('必须提供有效的 bvid 或 aid');
     }
 
     final params = <String, dynamic>{};
     if (bvid != null && bvid.isNotEmpty) {
       params['bvid'] = bvid;
-    } else if (aid != null && aid != 0) {
-      params['aid'] = aid;
+    } else if (aid != null && aid.isNotEmpty) {
+      // 尝试将字符串AID转换为数字，如果失败则直接使用字符串
+      final aidInt = int.tryParse(aid);
+      params['aid'] = aidInt ?? aid;
     } else {
       throw ArgumentError('没有有效的视频ID');
     }
@@ -295,7 +302,7 @@ class VideoApi {
   /// - bvid: BV号 或 aid: AV号
   static Future<List<Map<String, dynamic>>> getVideoParts({
     String? bvid,
-    int? aid,
+    String? aid, // 改为字符串类型
   }) async {
     final detail = await getVideoDetail(bvid: bvid, aid: aid);
     

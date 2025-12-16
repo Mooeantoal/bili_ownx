@@ -16,7 +16,7 @@ import 'comment_page.dart';
 /// 视频播放器页面
 class PlayerPage extends StatefulWidget {
   final String bvid;
-  final int? aid;
+  final String? aid; // 改为字符串类型以支持大数值
 
   PlayerPage({
     super.key,
@@ -30,13 +30,25 @@ class PlayerPage extends StatefulWidget {
   factory PlayerPage.withIds({
     Key? key,
     String? bvid,
-    int? aid,
+    String? aid, // 改为字符串类型
   }) {
     assert(bvid != null || aid != null, 'bvid 和 aid 必须提供其中一个');
     return PlayerPage(
       key: key,
       bvid: bvid ?? '',
       aid: aid,
+    );
+  }
+
+  /// 从BiliVideoInfo创建PlayerPage的便利构造函数
+  factory PlayerPage.fromVideoInfo({
+    Key? key,
+    required BiliVideoInfo videoInfo,
+  }) {
+    return PlayerPage(
+      key: key,
+      bvid: videoInfo.bvid,
+      aid: videoInfo.aid.isNotEmpty ? videoInfo.aid : null,
     );
   }
 
@@ -100,13 +112,31 @@ class _PlayerPageState extends State<PlayerPage> with PiPStateMixin, WidgetsBind
       }
     }
     
-    // 验证AID格式
-    if (widget.aid != null) {
-      // AID应该是正整数且在合理范围内
-      if (widget.aid! <= 0 || widget.aid! > 9999999999) {
+    // 验证AID格式 - 修改验证逻辑，允许大AID值但给出警告
+    if (widget.aid != null && widget.aid!.isNotEmpty) {
+      final aidInt = int.tryParse(widget.aid!);
+      if (aidInt == null) {
+        print('AID格式无效: ${widget.aid} (无法解析为数字)');
+        return false;
+      }
+      
+      // AID应该是正整数
+      if (aidInt <= 0) {
         print('AID格式无效: ${widget.aid}');
         return false;
       }
+      
+      // 如果AID超过100亿，记录警告但不阻止播放（因为可能来自API数据）
+      if (aidInt > 9999999999) {
+        print('警告: AID值过大: ${widget.aid}，将尝试使用BVID获取视频信息');
+        // 不返回false，让系统继续尝试使用BVID
+      }
+    }
+    
+    // 至少需要一个有效的标识符
+    if (widget.bvid.isEmpty && widget.aid == null) {
+      print('缺少视频标识符: BVID和AID都为空');
+      return false;
     }
     
     return true;
@@ -185,13 +215,14 @@ AID: ${widget.aid}
 
 格式要求:
 - BVID: BV + 10位字母数字组合 (如: BV1GJ411x7h7)
-- AID: 正整数且小于100亿
+- AID: 正整数 (支持大数值)
 
 常见问题:
 - 测试数据: BV1234567890, BV0987654321
 - 重复字符: BVAAAAAAAAAA
 - 连续模式: BV1122334455
 
+注意: 如果AID值过大，系统会尝试使用BVID获取视频信息。
 请检查视频数据来源，确保使用真实的bilibili视频ID。''',
         );
       });

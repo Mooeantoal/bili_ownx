@@ -1,7 +1,7 @@
 /// 视频信息模型
 class VideoInfo {
   final String bvid;
-  final int aid;
+  final String aid; // 改为字符串类型以支持大数值
   final String title;
   final String desc;
   final String cover;
@@ -76,7 +76,7 @@ class VideoInfo {
 
     return VideoInfo(
       bvid: json['bvid'] ?? '',
-      aid: json['aid'] ?? 0,
+      aid: json['aid']?.toString() ?? '0',
       title: json['title'] ?? '',
       desc: json['desc'] ?? '',
       cover: json['pic'] ?? '',

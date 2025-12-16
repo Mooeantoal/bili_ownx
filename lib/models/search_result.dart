@@ -6,7 +6,7 @@ class VideoSearchResult {
   final int play;             // 播放量
   final String duration;      // 时长
   final String bvid;          // BV号
-  final int aid;              // AV号
+  final String aid;           // AV号 (改为字符串类型以支持大数值)
   
   // 新增字段
   final int danmaku;          // 弹幕数
@@ -73,7 +73,7 @@ class VideoSearchResult {
     play = _parsePlayCount(videoData['play'] ?? videoData['video_view'] ?? json['play'] ?? json['video_view'] ?? 0);
     duration = _parseDuration(videoData['duration'] ?? videoData['length'] ?? json['duration'] ?? json['length'] ?? '');
     bvid = _parseString(videoData['bvid'] ?? videoData['bvid_id'] ?? json['bvid'] ?? json['bvid_id'] ?? '');
-    aid = _parseInt(videoData['aid'] ?? videoData['id'] ?? json['aid'] ?? json['id'] ?? 0);
+    aid = _parseString((videoData['aid'] ?? videoData['id'] ?? json['aid'] ?? json['id'] ?? 0).toString());
     
     // 如果还是没有 bvid，尝试从其他字段构造
     if (bvid.isEmpty) {
@@ -152,7 +152,7 @@ class VideoSearchResult {
         play: _parsePlayCount(json['play'] ?? 0),
         duration: _parseString(json['duration'] ?? ''),
         bvid: _parseString(json['bvid'] ?? ''),
-        aid: _parseInt(json['aid'] ?? 0),
+        aid: _parseString((json['aid'] ?? 0).toString()),
         description: '数据解析出错: $e',
       );
     }

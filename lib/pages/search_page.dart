@@ -515,7 +515,7 @@ class _SearchPageState extends State<SearchPage> {
 
         // 只传递有效的 ID
         final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
-        final int? validAid = video.aid != 0 ? video.aid : null;
+        final String? validAid = video.aid.isNotEmpty ? video.aid : null;
 
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -528,7 +528,7 @@ class _SearchPageState extends State<SearchPage> {
       },
       onCommentTap: () {
         final String? validBvid = video.bvid.isNotEmpty ? video.bvid : null;
-        final int? validAid = video.aid != 0 ? video.aid : null;
+        final String? validAid = video.aid.isNotEmpty ? video.aid : null;
 
         if (validBvid == null && validAid == null) {
           ScaffoldMessenger.of(context).showSnackBar(

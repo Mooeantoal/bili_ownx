@@ -13,7 +13,7 @@ import '../widgets/network_status_widget.dart';
 /// 评论页面
 class CommentPage extends StatefulWidget {
   final String bvid;
-  final int? aid;
+  final String? aid; // 改为字符串类型以支持大数值
 
   const CommentPage({
     super.key,
