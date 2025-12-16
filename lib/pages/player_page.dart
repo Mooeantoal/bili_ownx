@@ -3,6 +3,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../api/video_api.dart';
 import '../models/video_info.dart';
+import '../models/bili_video_info.dart';
 import '../services/play_history_service.dart';
 import '../services/download_service.dart';
 import '../services/download_manager.dart';
