@@ -54,7 +54,7 @@ class VideoSearchResult {
       int play = 0;
       String duration = '';
       String bvid = '';
-      int aid = 0;
+      String aid = ''; // 改为字符串类型
     
     // 处理嵌套结构（B站 API 常见结构）
     Map<String, dynamic> videoData = json;
@@ -98,7 +98,7 @@ class VideoSearchResult {
         
         if (param != null && goto == 'av') {
           // 使用 AV 号，将 aid 设置为 param 的值
-          aid = _parseInt(param);
+          aid = _parseString(param.toString());
           print('从 param 字段提取 AV 号: $aid');
         }
       }
