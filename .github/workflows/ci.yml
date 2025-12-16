@@ -145,6 +145,7 @@ jobs:
           
           # 清理并准备
           flutter clean
+          flutter pub cache clean
           flutter pub get
           flutter doctor -v
           
