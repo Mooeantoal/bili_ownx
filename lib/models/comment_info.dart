@@ -113,19 +113,21 @@ class CommentInfo {
       rpid: json['rpid']?.toString() ?? json['id']?.toString() ?? '',
       rpidStr: json['rpid_str']?.toString() ?? json['rpid'].toString(),
       oid: json['oid']?.toString() ?? '',
-      type: json['type'] ?? 1,
+      type: int.tryParse(json['type']?.toString() ?? '') ?? 1,
       mid: json['mid']?.toString() ?? '',
       message: message,
-      like: json['like'] ?? 0,
-      dislike: json['dislike'] ?? 0,
-      replyCount: json['rcount'] ?? json['reply_count'] ?? json['count'] ?? 0,
-      createTime: json['ctime'] ?? 0,
-      action: json['action'] ?? 0,
-      attr: json['attr'] ?? 0,
-      assist: json['assist'] ?? 0,
-      count: json['count'] ?? 0,
-      dialog: json['dialog'] ?? 0,
-      fansgrade: json['fansgrade'] ?? 0,
+      like: int.tryParse(json['like']?.toString() ?? '') ?? 0,
+      dislike: int.tryParse(json['dislike']?.toString() ?? '') ?? 0,
+      replyCount: int.tryParse(json['rcount']?.toString() ?? '') ?? 
+                   int.tryParse(json['reply_count']?.toString() ?? '') ?? 
+                   int.tryParse(json['count']?.toString() ?? '') ?? 0,
+      createTime: int.tryParse(json['ctime']?.toString() ?? '') ?? 0,
+      action: int.tryParse(json['action']?.toString() ?? '') ?? 0,
+      attr: int.tryParse(json['attr']?.toString() ?? '') ?? 0,
+      assist: int.tryParse(json['assist']?.toString() ?? '') ?? 0,
+      count: int.tryParse(json['count']?.toString() ?? '') ?? 0,
+      dialog: int.tryParse(json['dialog']?.toString() ?? '') ?? 0,
+      fansgrade: int.tryParse(json['fansgrade']?.toString() ?? '') ?? 0,
       parentStr: parentStr,
       rootStr: rootStr,
       user: json['member'] is Map 
@@ -250,7 +252,7 @@ class UserInfo {
       mid: json['mid']?.toString() ?? '',
       uname: json['uname'] ?? '',
       face: json['face'] ?? '',
-      level: json['level'] ?? 0,
+      level: int.tryParse(json['level']?.toString() ?? '') ?? 0,
       official: json['official'] is Map 
           ? OfficialInfo.fromJson(json['official']) 
           : null,
@@ -300,10 +302,10 @@ class OfficialInfo {
 
   factory OfficialInfo.fromJson(Map<String, dynamic> json) {
     return OfficialInfo(
-      role: json['role'] ?? 0,
+      role: int.tryParse(json['role']?.toString() ?? '') ?? 0,
       title: json['title'] ?? '',
       desc: json['desc'] ?? '',
-      type: json['type'] ?? 0,
+      type: int.tryParse(json['type']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -337,10 +339,10 @@ class VipInfo {
 
   factory VipInfo.fromJson(Map<String, dynamic> json) {
     return VipInfo(
-      type: json['type'] ?? 0,
-      status: json['status'] ?? 0,
-      dueDate: json['due_date'] ?? 0,
-      vipPayType: json['vip_pay_type'] ?? 0,
+      type: int.tryParse(json['type']?.toString() ?? '') ?? 0,
+      status: int.tryParse(json['status']?.toString() ?? '') ?? 0,
+      dueDate: int.tryParse(json['due_date']?.toString() ?? '') ?? 0,
+      vipPayType: int.tryParse(json['vip_pay_type']?.toString() ?? '') ?? 0,
       themeType: json['theme_type'] ?? '',
       label: json['label'] is Map 
           ? VipLabel.fromJson(json['label']) 
@@ -385,7 +387,7 @@ class VipLabel {
       labelTheme: json['label_theme'] ?? '',
       textColor: json['text_color'] ?? '',
       bgColor: json['bg_color'] ?? '',
-      borderColor: json['border_color'] ?? 0,
+      borderColor: int.tryParse(json['border_color']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -417,10 +419,10 @@ class PendantInfo {
 
   factory PendantInfo.fromJson(Map<String, dynamic> json) {
     return PendantInfo(
-      pid: json['pid'] ?? 0,
+      pid: int.tryParse(json['pid']?.toString() ?? '') ?? 0,
       name: json['name'] ?? '',
       image: json['image'] ?? '',
-      expire: json['expire'] ?? 0,
+      expire: int.tryParse(json['expire']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -454,7 +456,7 @@ class NameplateInfo {
 
   factory NameplateInfo.fromJson(Map<String, dynamic> json) {
     return NameplateInfo(
-      nid: json['nid'] ?? 0,
+      nid: int.tryParse(json['nid']?.toString() ?? '') ?? 0,
       name: json['name'] ?? '',
       image: json['image'] ?? '',
       imageSmall: json['image_small'] ?? '',
@@ -567,7 +569,7 @@ class EmoteInfo {
       id: json['id']?.toString() ?? '',
       text: json['text'] ?? '',
       url: json['url'] ?? '',
-      size: json['size'] ?? 1,
+      size: int.tryParse(json['size']?.toString() ?? '') ?? 1,
     );
   }
 
@@ -622,7 +624,7 @@ class JumpUrl {
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       url: json['url'] ?? '',
-      prefix: json['prefix'] ?? 0,
+      prefix: int.tryParse(json['prefix']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -683,8 +685,8 @@ class ReplyControl {
     return ReplyControl(
       isUpSelect: json['is_up_select'] is bool ? json['is_up_select'] : false,
       isGlobalTop: json['is_global_top'] is bool ? json['is_global_top'] : false,
-      maxLine: json['max_line'] is int ? json['max_line'] : 0,
-      timeDesc: json['time_desc'] is int ? json['time_desc'] : 0,
+    maxLine: int.tryParse(json['max_line']?.toString() ?? '') ?? 0,
+    timeDesc: int.tryParse(json['time_desc']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -723,7 +725,8 @@ class CommentResponse {
     
     return CommentResponse(
       comments: comments,
-      totalCount: json['total'] is int ? json['total'] : json['count'] ?? 0,
+      totalCount: int.tryParse(json['total']?.toString() ?? '') ?? 
+                   int.tryParse(json['count']?.toString() ?? '') ?? 0,
       page: json['page'] is Map ? PageConfig.fromJson(json['page']) : null,
       upper: json['upper'] is Map ? UpperConfig.fromJson(json['upper']) : null,
     );
@@ -744,9 +747,9 @@ class PageConfig {
 
   factory PageConfig.fromJson(Map<String, dynamic> json) {
     return PageConfig(
-      count: json['count'] is int ? json['count'] : 0,
-      num: json['num'] is int ? json['num'] : 0,
-      size: json['size'] is int ? json['size'] : 0,
+      count: int.tryParse(json['count']?.toString() ?? '') ?? 0,
+      num: int.tryParse(json['num']?.toString() ?? '') ?? 0,
+      size: int.tryParse(json['size']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -792,7 +795,7 @@ class CommentReplyResponse {
           .whereType<Map<String, dynamic>>()
           .map(CommentInfo.fromJson)
           .toList(),
-      totalCount: json['count'] is int ? json['count'] : 0,
+      totalCount: int.tryParse(json['count']?.toString() ?? '') ?? 0,
       page: json['page'] is Map ? PageConfig.fromJson(json['page']) : null,
       cursor: json['cursor'] is Map ? Cursor.fromJson(json['cursor']) : null,
     );
@@ -811,8 +814,8 @@ class Cursor {
 
   factory Cursor.fromJson(Map<String, dynamic> json) {
     return Cursor(
-      allCount: json['all_count'] is int ? json['all_count'] : 0,
-      isEnd: json['is_end'] is int ? json['is_end'] : 0,
+      allCount: int.tryParse(json['all_count']?.toString() ?? '') ?? 0,
+      isEnd: int.tryParse(json['is_end']?.toString() ?? '') ?? 0,
     );
   }
 }
@@ -841,11 +844,11 @@ class MediaInfo {
     return MediaInfo(
       type: json['type'] ?? 'image',
       url: json['url'] ?? '',
-      width: json['width'] ?? 0,
-      height: json['height'] ?? 0,
-      thumbnail: json['thumbnail'],
-      description: json['description'],
-      size: json['size'] ?? 0,
+    width: int.tryParse(json['width']?.toString() ?? '') ?? 0,
+    height: int.tryParse(json['height']?.toString() ?? '') ?? 0,
+    thumbnail: json['thumbnail'],
+    description: json['description'],
+    size: int.tryParse(json['size']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -966,16 +969,16 @@ class EmotePackage {
         .toList();
 
     return EmotePackage(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       text: json['text'] ?? '',
       url: json['url'] ?? '',
       msize: json['msize'] ?? '',
       emotes: emotes,
-      type: json['type'] ?? 0,
+      type: int.tryParse(json['type']?.toString() ?? '') ?? 0,
       active: json['active'] ?? false,
-      attr: json['attr'] ?? 0,
+      attr: int.tryParse(json['attr']?.toString() ?? '') ?? 0,
       packageName: json['package_name'] ?? '',
-      packageId: json['package_id'] ?? 0,
+      packageId: int.tryParse(json['package_id']?.toString() ?? '') ?? 0,
     );
   }
 
@@ -1024,11 +1027,11 @@ class EmoteItem {
       id: json['id']?.toString() ?? '',
       text: json['text'] ?? '',
       url: json['url'] ?? '',
-      size: json['size'] ?? 1,
-      width: json['width'] ?? 0,
-      height: json['height'] ?? 0,
+      size: int.tryParse(json['size']?.toString() ?? '') ?? 1,
+      width: int.tryParse(json['width']?.toString() ?? '') ?? 0,
+      height: int.tryParse(json['height']?.toString() ?? '') ?? 0,
       mtime: json['mtime'],
-      type: json['type'] ?? 0,
+      type: int.tryParse(json['type']?.toString() ?? '') ?? 0,
       meta: json['meta'] ?? false,
     );
   }
