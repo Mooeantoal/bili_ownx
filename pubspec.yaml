@@ -33,14 +33,14 @@ dependencies:
 
   # 核心依赖 - 保留必要功能
   dio: ^5.7.0                           # 网络请求 (核心)
-  video_player: ^2.9.2                   # 视频播放 (核心)
-  permission_handler: ^11.3.1           # 权限管理 (必要)
-  path_provider: ^2.1.4                  # 路径管理 (必要)
-  shared_preferences: ^2.3.2             # 本地存储 (必要)
+  video_player: ^2.10.0                  # 视频播放 (核心)
+  permission_handler: ^12.0.1           # 权限管理 (必要)
+  path_provider: ^2.1.5                  # 路径管理 (必要)
+  shared_preferences: ^2.5.4             # 本地存储 (必要)
   hive: ^2.2.3                          # 数据库 (核心)
   hive_flutter: ^1.1.0                  # Hive Flutter集成
   provider: ^6.1.2                      # 状态管理 (核心)
-  flutter_local_notifications: ^17.2.3  # 通知功能 (必要)
+  flutter_local_notifications: ^19.5.0  # 通知功能 (必要)
   
   # 视频播放 (使用 video_player)
   # 已移除 MediaKit 由于编译问题，改用 video_player
@@ -55,20 +55,20 @@ dependencies:
   # iOS: 通过 AVPlayerViewController 实现
   
   # 评论系统依赖
-  flutter_markdown: ^0.7.4              # Markdown渲染
-  timeago: ^3.6.1                       # 时间格式化
-  url_launcher: ^6.3.0                  # 链接打开
+  flutter_markdown: ^0.8.0              # Markdown渲染
+  timeago: ^3.7.0                       # 时间格式化
+  url_launcher: ^6.3.1                  # 链接打开
   cached_network_image: ^3.4.1          # 网络图片缓存
   
   # 网络状态监控
-  connectivity_plus: ^6.1.0             # 网络连接状态
+  connectivity_plus: ^7.0.0             # 网络连接状态
   
   # 可选依赖 - 考虑移除或替换
   cupertino_icons: ^1.0.8             # iOS图标
   crypto: ^3.0.3                       # 加密库
-  chewie: ^1.7.5                      # 视频播放器UI
-  package_info_plus: ^8.0.2           # 包信息
-  device_info_plus: ^10.1.2           # 设备信息
+  chewie: ^1.9.0                      # 视频播放器UI
+  package_info_plus: ^9.0.0           # 包信息
+  device_info_plus: ^12.3.0           # 设备信息
 
 dev_dependencies:
   flutter_test:
