@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "com.example.bili_ownx"
     compileSdk = 36  // 使用最新的 Android SDK
+    buildToolsVersion = "36.1.0"  // 指定 Build Tools 版本
     ndkVersion = "27.0.12077973"
     
     // 启用核心库脱糖以支持 Java 8+ 特性
