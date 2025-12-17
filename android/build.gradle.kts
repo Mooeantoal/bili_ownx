@@ -11,20 +11,20 @@ val newBuildDir: Directory =
         .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
+// 全局构建缓存配置
+buildCache {
+    local {
+        enabled = true
+    }
+}
+
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
     
-    // 全局构建缓存配置
-    buildCache {
-        local {
-            enabled = true
-        }
-    }
-    
     // 优化编译任务
     tasks.withType<JavaCompile> {
-        options.incremental = true
+        options.isIncremental = true
         options.isFork = true
     }
     
@@ -34,7 +34,6 @@ subprojects {
             jvmTarget = "1.8"
         }
     }
-}
     
     // 统一依赖版本策略
     configurations.all {
@@ -69,12 +68,4 @@ subprojects {
             force("androidx.media3:media3-ui:1.5.0")
         }
     }
-}
-
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
 }

@@ -10,14 +10,6 @@ android {
     compileSdk = 36  // 使用最新的 Android SDK
     ndkVersion = "27.0.12077973"
     
-    // 构建缓存优化配置
-    buildCache {
-        local {
-            enabled = true
-            directory = File(rootProject.buildDir, "build-cache")
-        }
-    }
-    
     // 启用核心库脱糖以支持 Java 8+ 特性
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -49,18 +41,18 @@ android {
         
         // 构建优化参数
         vectorDrawables.useSupportLibrary = true
-        
-        // 增量构建优化
-        tasks.withType<JavaCompile> {
-            options.incremental = true
-            options.compilerArgs += listOf("-Xlint:unchecked", "-Xlint:deprecation")
-        }
-        
-        // Kotlin 编译优化
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-            kotlinOptions {
-                freeCompilerArgs += listOf("-Xallow-result-return-type")
-            }
+    }
+    
+    // 增量构建优化
+    tasks.withType<JavaCompile> {
+        options.isIncremental = true
+        options.compilerArgs += listOf("-Xlint:unchecked", "-Xlint:deprecation")
+    }
+    
+    // Kotlin 编译优化
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions {
+            freeCompilerArgs += listOf("-Xallow-result-return-type")
         }
     }
 
