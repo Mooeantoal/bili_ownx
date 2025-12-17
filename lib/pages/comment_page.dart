@@ -121,7 +121,7 @@ class _CommentPageState extends State<CommentPage>
           oid: widget.aid?.toString() ?? widget.bvid,
           sort: _currentSort,
           pageNum: _currentPage,
-          pageSize: 20,
+          pageSize: 50,
         ),
         timeout: const Duration(seconds: 15),
         retryCount: 2,
@@ -656,12 +656,7 @@ class _CommentPageState extends State<CommentPage>
           ),
           if (comment.replies != null && comment.replies!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            ...comment.replies!.take(2).map((reply) => _buildReplyItem(reply)),
-            if (comment.replyCount > 2)
-              TextButton(
-                onPressed: () => _showRepliesDialog(comment),
-                child: Text('查看${comment.replyCount - 2}条回复'),
-              ),
+            ...comment.replies!.map((reply) => _buildReplyItem(reply)),
           ],
         ],
       ),
@@ -768,11 +763,12 @@ class _CommentPageState extends State<CommentPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ...replies.take(3).map((reply) => _buildReplyItem(reply)),
-          if (comment.replyCount > 3)
+          ...replies.map((reply) => _buildReplyItem(reply)),
+          // 如果已加载的回复数量少于总回复数，显示查看更多按钮
+          if (comment.replyCount > replies.length)
             TextButton(
               onPressed: () => _showRepliesDialog(comment),
-              child: Text('查看全部${comment.replyCount}条回复'),
+              child: Text('查看更多回复 (还有${comment.replyCount - replies.length}条)'),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 0),
                 minimumSize: Size.zero,

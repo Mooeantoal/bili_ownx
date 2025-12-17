@@ -87,7 +87,7 @@ class CommentApi {
     required String rpid,
     String? rootRpid,
     int pageNum = 1,
-    int pageSize = 10,
+    int pageSize = 50,
   }) async {
     try {
       // 使用真正的根评论ID，避免显示一级评论

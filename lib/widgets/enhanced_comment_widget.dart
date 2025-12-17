@@ -478,7 +478,7 @@ class _EnhancedCommentWidgetState extends State<EnhancedCommentWidget>
         children: [
           // 显示热门回复（如果有的话）
           if (widget.comment.replies != null && widget.comment.replies!.isNotEmpty) ...[
-            ...widget.comment.replies!.take(3).map((reply) => 
+            ...widget.comment.replies!.map((reply) => 
               EnhancedCommentWidget(
                 comment: reply,
                 oid: widget.oid,
@@ -489,14 +489,12 @@ class _EnhancedCommentWidgetState extends State<EnhancedCommentWidget>
             ),
           ],
           
-          // 查看全部回复按钮
+          // 如果已加载的回复数量少于总回复数，显示查看更多按钮
           if (widget.comment.replyCount > (widget.comment.replies?.length ?? 0))
             TextButton(
               onPressed: widget.onReply,
               child: Text(
-                widget.comment.replyCount > (widget.comment.replies?.length ?? 0) 
-                    ? '查看全部${widget.comment.replyCount}条回复'
-                    : '${widget.comment.replyCount}条回复'
+                '还有${widget.comment.replyCount - (widget.comment.replies?.length ?? 0)}条未显示'
               ),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
