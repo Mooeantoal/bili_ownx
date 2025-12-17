@@ -46,7 +46,7 @@ android {
     // 增量构建优化
     tasks.withType<JavaCompile> {
         options.isIncremental = true
-        options.compilerArgs += listOf("-Xlint:unchecked", "-Xlint:deprecation")
+        options.compilerArgs = options.compilerArgs + listOf("-Xlint:unchecked", "-Xlint:deprecation")
     }
     
     // Kotlin 编译优化
@@ -81,7 +81,7 @@ android {
     
     // 移除ABI分割配置以确保生成通用APK
     
-    packaging {
+    packagingOptions {
         resources {
             excludes += listOf(
                 "META-INF/*.kotlin_module",
