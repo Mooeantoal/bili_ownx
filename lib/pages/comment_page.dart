@@ -121,7 +121,7 @@ class _CommentPageState extends State<CommentPage>
           oid: widget.aid?.toString() ?? widget.bvid,
           sort: _currentSort,
           pageNum: _currentPage,
-          pageSize: 50,
+          pageSize: 100,
         ),
         timeout: const Duration(seconds: 15),
         retryCount: 2,
@@ -189,6 +189,7 @@ class _CommentPageState extends State<CommentPage>
           oid: widget.aid?.toString() ?? widget.bvid,
           rpid: comment.rpid,
           rootRpid: rootRpid,
+          pageSize: 100,
         ),
         timeout: const Duration(seconds: 10),
       );
@@ -998,6 +999,7 @@ class _RepliesDialogState extends State<RepliesDialog> {
         rpid: widget.comment.rpid,
         rootRpid: rootRpid,
         pageNum: _currentPage,
+        pageSize: 50,
       );
 
       print('Dialog加载回复: comment.rpid=${widget.comment.rpid}, comment.rootStr=${widget.comment.rootStr}, actualRoot=$rootRpid');

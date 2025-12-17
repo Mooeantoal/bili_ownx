@@ -476,7 +476,7 @@ class _EnhancedCommentWidgetState extends State<EnhancedCommentWidget>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 显示热门回复（如果有的话）
+          // 显示所有回复（如果有的话）
           if (widget.comment.replies != null && widget.comment.replies!.isNotEmpty) ...[
             ...widget.comment.replies!.map((reply) => 
               EnhancedCommentWidget(
@@ -707,4 +707,6 @@ class _EnhancedCommentWidgetState extends State<EnhancedCommentWidget>
     // 删除评论
     debugPrint('删除评论');
   }
+
+
 }

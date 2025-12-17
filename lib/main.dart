@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'pages/main_page.dart';
+import 'pages/splash_page.dart';
 import 'services/download_manager.dart';
 import 'services/metadata_service.dart';
 import 'services/theme_service.dart';
 import 'services/network_service.dart';
+import 'services/startup_service.dart';
 import 'models/download_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 初始化Hive
-  await Hive.initFlutter();
+  // 创建启动优化服务
+  final startupService = StartupService();
   
-  // 注册适配器
-  if (!Hive.isAdapterRegistered(0)) {
-    Hive.registerAdapter(DownloadTaskAdapter());
-  }
+  // 注册所有初始化任务（并行执行）
+  startupService.registerInitializer(() async {
+    await Hive.initFlutter();
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(DownloadTaskAdapter());
+    }
+  });
   
-  // 初始化下载管理器
-  await DownloadManager().initialize();
+  startupService.registerInitializer(() => DownloadManager().initialize());
+  startupService.registerInitializer(() => MetadataService().initialize());
+  startupService.registerInitializer(() => ThemeService().initialize());
+  startupService.registerInitializer(() => NetworkService().initialize());
   
-  // 初始化元数据服务
-  await MetadataService().initialize();
+  // 快速初始化基础服务（并行）
+  await Future.wait([
+    startupService.initialize(),
+  ]);
   
-  // 初始化主题服务
-  await ThemeService().initialize();
-  
-  // 初始化网络服务
-  await NetworkService().initialize();
+  // 开始预热常用数据（不阻塞启动）
+  startupService.warmup();
   
   runApp(const MyApp());
 }
@@ -53,7 +58,7 @@ class MyApp extends StatelessWidget {
             darkTheme: ThemeService().darkTheme,
             themeMode: ThemeService().themeMode,
             debugShowCheckedModeBanner: false, // 移除debug横幅
-            home: const MainPage(),
+            home: const SplashPage(), // 使用启动页面
           ),
         );
       },

@@ -196,7 +196,7 @@ class CommentStateService extends ChangeNotifier {
     required String rootRpid,
     String? currentRpid, // 当前评论的rpid，用于调试
     int pageNum = 1,
-    int pageSize = 50,
+    int pageSize = 100,
   }) async {
     if (!_isOnline) {
       throw Exception('网络连接已断开');

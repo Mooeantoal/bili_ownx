@@ -45,6 +45,26 @@ class ThemeService extends ChangeNotifier {
     };
   }
 
+  /// 预热主题数据
+  Future<void> warmup() async {
+    try {
+      // 预计算主题颜色
+      final context = WidgetsBinding.instance.platformDispatcher.views.first.context;
+      if (context != null) {
+        final theme = ThemeData.light();
+        final darkTheme = ThemeData.dark();
+        
+        // 触发主题预计算
+        theme.colorScheme;
+        darkTheme.colorScheme;
+      }
+      
+      debugPrint('🎨 主题数据预热完成');
+    } catch (e) {
+      debugPrint('⚠️ 主题预热失败: $e');
+    }
+  }
+
   /// 设置主题模式
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;

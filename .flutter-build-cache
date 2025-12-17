@@ -1,0 +1,9 @@
+# Flutter构建缓存配置
+# 这个文件用于优化Flutter的构建性能
+
+# 1. Dart编译器缓存
+dart-tools:
+  incremental-compiler: true
+  dart2js:
+    minify: true
+    generate-source-maps: false

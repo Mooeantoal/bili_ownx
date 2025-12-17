@@ -234,7 +234,7 @@ class _CommentReplyPageState extends State<CommentReplyPage>
         rootRpid: widget.rootRpid,
         currentRpid: widget.rootRpid, // 添加当前评论ID用于调试
         pageNum: _currentPage,
-        pageSize: 50,
+        pageSize: 100,
       );
 
       print('CommentReplyPage加载到${newReplies.length}条回复');

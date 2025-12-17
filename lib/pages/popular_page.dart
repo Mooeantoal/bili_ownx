@@ -36,8 +36,7 @@ class _PopularPageState extends State<PopularPage>
     });
 
     try {
-      // 模拟热门数据
-      await Future.delayed(const Duration(seconds: 1));
+      // 移除人为延迟，立即加载热门数据
       
       final demoData = [
         BiliVideoInfo(

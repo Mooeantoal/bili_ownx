@@ -36,8 +36,7 @@ class _RecommendPageState extends State<RecommendPage>
     });
 
     try {
-      // 模拟推荐数据
-      await Future.delayed(const Duration(seconds: 1));
+      // 移除人为延迟，立即加载推荐数据
       
       final demoData = [
         BiliVideoInfo(

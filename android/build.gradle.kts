@@ -15,6 +15,27 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
     
+    // 全局构建缓存配置
+    buildCache {
+        local {
+            enabled = true
+        }
+    }
+    
+    // 优化编译任务
+    tasks.withType<JavaCompile> {
+        options.incremental = true
+        options.isFork = true
+    }
+    
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        incremental = true
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+}
+    
     // 统一依赖版本策略
     configurations.all {
         resolutionStrategy {

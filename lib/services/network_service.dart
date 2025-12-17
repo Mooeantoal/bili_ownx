@@ -45,6 +45,39 @@ class NetworkService extends ChangeNotifier {
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
   }
 
+  /// 预热网络缓存
+  Future<void> warmupCache() async {
+    try {
+      // 预连接到常用域名，建立TCP连接池
+      final urls = [
+        'https://api.bilibili.com',
+        'https://i0.hdslb.com',
+        'https://i1.hdslb.com',
+        'https://i2.hdslb.com',
+      ];
+      
+      await Future.wait(
+        urls.map((url) => _preconnect(url)),
+      );
+      
+      debugPrint('🔥 网络缓存预热完成');
+    } catch (e) {
+      debugPrint('⚠️ 网络预热失败: $e');
+    }
+  }
+
+  /// 预连接到指定域名
+  Future<void> _preconnect(String url) async {
+    try {
+      final dio = Dio();
+      // 发送一个轻量级的HEAD请求来预热连接
+      await dio.head(url).timeout(const Duration(seconds: 3));
+      dio.close();
+    } catch (e) {
+      // 预连接失败不影响正常功能
+    }
+  }
+
   /// 检查网络连接
   Future<void> checkConnectivity() async {
     try {

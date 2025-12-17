@@ -14,7 +14,7 @@ class CommentInfo {
   final UserInfo? user; // 用户信息
   final ContentInfo? content; // 内容信息（包含表情等）
   final ReplyControl? replyControl; // 回复控制信息
-  final List<CommentInfo>? replies; // 热门回复
+  List<CommentInfo>? replies; // 热门回复（改为可变以便动态加载）
   bool isLiked; // 是否已点赞
   final bool isTop; // 是否置顶
   final bool isFloorTop; // 是否楼层置顶
